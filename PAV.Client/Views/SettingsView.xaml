@@ -1,0 +1,108 @@
+<UserControl x:Class="PAV.Client.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Text="Settings" Style="{StaticResource PageTitle}" Margin="0,0,0,16"/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+          <StackPanel>
+            <TextBlock Text="Connection" FontWeight="SemiBold" Margin="0,0,0,10"/>
+            <TextBlock Text="Signed in as" Style="{StaticResource FieldLabel}"/>
+            <TextBlock Margin="0,0,0,10">
+              <Run Text="{Binding SignedInName, Mode=OneWay}"/>
+              <Run Text="  ·  "/>
+              <Run Text="{Binding SignedInRole, Mode=OneWay}"/>
+            </TextBlock>
+            <Button Content="Sign out" Style="{StaticResource SecondaryButton}" Command="{Binding SignOutCommand}"
+                    HorizontalAlignment="Left" Margin="0,0,0,12"/>
+            <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
+            <DockPanel Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="Save" Style="{StaticResource PrimaryButton}"
+                      Command="{Binding SaveServerCommand}" Margin="8,0,0,0"/>
+              <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
+                      Command="{Binding BrowseDatabaseCommand}" Margin="8,0,0,0"/>
+              <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"/>
+            </DockPanel>
+            <TextBlock Text="{Binding ServerMessage}" Style="{StaticResource MutedText}"/>
+            <TextBlock TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,6,0,0"
+                       Text="Everyone must point at the same shared folder. The database file is inventory.db inside that folder. Backups go in a Backups subfolder."/>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16" Cursor="Hand">
+          <Border.InputBindings>
+            <MouseBinding Gesture="LeftClick" Command="{Binding ToggleDarkModeCommand}"/>
+          </Border.InputBindings>
+          <DockPanel>
+            <CheckBox DockPanel.Dock="Right" IsChecked="{Binding DarkMode, Mode=OneWay}"
+                      Style="{StaticResource ThemeSwitch}" VerticalAlignment="Center"
+                      IsHitTestVisible="False"/>
+            <StackPanel>
+              <TextBlock Text="Dark mode" FontWeight="SemiBold"/>
+              <TextBlock Text="Dark background for night use. Applies immediately on this PC."
+                         Style="{StaticResource MutedText}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="16"/>
+              <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Categories" FontWeight="SemiBold" Margin="0,0,0,10"/>
+              <DataGrid ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" Height="220">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140"/>
+                  <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding CategoryName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
+                       IsEnabled="{Binding CanManageCategories}"/>
+              <TextBlock Text="Description" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding CategoryDescription, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"
+                       IsEnabled="{Binding CanManageCategories}"/>
+              <TextBlock Text="{Binding CategoryError}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+              <StackPanel Orientation="Horizontal">
+                <Button Content="New" Style="{StaticResource SecondaryButton}" Command="{Binding NewCategoryCommand}" Margin="0,0,6,0"/>
+                <Button Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCategoryCommand}"
+                        IsEnabled="{Binding CanManageCategories}" Margin="0,0,6,0"/>
+                <Button Content="Delete" Style="{StaticResource DangerButton}" Command="{Binding DeleteCategoryCommand}"
+                        IsEnabled="{Binding CanManageCategories}"/>
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Border Style="{StaticResource Card}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Text="Backup and restore" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,10"
+                       Text="Automatic daily backup is kept for the last 30 copies. Restore is blocked while a write is running."/>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+              <Button Content="Backup now" Style="{StaticResource PrimaryButton}" Command="{Binding BackupNowCommand}"
+                      IsEnabled="{Binding CanBackup}" Margin="0,0,8,0"/>
+              <Button Content="Restore selected" Style="{StaticResource DangerButton}" Command="{Binding RestoreCommand}"
+                      IsEnabled="{Binding CanBackup}"/>
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Top" Text="{Binding BackupMessage}" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
+            <DataGrid ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}" Height="180">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="*"/>
+                <DataGridTextColumn Header="Created (UTC)" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm:ss}" Width="170"/>
+                <DataGridTextColumn Header="Size" Binding="{Binding SizeBytes}" Width="90"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

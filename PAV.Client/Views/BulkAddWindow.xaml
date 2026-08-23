@@ -1,0 +1,91 @@
+<Window x:Class="PAV.Client.Views.BulkAddWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bulk add" Width="600" Height="600"
+        MinWidth="520" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}">
+  <DockPanel Margin="24,20,20,20">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,8,12">
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+        <TextBlock Text="&#xE8FA;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}"/>
+        <TextBlock Text="Bulk add" Style="{StaticResource PageTitle}" VerticalAlignment="Center"/>
+      </StackPanel>
+      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                 Text="Set the shared fields, then paste one machine per line: SERIAL or SERIAL,HOSTNAME,IP,USER"/>
+    </StackPanel>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
+               TextWrapping="Wrap" Margin="0,0,8,10"/>
+    <Border DockPanel.Dock="Bottom" Padding="0,16,8,0" Margin="0,8,0,0"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}"
+                Margin="0,0,8,0" Padding="16,8" IsCancel="True"/>
+        <Button Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}" Padding="20,8" IsDefault="True">
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="&#xE710;" Style="{StaticResource BtnIcon}" Foreground="White"/>
+            <TextBlock Text="Add" VerticalAlignment="Center" Foreground="White"/>
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+    <Grid Margin="0,0,8,0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,14">
+          <TextBlock Text="Category *" Style="{StaticResource FieldLabel}"/>
+          <ComboBox ItemsSource="{Binding Categories}" SelectedValuePath="Id"
+                    SelectedValue="{Binding CategoryId}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Margin="0,0,0,14">
+          <TextBlock Text="Location" Style="{StaticResource FieldLabel}"/>
+          <ComboBox ItemsSource="{Binding Locations}" SelectedValuePath="Id"
+                    SelectedValue="{Binding LocationId}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,14">
+          <TextBlock Text="Status" Style="{StaticResource FieldLabel}"/>
+          <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status}"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14">
+          <TextBlock Text="Domain" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Margin="0,0,0,14">
+          <TextBlock Text="Manufacturer" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,14">
+          <TextBlock Text="Model" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+      </Grid>
+      <DockPanel Grid.Row="1">
+        <TextBlock DockPanel.Dock="Top" Text="Paste list" Style="{StaticResource FieldLabel}"/>
+        <TextBox Text="{Binding Lines, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"
+                 TextWrapping="Wrap" Padding="10,8" MinHeight="160"/>
+      </DockPanel>
+    </Grid>
+  </DockPanel>
+</Window>

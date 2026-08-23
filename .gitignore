@@ -1,0 +1,28 @@
+## Build
+bin/
+obj/
+out/
+dist/
+publish/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vs/
+.vs/
+
+## Data (runtime)
+**/Data/*.db
+**/Data/*.db-*
+**/Backups/
+**/Logs/
+*.log
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+## Publish leftovers
+*.pdb
+*.exe.config

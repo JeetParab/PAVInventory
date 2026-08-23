@@ -1,0 +1,20 @@
+<Window x:Class="PAV.Client.Views.BulkStatusWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bulk status" Width="360" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize"
+        Background="{DynamicResource BgBrush}">
+  <DockPanel Margin="20">
+    <TextBlock DockPanel.Dock="Top" Text="Bulk status change" Style="{StaticResource PageTitle}" Margin="0,0,0,8"/>
+    <TextBlock x:Name="Hint" DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,12"/>
+    <TextBlock x:Name="ErrorText" DockPanel.Dock="Top" Foreground="{DynamicResource DangerBrush}" Margin="0,0,0,8"/>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+      <Button Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True" Margin="0,0,8,0"/>
+      <Button Content="Apply" Style="{StaticResource PrimaryButton}" Click="OnApply" IsDefault="True"/>
+    </StackPanel>
+    <StackPanel>
+      <TextBlock Text="Status" Style="{StaticResource FieldLabel}"/>
+      <ComboBox x:Name="StatusBox"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

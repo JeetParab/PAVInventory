@@ -1,0 +1,21 @@
+<Window x:Class="PAV.Client.Views.AddLocationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Add location" Width="380" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False" ResizeMode="NoResize"
+        Background="{DynamicResource BgBrush}">
+  <DockPanel Margin="20">
+    <TextBlock DockPanel.Dock="Top" Text="Add custom location" Style="{StaticResource PageTitle}" Margin="0,0,0,12"/>
+    <TextBlock x:Name="ErrorText" DockPanel.Dock="Top" Foreground="{DynamicResource DangerBrush}" Margin="0,0,0,8"/>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+      <Button Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True" Margin="0,0,8,0"/>
+      <Button Content="Add" Style="{StaticResource PrimaryButton}" Click="OnAdd" IsDefault="True"/>
+    </StackPanel>
+    <StackPanel>
+      <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+      <TextBox x:Name="NameBox" Margin="0,0,0,10"/>
+      <TextBlock Text="Description" Style="{StaticResource FieldLabel}"/>
+      <TextBox x:Name="DescBox"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

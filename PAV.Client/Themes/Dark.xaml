@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="SidebarBrush" Color="#0D1218"/>
+  <SolidColorBrush x:Key="AccentBrush" Color="#4C8DFF"/>
+  <SolidColorBrush x:Key="AccentHoverBrush" Color="#6AA0FF"/>
+  <SolidColorBrush x:Key="BgBrush" Color="#0F141A"/>
+  <SolidColorBrush x:Key="SurfaceBrush" Color="#1A222C"/>
+  <SolidColorBrush x:Key="TextBrush" Color="#E8EEF5"/>
+  <SolidColorBrush x:Key="MutedBrush" Color="#A8B6C6"/>
+  <SolidColorBrush x:Key="BorderBrush" Color="#2C394A"/>
+  <SolidColorBrush x:Key="DangerBrush" Color="#FF6B6E"/>
+  <SolidColorBrush x:Key="SidebarHoverBrush" Color="#1C2633"/>
+  <SolidColorBrush x:Key="SidebarTextBrush" Color="#C5D0DE"/>
+  <SolidColorBrush x:Key="RowAltBrush" Color="#151C25"/>
+  <SolidColorBrush x:Key="HeaderBrush" Color="#141B24"/>
+  <SolidColorBrush x:Key="HoverBrush" Color="#243042"/>
+  <SolidColorBrush x:Key="OverlayBrush" Color="#CC0F141A"/>
+  <SolidColorBrush x:Key="DangerBorderBrush" Color="#6A3034"/>
+  <SolidColorBrush x:Key="WarnBgBrush" Color="#3A2E18"/>
+  <SolidColorBrush x:Key="WarnBorderBrush" Color="#6B5420"/>
+  <SolidColorBrush x:Key="ConnectedBrush" Color="#3BB273"/>
+  <SolidColorBrush x:Key="DisconnectedBrush" Color="#FF6B6E"/>
+
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#E8EEF5"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#E8EEF5"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#A8B6C6"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="#E8EEF5"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1A222C"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A222C"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.ControlLightBrushKey}" Color="#141B24"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#4C8DFF"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#4C8DFF"/>
+  <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+</ResourceDictionary>

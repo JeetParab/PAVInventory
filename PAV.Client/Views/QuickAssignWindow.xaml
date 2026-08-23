@@ -1,0 +1,25 @@
+<Window x:Class="PAV.Client.Views.QuickAssignWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Title}" Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        ResizeMode="NoResize" Background="{DynamicResource BgBrush}">
+  <DockPanel Margin="20">
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,8"/>
+    <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12"
+               Text="Pick a known name or type one. Unique matches are linked to a PAV user."/>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
+               TextWrapping="Wrap" Margin="0,0,0,8"/>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="Unassign" Style="{StaticResource SecondaryButton}" Command="{Binding UnassignCommand}" Margin="0,0,8,0"/>
+      <Button Content="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}" Margin="0,0,8,0" IsCancel="True"/>
+      <Button Content="Assign" Style="{StaticResource PrimaryButton}" Command="{Binding AssignCommand}" IsDefault="True"/>
+    </StackPanel>
+    <StackPanel>
+      <TextBlock Text="User Name" Style="{StaticResource FieldLabel}"/>
+      <ComboBox x:Name="UserBox" ItemsSource="{Binding AssigneeChoices}"
+                Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
+                IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

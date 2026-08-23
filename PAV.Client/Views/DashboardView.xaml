@@ -1,0 +1,146 @@
+<UserControl x:Class="PAV.Client.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <DockPanel>
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+      <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}"/>
+    </DockPanel>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <WrapPanel Margin="0,0,0,16">
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenTotalCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="Total Assets" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.TotalAssets}" FontSize="26" FontWeight="SemiBold" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenInUseCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="In Use" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.InUse}" FontSize="26" FontWeight="SemiBold" Foreground="#107C41" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenInStockCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="In Stock" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.InStock}" FontSize="26" FontWeight="SemiBold" Foreground="#2F6FED" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenRepairCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="Under Repair" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.UnderRepair}" FontSize="26" FontWeight="SemiBold" Foreground="#C47B17" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenDamagedCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="Damaged" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.Damaged}" FontSize="26" FontWeight="SemiBold" Foreground="#D13438" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenStandbyCommand}" Margin="0,0,10,10" Padding="0">
+            <Border Style="{StaticResource StatCard}" Width="156">
+              <StackPanel>
+                <TextBlock Text="Standby" Style="{StaticResource MutedText}"/>
+                <TextBlock Text="{Binding Data.Standby}" FontSize="26" FontWeight="SemiBold" Foreground="#6B4C9A" Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+          </Button>
+        </WrapPanel>
+
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1.1*"/>
+            <ColumnDefinition Width="16"/>
+            <ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="16"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+
+          <Border Style="{StaticResource Card}" Grid.Column="0" Grid.Row="0">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Assets by category" FontWeight="SemiBold" Margin="0,0,0,10"/>
+              <ItemsControl ItemsSource="{Binding Data.ByCategory}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Button Style="{StaticResource GhostButton}" HorizontalContentAlignment="Stretch"
+                            Command="{Binding DataContext.OpenCategoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" Padding="0" Margin="0,0,0,6">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="110"/>
+                          <ColumnDefinition Width="*"/>
+                          <ColumnDefinition Width="36"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12.5"/>
+                        <Border Grid.Column="1" Height="8" Background="#EEF2F7" CornerRadius="4" Margin="8,0" VerticalAlignment="Center">
+                          <Border Background="{DynamicResource AccentBrush}" CornerRadius="4" HorizontalAlignment="Left"
+                                  Width="{Binding Count}" MaxWidth="220"/>
+                        </Border>
+                        <TextBlock Grid.Column="2" Text="{Binding Count}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
+                      </Grid>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </DockPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Grid.Column="2" Grid.Row="0">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Recent activity" FontWeight="SemiBold" Margin="0,0,0,10"/>
+              <ItemsControl ItemsSource="{Binding Data.RecentActivity}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel Margin="0,0,0,10">
+                      <TextBlock FontSize="12" FontWeight="SemiBold">
+                        <Run Text="{Binding Timestamp, StringFormat=dd MMM yyyy}"/>
+                        <Run Text=" — "/>
+                        <Run Text="{Binding DisplayName}"/>
+                      </TextBlock>
+                      <TextBlock FontSize="12" Foreground="{DynamicResource MutedBrush}">
+                        <Run Text="{Binding FieldName}"/>
+                        <Run Text="  "/>
+                        <Run Text="{Binding OldValue}"/>
+                        <Run Text=" → "/>
+                        <Run Text="{Binding NewValue}"/>
+                      </TextBlock>
+                    </StackPanel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </DockPanel>
+          </Border>
+
+          <Border Style="{StaticResource Card}" Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="2">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="Warranty expiring soon" FontWeight="SemiBold" Margin="0,0,0,10"/>
+              <DataGrid ItemsSource="{Binding Data.WarrantyExpiringSoon}" MaxHeight="260">
+                <DataGrid.Columns>
+                  <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetTag}" Width="110"/>
+                  <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100"/>
+                  <DataGridTextColumn Header="Assigned User" Binding="{Binding AssignedUser}" Width="140"/>
+                  <DataGridTextColumn Header="Warranty Expiry" Binding="{Binding WarrantyExpiry, StringFormat=dd MMM yyyy}" Width="140"/>
+                </DataGrid.Columns>
+              </DataGrid>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

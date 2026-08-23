@@ -1,0 +1,74 @@
+<Window x:Class="PAV.Client.Views.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PAV Inventory"
+        Width="460" SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{DynamicResource BgBrush}">
+  <DockPanel Margin="28,24">
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,18">
+      <TextBlock Text="PAV" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource AccentBrush}"/>
+      <TextBlock Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,2,0,4"/>
+      <TextBlock Text="{Binding StatusLine}" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
+      <Button Content="{Binding PrimaryAction}" Style="{StaticResource PrimaryButton}" Click="OnSignIn"
+              HorizontalAlignment="Stretch" Padding="14,9" Margin="0,0,0,8"
+              IsEnabled="{Binding Busy, Converter={StaticResource InvertBool}}"/>
+      <Button Content="Cancel" Style="{StaticResource SecondaryButton}" IsCancel="True"
+              HorizontalAlignment="Stretch"/>
+    </StackPanel>
+
+    <StackPanel>
+      <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
+      <DockPanel Margin="0,0,0,10">
+        <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
+                Command="{Binding BrowseCommand}" Margin="8,0,0,0"/>
+        <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"/>
+      </DockPanel>
+      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
+                 Text="Leave empty to use inventory.db next to this app. Browse to the shared folder if the app is installed locally."/>
+      <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
+      <TextBox x:Name="UsernameBox" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+
+      <StackPanel Margin="0,0,0,0">
+        <StackPanel.Style>
+          <Style TargetType="StackPanel">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding NeedsSetup}" Value="True">
+                <Setter Property="Visibility" Value="Visible"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </StackPanel.Style>
+        <TextBlock Text="Display name" Style="{StaticResource FieldLabel}"/>
+        <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+      </StackPanel>
+
+      <TextBlock Text="Password" Style="{StaticResource FieldLabel}"/>
+      <PasswordBox x:Name="PasswordBox" Margin="0,0,0,10" Padding="8,6" FontSize="13"
+                   KeyDown="OnPasswordKeyDown"/>
+
+      <StackPanel>
+        <StackPanel.Style>
+          <Style TargetType="StackPanel">
+            <Setter Property="Visibility" Value="Collapsed"/>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding NeedsSetup}" Value="True">
+                <Setter Property="Visibility" Value="Visible"/>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </StackPanel.Style>
+        <TextBlock Text="Confirm password" Style="{StaticResource FieldLabel}"/>
+        <PasswordBox x:Name="ConfirmBox" Margin="0,0,0,10" Padding="8,6" FontSize="13"
+                     KeyDown="OnPasswordKeyDown"/>
+      </StackPanel>
+
+      <TextBlock Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap"/>
+    </StackPanel>
+  </DockPanel>
+</Window>

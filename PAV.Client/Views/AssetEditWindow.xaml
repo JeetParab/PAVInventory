@@ -1,0 +1,277 @@
+<Window x:Class="PAV.Client.Views.AssetEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding Title}"
+        Width="820" Height="800"
+        MinWidth="700" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{DynamicResource BgBrush}">
+  <Window.InputBindings>
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+  </Window.InputBindings>
+  <DockPanel Margin="24,20,20,20">
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,8,14"/>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
+               TextWrapping="Wrap" Margin="0,0,8,12"/>
+
+    <Border DockPanel.Dock="Bottom" Padding="0,16,8,0" Margin="0,8,0,0"
+            BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+        <Button Content="Cancel" Style="{StaticResource SecondaryButton}" Command="{Binding CancelCommand}"
+                Margin="0,0,8,0" Padding="16,8" IsCancel="True"/>
+        <Button Content="Save" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}"
+                Padding="20,8" IsDefault="True"/>
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" FocusVisualStyle="{x:Null}"
+                  Padding="0,0,12,12" CanContentScroll="False">
+      <StackPanel Margin="0,0,4,8">
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+          <TextBlock Text="&#xE8F1;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+          <TextBlock Text="Identity" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <StackPanel Grid.Row="0" Margin="0,0,0,14">
+            <TextBlock Text="Asset ID" Style="{StaticResource FieldLabel}"/>
+            <TextBox x:Name="AssetTagBox" Text="{Binding AssetTag, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Sr No" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding SrNoText, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Margin="0,0,0,14">
+            <TextBlock Text="Category *" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding Categories}" SelectedValuePath="Id"
+                      SelectedValue="{Binding CategoryId}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Name}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Status *" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding Statuses}" SelectedItem="{Binding Status}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Margin="0,0,0,14">
+            <TextBlock Text="Location" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding Locations}" SelectedValuePath="Id"
+                      SelectedValue="{Binding LocationId}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Name}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Serial Number" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="3" Margin="0,0,0,14">
+            <TextBlock Text="Hostname" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Hostname, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="IP Address" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="4" Margin="0,0,0,14">
+            <TextBlock Text="Manufacturer" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="4" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Model" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Model, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+          <TextBlock Text="&#xE716;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+          <TextBlock Text="Assignment" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="User Name" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding AssigneeChoices}"
+                      Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
+                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
+                      ToolTip="Pick a known name or type one. Leave blank to unassign."/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Designation" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Designation, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+        </Grid>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="Alternate User" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding AlternateUser, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Domain" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+        </Grid>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="Last Connected" Style="{StaticResource FieldLabel}"/>
+            <DockPanel LastChildFill="True" MinHeight="36">
+              <Button DockPanel.Dock="Right" Content="Clear" Style="{StaticResource GhostButton}"
+                      Command="{Binding ClearLastConnectedCommand}" Padding="12,7" Margin="6,0,0,0"/>
+              <Button DockPanel.Dock="Right" Content="Today" Style="{StaticResource SecondaryButton}"
+                      Command="{Binding LastConnectedTodayCommand}" Padding="12,7" Margin="6,0,0,0"/>
+              <Grid MinHeight="36">
+                <TextBox Text="{Binding LastConnectedText, UpdateSourceTrigger=LostFocus}"
+                         VerticalContentAlignment="Center" Padding="10,8,36,8"/>
+                <TextBlock Text="dd-MMM-yyyy" Foreground="#9AA6B2" Margin="12,0,36,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding LastConnectedText}" Value="">
+                          <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+                <Button HorizontalAlignment="Right" Width="32" Style="{StaticResource GhostButton}"
+                        Command="{Binding ToggleCalendarCommand}" ToolTip="Pick a date"
+                        Padding="0" BorderThickness="0">
+                  <TextBlock Text="▾" FontSize="12" Foreground="{DynamicResource MutedBrush}"/>
+                </Button>
+                <Popup IsOpen="{Binding CalendarOpen}" Placement="Bottom" StaysOpen="False"
+                       AllowsTransparency="True">
+                  <Border Style="{StaticResource Card}" Padding="8" Margin="0,6,0,0">
+                    <Calendar SelectedDate="{Binding LastConnected, Mode=TwoWay}"
+                              Style="{StaticResource PavCalendar}"/>
+                  </Border>
+                </Popup>
+              </Grid>
+            </DockPanel>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Collect By" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding CollectByChoices}"
+                      Text="{Binding CollectBy, UpdateSourceTrigger=LostFocus}"
+                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"/>
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+          <TextBlock Text="&#xE7F4;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+          <TextBlock Text="Hardware" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="MAC Address" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Processor" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Processor, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Margin="0,0,0,14">
+            <TextBlock Text="RAM" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Ram, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Storage" Style="{StaticResource FieldLabel}"/>
+            <TextBox Text="{Binding Storage, UpdateSourceTrigger=PropertyChanged}"/>
+          </StackPanel>
+        </Grid>
+        <StackPanel Margin="0,0,0,14">
+          <TextBlock Text="OS" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding OperatingSystem, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+          <TextBlock Text="&#xE73E;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+          <TextBlock Text="Compliance" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="16"/><ColumnDefinition Width="*"/>
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+          </Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="DC Installed" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding DcInstalled}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="AV Installed" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding AvInstalled}"/>
+          </StackPanel>
+          <StackPanel Grid.Column="4" Margin="0,0,0,14">
+            <TextBlock Text="MS Office" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding OfficeChoices}"
+                      Text="{Binding MsOfficeVersion, UpdateSourceTrigger=LostFocus}"
+                      IsEditable="True" IsTextSearchEnabled="True"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Margin="0,0,0,14">
+            <TextBlock Text="MFA Enabled" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding MfaEnabled}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Ivanti Installed" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding IvantiInstalled}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="4" Margin="0,0,0,14">
+            <TextBlock Text="Admin Rights" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding AdminRights}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Margin="0,0,0,14">
+            <TextBlock Text="USB Access" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding UsbAccess}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,14">
+            <TextBlock Text="Chrome Updated" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding ChromeUpdated}"/>
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="4" Margin="0,0,0,14">
+            <TextBlock Text="PM Completed" Style="{StaticResource FieldLabel}"/>
+            <ComboBox ItemsSource="{Binding YesNo}" SelectedItem="{Binding PmCompleted}"/>
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+          <TextBlock Text="&#xE70B;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+          <TextBlock Text="Notes" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBox Text="{Binding Remarks, UpdateSourceTrigger=PropertyChanged}" Height="72"
+                 TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                 Padding="10,8"/>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>
