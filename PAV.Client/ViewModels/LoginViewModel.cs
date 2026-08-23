@@ -32,8 +32,6 @@ public partial class LoginViewModel : ObservableObject
         StatusLine = value
             ? "This database has no users yet. Create the first administrator. Choose a password that is not admin / engineer / guest."
             : "Use a PAV account. Point this app at the shared folder so everyone uses the same database.";
-        if (value && string.IsNullOrWhiteSpace(Username))
-            Username = "admin";
     }
 
     [RelayCommand]
