@@ -81,7 +81,7 @@
           </Grid>
         </Border>
 
-        <Border Style="{StaticResource Card}">
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16">
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="Backup and restore" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,10"
@@ -101,6 +101,14 @@
               </DataGrid.Columns>
             </DataGrid>
           </DockPanel>
+        </Border>
+
+        <Border Style="{StaticResource Card}" Margin="0,0,0,8">
+          <StackPanel>
+            <TextBlock Text="About" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <TextBlock Text="PAV IT Inventory for SIDBI" FontSize="14"/>
+            <TextBlock Text="Crafted by Jeet Parab" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
+          </StackPanel>
         </Border>
       </StackPanel>
     </ScrollViewer>

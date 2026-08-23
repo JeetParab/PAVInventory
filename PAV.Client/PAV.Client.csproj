@@ -9,7 +9,13 @@
     <AssemblyName>PAV.Client</AssemblyName>
     <ApplicationIcon>Assets\pav.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationTitle>PAV Inventory</ApplicationTitle>
+    <ApplicationTitle>PAV IT Inventory for SIDBI</ApplicationTitle>
+    <Product>PAV IT Inventory for SIDBI</Product>
+    <AssemblyTitle>PAV IT Inventory for SIDBI</AssemblyTitle>
+    <Company>Jeet Parab</Company>
+    <Authors>Jeet Parab</Authors>
+    <Description>IT asset inventory for SIDBI — crafted by Jeet Parab</Description>
+    <Copyright>Crafted by Jeet Parab</Copyright>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\PAV.Shared\PAV.Shared.csproj" />
