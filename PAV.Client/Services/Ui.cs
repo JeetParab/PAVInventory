@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using Microsoft.Win32;
+using PAV.Client.Views;
 
 namespace PAV.Client.Services;
 
@@ -10,26 +11,40 @@ public static class Ui
     {
         if (ex is ApiException api && api.Errors is { Count: > 0 })
         {
-            MessageBox.Show(
-                api.Message + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, api.Errors),
-                "PAV Inventory",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
+            MessageDialog.Warning(
+                api.Message + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, api.Errors));
             return;
         }
 
-        MessageBox.Show(ex.Message, "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageDialog.Warning(ex.Message);
     }
 
     public static void Info(string message)
     {
-        MessageBox.Show(message, "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Information);
+        MessageDialog.Info(message);
     }
 
     public static bool Confirm(string message)
     {
-        return MessageBox.Show(message, "PAV Inventory", MessageBoxButton.YesNo, MessageBoxImage.Question) ==
-               MessageBoxResult.Yes;
+        // Split "Title?\n\nDetail" style messages into title + body when possible.
+        var title = "Confirm";
+        var body = message;
+        var parts = message.Split(new[] { "\r\n\r\n", "\n\n" }, 2, StringSplitOptions.None);
+        if (parts.Length == 2)
+        {
+            title = parts[0].Trim();
+            body = parts[1].Trim();
+        }
+        else if (message.Contains('?') && message.IndexOf('?') < 80)
+        {
+            var i = message.IndexOf('?');
+            title = message[..(i + 1)].Trim();
+            body = message[(i + 1)..].Trim();
+            if (string.IsNullOrWhiteSpace(body))
+                body = "This action can be undone from the bar at the bottom when available.";
+        }
+
+        return MessageDialog.Confirm(body, title);
     }
 
     public static string? PickFolder()
