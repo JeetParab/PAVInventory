@@ -21,6 +21,12 @@
   <SolidColorBrush x:Key="ConnectedBrush" Color="#3BB273"/>
   <SolidColorBrush x:Key="DisconnectedBrush" Color="#FF6B6E"/>
 
+  <!-- Scrollbars -->
+  <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#00000000"/>
+  <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#3A4656"/>
+  <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="#556274"/>
+  <SolidColorBrush x:Key="ScrollBarThumbDragBrush" Color="#6B7A8C"/>
+
   <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#E8EEF5"/>
   <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#E8EEF5"/>
   <SolidColorBrush x:Key="{x:Static SystemColors.GrayTextBrushKey}" Color="#A8B6C6"/>
