@@ -10,8 +10,13 @@
                   HorizontalScrollBarVisibility="Disabled"
                   CanContentScroll="False"
                   PanningMode="VerticalOnly"
-                  IsDeferredScrollingEnabled="False">
+                  IsDeferredScrollingEnabled="True">
+      <!-- Bitmap cache: scrolling moves a cached visual instead of re-layouting every card/DataGrid -->
       <StackPanel>
+        <StackPanel.CacheMode>
+          <BitmapCache EnableClearType="True" RenderAtScale="1" SnapsToDevicePixels="True"/>
+        </StackPanel.CacheMode>
+
         <Border Style="{StaticResource Card}" Margin="0,0,0,16">
           <StackPanel>
             <TextBlock Text="Connection" FontWeight="SemiBold" Margin="0,0,0,10"/>
@@ -64,6 +69,10 @@
               <TextBlock DockPanel.Dock="Top" Text="Categories" FontWeight="SemiBold" Margin="0,0,0,10"/>
               <DataGrid ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}"
                         Height="220"
+                        EnableRowVirtualization="True"
+                        EnableColumnVirtualization="True"
+                        VirtualizingPanel.IsVirtualizing="True"
+                        VirtualizingPanel.VirtualizationMode="Recycling"
                         PreviewMouseWheel="OnNestedPreviewMouseWheel"
                         ScrollViewer.VerticalScrollBarVisibility="Auto"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -107,6 +116,10 @@
             <TextBlock DockPanel.Dock="Top" Text="{Binding BackupMessage}" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
             <DataGrid ItemsSource="{Binding Backups}" SelectedItem="{Binding SelectedBackup}"
                       Height="180"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="True"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
                       PreviewMouseWheel="OnNestedPreviewMouseWheel"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
