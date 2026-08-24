@@ -219,6 +219,7 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
         stream.Position = 0;
         var groups = StockExcel.GroupsForImport(stream);
         var existing = await db.StockItems.AsNoTracking().ToListAsync();
+        var existingList = existing.Select(x => (x.Id, x.Name, x.NormalizedKey)).ToList();
         var existingKeys = existing
             .GroupBy(x => x.NormalizedKey)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
@@ -236,14 +237,19 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
 
             foreach (var g in groups)
             {
+                var fuzzyHit = g.MatchExistingFuzzy
+                    ? StockExcel.MatchExisting(g.Name, g.Key, g.Model, existingList)
+                    : null;
                 existingKeys.TryGetValue(g.Key, out var hits);
-                if (hits is { Count: > 0 })
+                if (fuzzyHit is not null || hits is { Count: > 0 })
                 {
                     skipped++;
                     continue;
                 }
 
                 if (g.Classification == "SerializedAsset")
+                    continue;
+                if (g.OpeningQty <= 0 && g.Rows.Count == 0)
                     continue;
 
                 var item = new StockItem

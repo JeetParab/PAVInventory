@@ -2,14 +2,15 @@
 
 Separate from Inventory. Quantity items only. Issue/return use existing PAV users.
 
-## Excel (do not merge original 2025 + 2026)
+## Excel import order
 
-| File | What it is | Import? |
-|---|---|---|
-| **Consumable Stock Details 2026.xlsx** | Current 2026 shelf (one row = one piece, 15 products) | **Yes — first** |
-| **PAV-Stock-2025-Remaining.xlsx** | Cleaned leftover from 2025 Sheet2 that is **not** in 2026 | **Yes — second** |
-| Original **Consumable Stock Details 2025.xlsx** | Mixed ledger + laptops + printers + purchase lists | **No — PAV rejects it** |
+1. **Consumable Stock Details 2026.xlsx** — current 2026 shelf (one row = one piece).
+2. **Consumable Stock Details 2025 - Cleaned.xlsx** — leftover 2025 on-hand only.
 
-2025 leftover that *is* the same SKU as 2026 (KM5221W, KM7321W, Portronics VGA, 65W USB-C) stays out so counts are not doubled.
+| File | Import? |
+|---|---|
+| 2026 workbook | Yes — first |
+| Cleaned 2025 (10 columns, Review Needed sheet) | Yes — second. Unissued rows only. Same models as 2026 are skipped. Monitors stay in Inventory. |
+| Original 2025 (New Laptop / Printer list sheets) | No — rejected |
 
-Walk the cupboard before trusting Sheet2 remaining numbers — they are an old tally.
+Do not import both leftover files. The cleaned 2025 ledger replaces `PAV-Stock-2025-Remaining.xlsx`.

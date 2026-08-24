@@ -83,37 +83,16 @@ public static class StockExcel
         }
 
         var issuedShare = rows.Count(r => r.IsIssued) / (double)rows.Count;
-        if (issuedShare > 0.4 && rows.Count > 50)
+        var leftoverOnly = issuedShare > 0.4 && rows.Count > 50;
+        var grouped = BuildGroups(rows, leftoverOnly);
+        if (leftoverOnly)
         {
-            preview.SourceKind = "2025-issue-ledger";
-            preview.CanImport = false;
             preview.Issues.Add(
-                $"{rows.Count(r => r.IsIssued)} of {rows.Count} rows are already issued. That is an issue ledger, not current shelf stock.");
-            preview.Issues.Add("Do not import it as opening balance. Use the 2026 workbook.");
-            preview.Summary = "Rejected: looks like a 2025 issue ledger.";
-            return preview;
+                "This is the cleaned 2025 ledger (one row per piece, most already issued). Only leftover on-hand is imported — issue history is not replayed.");
+            preview.Issues.Add(
+                "Import Consumable Stock Details 2026.xlsx first. Anything already in PAV (same model) is skipped so 2025 and 2026 are not double-counted.");
         }
-
-        preview.SourceKind = "2026-unit-list";
-        var grouped = rows.GroupBy(r => NormalizeKey(r.MakeModel))
-            .Select(g =>
-            {
-                var first = g.First();
-                var parsed = ParseProduct(first.MakeModel);
-                return new ParsedStockGroup
-                {
-                    Key = g.Key,
-                    Name = parsed.Name,
-                    Manufacturer = parsed.Manufacturer,
-                    Model = parsed.Model,
-                    Category = parsed.Category,
-                    Classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model),
-                    OpeningQty = g.Count(),
-                    Rows = g.ToList()
-                };
-            })
-            .ToList();
-        return FillPreview(preview, grouped, existingStock, users, "2026-unit-list");
+        return FillPreview(preview, grouped, existingStock, users, leftoverOnly ? "2025-cleaned-ledger" : "2026-unit-list");
     }
 
     public static List<ParsedStockGroup> GroupsForImport(Stream stream)
@@ -124,7 +103,7 @@ public static class StockExcel
                 n.Contains("New Laptop", StringComparison.OrdinalIgnoreCase) ||
                 n.Contains("Printer list", StringComparison.OrdinalIgnoreCase) ||
                 n.Contains("Printer catrage", StringComparison.OrdinalIgnoreCase)))
-            throw new AppException(400, "validation", "Original 2025 workbook cannot be imported. Use PAV-Stock-2025-Remaining.xlsx.");
+            throw new AppException(400, "validation", "Original 2025 workbook cannot be imported. Use the cleaned 2025 file after 2026.");
 
         var summary = FindSummarySheet(wb);
         if (summary is not null)
@@ -132,24 +111,8 @@ public static class StockExcel
 
         var sheet = FindUnitSheet(wb) ?? throw new AppException(400, "validation", "No stock sheet found.");
         var rows = ReadUnitRows(sheet);
-        var list = new List<ParsedStockGroup>();
-        foreach (var g in rows.GroupBy(r => NormalizeKey(r.MakeModel)))
-        {
-            var first = g.First();
-            var parsed = ParseProduct(first.MakeModel);
-            list.Add(new ParsedStockGroup
-            {
-                Key = g.Key,
-                Name = parsed.Name,
-                Manufacturer = parsed.Manufacturer,
-                Model = parsed.Model,
-                Category = parsed.Category,
-                Classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model),
-                OpeningQty = g.Count(),
-                Rows = g.ToList()
-            });
-        }
-        return list;
+        var leftoverOnly = rows.Count > 50 && rows.Count(r => r.IsIssued) / (double)rows.Count > 0.4;
+        return BuildGroups(rows, leftoverOnly);
     }
 
     private static StockImportPreviewDto FillPreview(
@@ -160,10 +123,6 @@ public static class StockExcel
         string kind)
     {
         preview.SourceKind = kind;
-        var existingByKey = existingStock
-            .GroupBy(x => x.Key, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-
         foreach (var g in grouped)
         {
             if (g.Classification == "SerializedAsset")
@@ -191,7 +150,7 @@ public static class StockExcel
                 Model = g.Model,
                 Category = g.Category,
                 OpeningQty = g.OpeningQty,
-                IssuedQty = issued.Count,
+                IssuedQty = g.IssuedCount > 0 ? g.IssuedCount : issued.Count,
                 Classification = g.Classification,
                 Action = "Create",
                 Notes = g.Notes
@@ -204,8 +163,10 @@ public static class StockExcel
                 preview.ReviewRows++;
             }
 
-            existingByKey.TryGetValue(g.Key, out var hits);
-            hits ??= [];
+            var hits = g.MatchExistingFuzzy
+                ? MatchExistingAll(g.Name, g.Key, g.Model, existingStock)
+                : existingStock.Where(x => x.Key == g.Key).ToList();
+
             if (hits.Count == 1)
             {
                 line.Action = "SkipExisting";
@@ -219,11 +180,16 @@ public static class StockExcel
                 preview.ExistingMatched++;
                 preview.ReviewRows++;
             }
+            else if (g.OpeningQty <= 0)
+            {
+                line.Action = "SkipEmpty";
+                line.Issues.Add("No leftover on the shelf (every row is already issued). Nothing to open.");
+            }
             else
             {
                 preview.NewItems++;
                 preview.OpeningUnits += line.OpeningQty;
-                preview.IssueRows += line.IssuedQty;
+                preview.IssueRows += kind == "2026-unit-list" ? line.IssuedQty : 0;
             }
 
             foreach (var iss in issued)
@@ -238,7 +204,7 @@ public static class StockExcel
             preview.Lines.Add(line);
         }
 
-        var skip = preview.Lines.Count(l => l.Action is "SkipExisting" or "AmbiguousMatch" or "SkipSerialized");
+        var skip = preview.Lines.Count(l => l.Action is "SkipExisting" or "AmbiguousMatch" or "SkipSerialized" or "SkipEmpty");
         preview.CanImport = preview.NewItems > 0;
         preview.Summary = preview.CanImport
             ? $"{preview.NewItems} new items, {preview.OpeningUnits} opening units, {preview.IssueRows} already issued, {preview.AmbiguousItems} need review, {skip} skipped."
@@ -254,6 +220,132 @@ public static class StockExcel
                 "Some items may belong in Inventory if they have serials (monitors, routers, label machines). They are still imported as stock quantity.");
 
         return preview;
+    }
+
+    private static List<ParsedStockGroup> BuildGroups(List<UnitRow> rows, bool leftoverOnly)
+    {
+        var list = new List<ParsedStockGroup>();
+        foreach (var g in rows.Where(r => !IsNoteRow(r.MakeModel)).GroupBy(r => NormalizeKey(r.MakeModel)))
+
+
+        {
+            var sample = g.OrderByDescending(x => x.MakeModel.Length).First();
+            var parsed = ParseProduct(sample.MakeModel);
+            var toner = g.Any(x => IsToner(x.MakeModel, x.Type));
+            var classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model);
+            if (leftoverOnly && classification == "Ambiguous" &&
+                (parsed.Name.Contains("monitor", StringComparison.OrdinalIgnoreCase) ||
+                 g.Any(x => (x.Type ?? "").Contains("Monitor", StringComparison.OrdinalIgnoreCase))))
+                classification = "SerializedAsset";
+
+            int opening;
+            int issuedCount;
+            List<UnitRow> keptRows;
+            if (toner && leftoverOnly)
+            {
+                issuedCount = g.Count(x => x.IsIssued);
+                opening = g.Where(x => !x.IsIssued).Sum(x => x.Qty is > 0 ? x.Qty.Value : 1);
+                keptRows = [];
+            }
+            else if (leftoverOnly)
+            {
+                issuedCount = g.Count(x => x.IsIssued);
+                opening = g.Count(x => !x.IsIssued);
+                keptRows = [];
+            }
+            else
+            {
+                issuedCount = g.Count(x => x.IsIssued);
+                opening = g.Count();
+                keptRows = g.ToList();
+            }
+
+            list.Add(new ParsedStockGroup
+            {
+                Key = NormalizeKey(parsed.Name),
+
+                Name = parsed.Name,
+                Manufacturer = parsed.Manufacturer,
+                Model = parsed.Model,
+                Category = toner ? "Toner" : parsed.Category,
+                Classification = classification,
+                OpeningQty = opening,
+                IssuedCount = issuedCount,
+                MatchExistingFuzzy = leftoverOnly,
+                Notes = leftoverOnly
+                    ? $"2025 leftover on hand. {issuedCount} historical issue(s) not imported."
+                    : null,
+                Rows = keptRows
+            });
+        }
+        return list;
+    }
+
+    private static bool IsNoteRow(string make)
+    {
+        var n = make.ToLowerInvariant();
+        if (n.Contains("provided to mumbai")) return true;
+        if (n.Contains("aasha kamber")) return true;
+        return false;
+    }
+
+    private static bool IsToner(string make, string? type)
+    {
+        var n = (make + " " + type).ToLowerInvariant();
+        return n.Contains("toner") || n.Contains("cartridge");
+    }
+
+    public static (int Id, string Name, string Key)? MatchExisting(
+        string name, string key, string? model,
+        IReadOnlyList<(int Id, string Name, string Key)> existing)
+    {
+        var hits = MatchExistingAll(name, key, model, existing);
+        return hits.Count == 1 ? hits[0] : null;
+    }
+
+    private static List<(int Id, string Name, string Key)> MatchExistingAll(
+        string name, string key, string? model,
+        IReadOnlyList<(int Id, string Name, string Key)> existing)
+    {
+        var exact = existing.Where(x => x.Key == key).ToList();
+        if (exact.Count > 0) return exact;
+
+        var incoming = ModelCodes(name + " " + model);
+        var hits = new List<(int Id, string Name, string Key)>();
+        foreach (var e in existing)
+        {
+            if (SameProduct(name, key, incoming, e.Name, e.Key))
+                hits.Add(e);
+        }
+        return hits.Distinct().ToList();
+    }
+
+    private static bool SameProduct(string incomingName, string incomingKey, HashSet<string> incomingCodes, string existingName, string existingKey)
+    {
+        if (incomingKey == existingKey) return true;
+        var existingCodes = ModelCodes(existingName);
+        if (incomingCodes.Count > 0 && existingCodes.Count > 0 && incomingCodes.Overlaps(existingCodes))
+            return true;
+
+        var a = incomingName.ToLowerInvariant();
+        var b = existingName.ToLowerInvariant();
+        if (a.Contains("chillmate") && b.Contains("chillmate")) return true;
+        if (a.Contains("65w") && b.Contains("65w") && (a.Contains("usb") && b.Contains("usb")))
+            return true;
+        if (a.Contains("portronics") && b.Contains("portronics") &&
+            (a.Contains("vga") || a.Contains("hdmi") || a.Contains("digibridge")) &&
+            (b.Contains("vga") || b.Contains("hdmi") || b.Contains("digibridge")))
+            return true;
+        return false;
+    }
+
+    private static HashSet<string> ModelCodes(string? text)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(text)) return set;
+        foreach (Match m in Regex.Matches(text.ToUpperInvariant(), @"\b[A-Z]{1,4}\d{3,}[A-Z0-9]*\b"))
+            set.Add(m.Value);
+        return set;
     }
 
     private static IXLWorksheet? FindSummarySheet(XLWorkbook wb)
@@ -370,6 +462,7 @@ public static class StockExcel
 
         var makeCol = Col("make & model", "make and model");
         var serialCol = Col("serialnumber", "serial number", "serial");
+        var typeCol = Col("type");
         var statusCol = Col("status");
         var userCol = Col("username", "user name", "user");
         var dateCol = Col("date");
@@ -384,6 +477,7 @@ public static class StockExcel
         {
             var make = Clean(ws.Cell(r, makeCol == 0 ? 2 : makeCol).GetString());
             if (make is null) continue;
+            var type = typeCol == 0 ? null : Clean(ws.Cell(r, typeCol).GetString());
             var status = Clean(ws.Cell(r, statusCol).GetString());
             var user = userCol == 0 ? null : Clean(ws.Cell(r, userCol).GetString());
             var serial = serialCol == 0 ? null : Clean(ws.Cell(r, serialCol).GetString());
@@ -405,6 +499,7 @@ public static class StockExcel
                 Sr = srCol == 0 ? r - 1 : (ws.Cell(r, srCol).TryGetValue(out double sr) ? (int)sr : r - 1),
                 MakeModel = make,
                 Serial = serial,
+                Type = type,
                 Status = status,
                 User = user,
                 Date = date,
@@ -420,7 +515,9 @@ public static class StockExcel
     private static bool IsIssued(string? status, string? user)
     {
         var s = (status ?? "").ToLowerInvariant();
-        if (s.Contains("provided") || s.Contains("issued") || s == "out")
+        if (s.Contains("stock") && !s.Contains("provided") && !s.Contains("providd"))
+            return false;
+        if (s.Contains("provided") || s.Contains("providd") || s.Contains("issued") || s == "out")
             return true;
         return !string.IsNullOrWhiteSpace(user);
     }
@@ -476,7 +573,8 @@ public static class StockExcel
     public static string Classify(string name, string? manufacturer, string? model)
     {
         var n = name.ToLowerInvariant();
-        if (n.Contains("laptop") && !n.Contains("cooler") && !n.Contains("battery") && !n.Contains("charger") && !n.Contains("adapter") && !n.Contains("stand"))
+        if (n.Contains("laptop") && !n.Contains("cooler") && !n.Contains("battery") &&
+            !n.Contains("charger") && !n.Contains("adapter") && !n.Contains("adaptor") && !n.Contains("stand"))
             return "SerializedAsset";
         if (Regex.IsMatch(n, @"\bprinter\b") && !n.Contains("label") && !n.Contains("p touch"))
             return "SerializedAsset";
@@ -507,6 +605,7 @@ public static class StockExcel
         public int Sr { get; set; }
         public string MakeModel { get; set; } = "";
         public string? Serial { get; set; }
+        public string? Type { get; set; }
         public string? Status { get; set; }
         public string? User { get; set; }
         public DateTime? Date { get; set; }
@@ -525,6 +624,8 @@ public static class StockExcel
         public string Category { get; set; } = "Other";
         public string Classification { get; set; } = "Stock";
         public int OpeningQty { get; set; }
+        public int IssuedCount { get; set; }
+        public bool MatchExistingFuzzy { get; set; }
         public string? Notes { get; set; }
         public List<UnitRow> Rows { get; set; } = [];
     }
