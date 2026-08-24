@@ -14,20 +14,31 @@ public partial class FloorCard : ObservableObject
     [ObservableProperty] private bool isSelected;
 }
 
+public class FloorFilterItem
+{
+    public int? RangeId { get; init; }
+    public string Name { get; init; } = "";
+    public override string ToString() => Name;
+}
+
 public partial class IpInventoryViewModel : ObservableObject
 {
     private readonly ApiClient _api;
     private readonly ShellViewModel _shell;
+    private bool _syncingFloor;
 
     public ObservableCollection<FloorCard> Floors { get; } = [];
+    public ObservableCollection<FloorFilterItem> FloorFilters { get; } = [];
     public ObservableCollection<IpAddressDto> Rows { get; } = [];
     public ObservableCollection<string> StatusChoices { get; } = ["Allocated", "Used", "Reserved", "Free", "All"];
 
+    [ObservableProperty] private string ipPage = "Assign";
     [ObservableProperty] private int total;
     [ObservableProperty] private int used;
     [ObservableProperty] private int free;
     [ObservableProperty] private int reserved;
     [ObservableProperty] private int? selectedRangeId;
+    [ObservableProperty] private FloorFilterItem? selectedListFloor;
     [ObservableProperty] private string selectedFloorName = "All floors";
     [ObservableProperty] private string? nextFreeIp;
     [ObservableProperty] private string checkInput = "";
@@ -38,6 +49,8 @@ public partial class IpInventoryViewModel : ObservableObject
     [ObservableProperty] private bool loading;
     [ObservableProperty] private string? message;
 
+    public bool ShowAssign => IpPage == "Assign";
+    public bool ShowList => IpPage == "List";
     public bool CanAssign => _shell.Can(Permissions.Assign);
     public bool CanImport => _shell.CanImport;
     public bool HasData => Floors.Count > 0;
@@ -45,12 +58,22 @@ public partial class IpInventoryViewModel : ObservableObject
     public bool CheckIsTaken => CheckResult is { InPool: true, Record: not null } &&
                                 CheckResult.Record.StatusValue is IpStatus.Used or IpStatus.Reserved
                                     or IpStatus.Quarantine or IpStatus.Deprecated;
+    public int VisibleCount => Rows.Count;
 
     public IpInventoryViewModel(ApiClient api, ShellViewModel shell)
     {
         _api = api;
         _shell = shell;
     }
+
+    partial void OnIpPageChanged(string value)
+    {
+        OnPropertyChanged(nameof(ShowAssign));
+        OnPropertyChanged(nameof(ShowList));
+    }
+
+    [RelayCommand]
+    private void ShowPage(string page) => IpPage = page;
 
     public async Task LoadAsync()
     {
@@ -75,6 +98,14 @@ public partial class IpInventoryViewModel : ObservableObject
                 });
             }
 
+            _syncingFloor = true;
+            FloorFilters.Clear();
+            FloorFilters.Add(new FloorFilterItem { RangeId = null, Name = "All floors" });
+            foreach (var f in overview.Floors)
+                FloorFilters.Add(new FloorFilterItem { RangeId = f.RangeId, Name = f.Name });
+            SelectedListFloor = FloorFilters.FirstOrDefault(x => x.RangeId == keep) ?? FloorFilters[0];
+            _syncingFloor = false;
+
             if (keep is { } kid && Floors.All(x => x.Data.RangeId != kid))
                 SelectedRangeId = null;
 
@@ -83,6 +114,7 @@ public partial class IpInventoryViewModel : ObservableObject
             OnPropertyChanged(nameof(HasData));
             OnPropertyChanged(nameof(CanAssign));
             OnPropertyChanged(nameof(CanImport));
+            OnPropertyChanged(nameof(VisibleCount));
         }
         catch (Exception ex)
         {
@@ -121,25 +153,27 @@ public partial class IpInventoryViewModel : ObservableObject
         Rows.Clear();
         foreach (var row in list)
             Rows.Add(row);
+        OnPropertyChanged(nameof(VisibleCount));
     }
 
     [RelayCommand]
-    private async Task SelectFloorAsync(FloorCard? card)
+    private void SelectFloor(FloorCard? card)
     {
         if (card is null) return;
         if (card.IsSelected)
-        {
-            card.IsSelected = false;
-            SelectedRangeId = null;
-        }
+            SelectedListFloor = FloorFilters.FirstOrDefault();
         else
-        {
-            foreach (var f in Floors) f.IsSelected = false;
-            card.IsSelected = true;
-            SelectedRangeId = card.Data.RangeId;
-        }
+            SelectedListFloor = FloorFilters.FirstOrDefault(x => x.RangeId == card.Data.RangeId);
+    }
+
+    partial void OnSelectedListFloorChanged(FloorFilterItem? value)
+    {
+        if (_syncingFloor) return;
+        SelectedRangeId = value?.RangeId;
+        foreach (var f in Floors)
+            f.IsSelected = value?.RangeId is { } id && f.Data.RangeId == id;
         ApplyFloorLabel();
-        await ReloadListAsync();
+        _ = SafeReload();
     }
 
     partial void OnStatusFilterChanged(string value) => _ = SafeReload();
@@ -171,7 +205,9 @@ public partial class IpInventoryViewModel : ObservableObject
     {
         if (!CanAssign) return;
         var rangeId = SelectedRangeId ?? Floors.FirstOrDefault()?.Data.RangeId;
-        var next = NextFreeIp;
+        var next = SelectedRangeId is null
+            ? Floors.FirstOrDefault()?.Data.NextFreeIp
+            : NextFreeIp;
         if (rangeId is null || string.IsNullOrWhiteSpace(next))
         {
             Ui.Info("No free IP on the selected floor.");
@@ -197,6 +233,16 @@ public partial class IpInventoryViewModel : ObservableObject
             return;
         }
         await OpenAssignAsync(Selected, null, Selected.Address);
+    }
+
+    [RelayCommand]
+    private async Task OpenRowAsync()
+    {
+        if (Selected is null) return;
+        if (Selected.StatusValue == IpStatus.Free)
+            await AssignSelectedAsync();
+        else
+            IpPage = "Assign";
     }
 
     private async Task OpenAssignAsync(IpAddressDto? existing, int? rangeId, string? address)
