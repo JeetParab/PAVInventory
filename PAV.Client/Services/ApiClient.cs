@@ -335,6 +335,31 @@ public class ApiClient
             return await new ImportExportService(db, _lock).ImportAsync(fs, map, actor);
         });
 
+    public Task<IpOverviewDto> IpOverviewAsync() =>
+        Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).OverviewAsync());
+
+    public Task<List<IpAddressDto>> IpListAsync(int? rangeId = null, string? status = null, string? search = null) =>
+        Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).ListAsync(rangeId, status, search));
+
+    public Task<IpCheckResultDto> IpCheckAsync(string address) =>
+        Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).CheckAsync(address));
+
+    public Task<IpAddressDto> IpAssignAsync(AssignIpRequest req) =>
+        Read(Permissions.Assign, (db, actor) => new IpAddressService(db, _lock).AssignAsync(req, actor));
+
+    public Task<IpAddressDto> IpReserveAsync(int id, string? notes = null) =>
+        Read(Permissions.Assign, (db, actor) => new IpAddressService(db, _lock).ReserveAsync(id, notes, actor));
+
+    public Task<IpAddressDto> IpReleaseAsync(int id) =>
+        Read(Permissions.Assign, (db, actor) => new IpAddressService(db, _lock).ReleaseAsync(id, actor));
+
+    public Task<IpImportResult> ImportIpWorkbookAsync(string filePath) =>
+        Read(Permissions.Import, async (db, actor) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new IpAddressService(db, _lock).ImportWorkbookAsync(fs, actor);
+        });
+
     private async Task<T> Read<T>(string permission, Func<AppDbContext, CurrentUser, Task<T>> work)
     {
         var actor = Actor();

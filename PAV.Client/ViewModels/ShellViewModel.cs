@@ -25,6 +25,7 @@ public partial class ShellViewModel : ObservableObject
 
     public DashboardViewModel Dashboard { get; }
     public InventoryViewModel Inventory { get; }
+    public IpInventoryViewModel IpInventory { get; }
     public UsersViewModel Users { get; }
     public LocationsViewModel Locations { get; }
     public SettingsViewModel Settings { get; }
@@ -35,6 +36,7 @@ public partial class ShellViewModel : ObservableObject
         _config = config;
         Dashboard = new DashboardViewModel(api, this);
         Inventory = new InventoryViewModel(api, this, config);
+        IpInventory = new IpInventoryViewModel(api, this);
         Users = new UsersViewModel(api, this);
         Locations = new LocationsViewModel(api, this);
         Settings = new SettingsViewModel(api, config, this);
@@ -184,6 +186,9 @@ public partial class ShellViewModel : ObservableObject
                     break;
                 case "Inventory":
                     await Inventory.LoadAsync();
+                    break;
+                case "IpInventory":
+                    await IpInventory.LoadAsync();
                     break;
                 case "Users":
                     await Users.LoadAsync();

@@ -101,6 +101,10 @@ public sealed class PavDatabase
             Perf.Log("Database.EnsureColumns", sw.ElapsedMilliseconds);
 
             sw.Restart();
+            await EnsureIpTablesAsync(db);
+            Perf.Log("Database.IpTables", sw.ElapsedMilliseconds);
+
+            sw.Restart();
             await EnsureSerialNumberUniqueAsync(db);
             Perf.Log("Database.SerialIndex", sw.ElapsedMilliseconds);
 
@@ -267,6 +271,51 @@ public sealed class PavDatabase
         }
 
         _backfillDone = true;
+    }
+
+    private static async Task EnsureIpTablesAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS IpRanges (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                FloorNumber INTEGER NOT NULL,
+                Name TEXT NOT NULL,
+                ThirdOctet INTEGER NOT NULL,
+                Cidr TEXT NOT NULL,
+                GatewayIp TEXT,
+                Notes TEXT
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_IpRanges_FloorNumber ON IpRanges(FloorNumber);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_IpRanges_Cidr ON IpRanges(Cidr);");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS IpRecords (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                RangeId INTEGER NOT NULL,
+                Address TEXT NOT NULL,
+                HostOctet INTEGER NOT NULL,
+                Status INTEGER NOT NULL DEFAULT 0,
+                AssignedDevice TEXT,
+                AssignedUser TEXT,
+                Department TEXT,
+                DateAssigned TEXT,
+                MacAddress TEXT,
+                DeviceType TEXT,
+                Notes TEXT,
+                LastUpdated TEXT,
+                AllocatedBy TEXT,
+                FOREIGN KEY(RangeId) REFERENCES IpRanges(Id) ON DELETE CASCADE
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_IpRecords_Address ON IpRecords(Address);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_IpRecords_RangeId ON IpRecords(RangeId);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_IpRecords_Status ON IpRecords(Status);");
     }
 
     public bool CanOpen()

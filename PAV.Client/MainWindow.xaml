@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:PAV.Client.Views"
-        Title="PAV IT Inventory for SIDBI"
+        Title="PAV Inventory"
         Height="800" Width="1280"
         MinHeight="680" MinWidth="1080"
         WindowStartupLocation="CenterScreen"
@@ -33,8 +33,7 @@
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="18,20,18,12">
           <TextBlock Text="PAV" FontSize="11" FontWeight="Bold" Foreground="#8AA0C8"/>
-          <TextBlock Text="IT Inventory" FontSize="18" FontWeight="SemiBold" Foreground="White" Margin="0,2,0,0"/>
-          <TextBlock Text="for SIDBI" FontSize="11" Foreground="#8AA0C8" Margin="0,2,0,0"/>
+          <TextBlock Text="Inventory" FontSize="18" FontWeight="SemiBold" Foreground="White" Margin="0,2,0,0"/>
         </StackPanel>
 
         <Border DockPanel.Dock="Bottom" Padding="16,14" BorderBrush="#2A3545" BorderThickness="0,1,0,0">
@@ -75,6 +74,10 @@
                          Tag="&#xE8FD;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Inventory, Mode=OneWay}"
                          Command="{Binding GoCommand}" CommandParameter="Inventory"/>
+            <RadioButton Style="{StaticResource NavButton}" Content="IP Inventory"
+                         Tag="&#xE968;"
+                         IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=IpInventory, Mode=OneWay}"
+                         Command="{Binding GoCommand}" CommandParameter="IpInventory"/>
             <RadioButton Style="{StaticResource NavButton}" Content="Users"
                          Tag="&#xE716;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Users, Mode=OneWay}"
@@ -161,6 +164,19 @@
             </Style>
           </views:InventoryView.Style>
         </views:InventoryView>
+
+        <views:IpInventoryView DataContext="{Binding IpInventory}">
+          <views:IpInventoryView.Style>
+            <Style TargetType="UserControl">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}}" Value="IpInventory">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </views:IpInventoryView.Style>
+        </views:IpInventoryView>
 
         <views:UsersView DataContext="{Binding Users}">
           <views:UsersView.Style>

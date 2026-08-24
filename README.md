@@ -32,6 +32,15 @@ Leave **Shared folder** empty on the sign-in screen if the app itself lives in t
 
 There are **no built-in default passwords**. Existing databases that still use `admin` / `engineer` / `guest` will ask that person to change the password on next sign-in.
 
+### IP Inventory
+
+Static office IPs live in the same database. Import the SIDBI workbook (`Floors_Config` + `IP_Inventory`).
+
+- Floor cards show **Used / Free / next free IP** (lowest free on that floor).
+- **Assign next free** on a selected floor, or **check** an address such as `172.16.103.178` — Free can be assigned; Used/Reserved shows who has it.
+- **Allocation list** is the full Excel-style grid (default: used + reserved). Filter Free / All when you want the complete view.
+- Wi-Fi and other subnets stay on the asset record; they are not part of the Floor 1–7 pool.
+
 | | Admin | Engineer | Guest |
 |---|---|---|---|
 | View / search / filter | ✓ | ✓ | ✓ |

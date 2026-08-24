@@ -346,3 +346,91 @@ public class RestoreRequest
 {
     public string FileName { get; set; } = "";
 }
+
+public class IpRangeDto
+{
+    public int Id { get; set; }
+    public int FloorNumber { get; set; }
+    public string Name { get; set; } = "";
+    public int ThirdOctet { get; set; }
+    public string Cidr { get; set; } = "";
+    public string? GatewayIp { get; set; }
+    public string? Notes { get; set; }
+
+    public override string ToString() => Name;
+}
+
+public class IpFloorSummaryDto
+{
+    public int RangeId { get; set; }
+    public int FloorNumber { get; set; }
+    public string Name { get; set; } = "";
+    public string Cidr { get; set; } = "";
+    public int Total { get; set; }
+    public int Used { get; set; }
+    public int Free { get; set; }
+    public int Reserved { get; set; }
+    public string? NextFreeIp { get; set; }
+    public string UtilLabel { get; set; } = "";
+}
+
+public class IpOverviewDto
+{
+    public int Total { get; set; }
+    public int Used { get; set; }
+    public int Free { get; set; }
+    public int Reserved { get; set; }
+    public List<IpFloorSummaryDto> Floors { get; set; } = [];
+}
+
+public class IpAddressDto
+{
+    public int Id { get; set; }
+    public int RangeId { get; set; }
+    public int FloorNumber { get; set; }
+    public string FloorName { get; set; } = "";
+    public string Address { get; set; } = "";
+    public int HostOctet { get; set; }
+    public string Subnet { get; set; } = "";
+    public IpStatus StatusValue { get; set; }
+    public string Status { get; set; } = "";
+    public string? AssignedDevice { get; set; }
+    public string? AssignedUser { get; set; }
+    public string? Department { get; set; }
+    public DateTime? DateAssigned { get; set; }
+    public string? MacAddress { get; set; }
+    public string? DeviceType { get; set; }
+    public string? Notes { get; set; }
+    public DateTime? LastUpdated { get; set; }
+    public string? AllocatedBy { get; set; }
+}
+
+public class IpCheckResultDto
+{
+    public bool InPool { get; set; }
+    public string Address { get; set; } = "";
+    public string Message { get; set; } = "";
+    public IpAddressDto? Record { get; set; }
+}
+
+public class AssignIpRequest
+{
+    public int? Id { get; set; }
+    public int? RangeId { get; set; }
+    public string? Address { get; set; }
+    public string? AssignedDevice { get; set; }
+    public string? AssignedUser { get; set; }
+    public string? Department { get; set; }
+    public string? MacAddress { get; set; }
+    public string? DeviceType { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class IpImportResult
+{
+    public int Ranges { get; set; }
+    public int Addresses { get; set; }
+    public int Updated { get; set; }
+    public List<string> Errors { get; set; } = [];
+    public string Summary { get; set; } = "";
+}

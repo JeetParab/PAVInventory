@@ -10,6 +10,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<AssetHistory> AssetHistory => Set<AssetHistory>();
+    public DbSet<IpRange> IpRanges => Set<IpRange>();
+    public DbSet<IpRecord> IpRecords => Set<IpRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -104,6 +106,37 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Action).HasConversion<int>();
             e.HasIndex(x => x.AssetId);
             e.HasIndex(x => x.Timestamp);
+        });
+
+        modelBuilder.Entity<IpRange>(e =>
+        {
+            e.ToTable("IpRanges");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Cidr).HasMaxLength(32).IsRequired();
+            e.Property(x => x.GatewayIp).HasMaxLength(64);
+            e.Property(x => x.Notes).HasMaxLength(512);
+            e.HasIndex(x => x.FloorNumber).IsUnique();
+            e.HasIndex(x => x.Cidr).IsUnique();
+        });
+
+        modelBuilder.Entity<IpRecord>(e =>
+        {
+            e.ToTable("IpRecords");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Address).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => x.Address).IsUnique();
+            e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.AssignedDevice).HasMaxLength(256);
+            e.Property(x => x.AssignedUser).HasMaxLength(256);
+            e.Property(x => x.Department).HasMaxLength(128);
+            e.Property(x => x.MacAddress).HasMaxLength(64);
+            e.Property(x => x.DeviceType).HasMaxLength(64);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.AllocatedBy).HasMaxLength(128);
+            e.HasOne(x => x.Range).WithMany(r => r.Addresses).HasForeignKey(x => x.RangeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.RangeId);
+            e.HasIndex(x => x.Status);
         });
     }
 }
