@@ -59,6 +59,8 @@ public class StatusBrushConverter : IValueConverter
     {
         "In Use" or "InUse" => Brush("#E7F6EE"),
         "In Stock" or "InStock" => Brush("#E8F0FE"),
+        "Low Stock" => Brush("#FFF4E0"),
+        "Out of Stock" => Brush("#FDECEC"),
         "Under Repair" or "UnderRepair" => Brush("#FFF4E0"),
         "Standby" => Brush("#F3EDFA"),
         "Damaged" => Brush("#FDECEC"),
@@ -71,6 +73,8 @@ public class StatusBrushConverter : IValueConverter
     {
         "In Use" or "InUse" => Brush("#107C41"),
         "In Stock" or "InStock" => Brush("#2F6FED"),
+        "Low Stock" => Brush("#C47B17"),
+        "Out of Stock" => Brush("#D13438"),
         "Under Repair" or "UnderRepair" => Brush("#C47B17"),
         "Standby" => Brush("#6B4C9A"),
         "Damaged" => Brush("#D13438"),

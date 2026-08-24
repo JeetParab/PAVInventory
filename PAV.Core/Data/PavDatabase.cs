@@ -105,6 +105,10 @@ public sealed class PavDatabase
             Perf.Log("Database.IpTables", sw.ElapsedMilliseconds);
 
             sw.Restart();
+            await EnsureStockTablesAsync(db);
+            Perf.Log("Database.StockTables", sw.ElapsedMilliseconds);
+
+            sw.Restart();
             await EnsureSerialNumberUniqueAsync(db);
             Perf.Log("Database.SerialIndex", sw.ElapsedMilliseconds);
 
@@ -316,6 +320,60 @@ public sealed class PavDatabase
             "CREATE INDEX IF NOT EXISTS IX_IpRecords_RangeId ON IpRecords(RangeId);");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS IX_IpRecords_Status ON IpRecords(Status);");
+    }
+
+    private static async Task EnsureStockTablesAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS StockItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                NormalizedKey TEXT NOT NULL,
+                Category TEXT,
+                Manufacturer TEXT,
+                Model TEXT,
+                Unit TEXT NOT NULL DEFAULT 'pcs',
+                OnHand INTEGER NOT NULL DEFAULT 0,
+                MinimumQuantity INTEGER NOT NULL DEFAULT 0,
+                IsActive INTEGER NOT NULL DEFAULT 1,
+                NeedsReview INTEGER NOT NULL DEFAULT 0,
+                Notes TEXT,
+                CreatedAt TEXT NOT NULL,
+                UpdatedAt TEXT NOT NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_StockItems_NormalizedKey ON StockItems(NormalizedKey);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockItems_IsActive ON StockItems(IsActive);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockItems_Category ON StockItems(Category);");
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS StockMovements (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                StockItemId INTEGER NOT NULL,
+                MovementType INTEGER NOT NULL,
+                Quantity INTEGER NOT NULL,
+                UserId INTEGER,
+                AssignedUserName TEXT,
+                Reference TEXT,
+                Notes TEXT,
+                SerialNumber TEXT,
+                CreatedBy TEXT NOT NULL,
+                CreatedAt TEXT NOT NULL,
+                FOREIGN KEY(StockItemId) REFERENCES StockItems(Id) ON DELETE RESTRICT,
+                FOREIGN KEY(UserId) REFERENCES Users(Id) ON DELETE SET NULL
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockMovements_StockItemId ON StockMovements(StockItemId);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockMovements_UserId ON StockMovements(UserId);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockMovements_CreatedAt ON StockMovements(CreatedAt);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS IX_StockMovements_MovementType ON StockMovements(MovementType);");
     }
 
     public bool CanOpen()

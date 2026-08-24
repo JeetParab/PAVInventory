@@ -12,6 +12,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AssetHistory> AssetHistory => Set<AssetHistory>();
     public DbSet<IpRange> IpRanges => Set<IpRange>();
     public DbSet<IpRecord> IpRecords => Set<IpRecord>();
+    public DbSet<StockItem> StockItems => Set<StockItem>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -138,5 +140,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.RangeId);
             e.HasIndex(x => x.Status);
         });
+
+        modelBuilder.Entity<StockItem>(e =>
+        {
+            e.ToTable("StockItems");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.Property(x => x.NormalizedKey).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => x.NormalizedKey).IsUnique();
+            e.Property(x => x.Category).HasMaxLength(64);
+            e.Property(x => x.Manufacturer).HasMaxLength(128);
+            e.Property(x => x.Model).HasMaxLength(128);
+            e.Property(x => x.Unit).HasMaxLength(16);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.HasIndex(x => x.IsActive);
+            e.HasIndex(x => x.Category);
+        });
+
+        modelBuilder.Entity<StockMovement>(e =>
+        {
+            e.ToTable("StockMovements");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.MovementType).HasConversion<int>();
+            e.Property(x => x.AssignedUserName).HasMaxLength(256);
+            e.Property(x => x.Reference).HasMaxLength(256);
+            e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.SerialNumber).HasMaxLength(128);
+            e.Property(x => x.CreatedBy).HasMaxLength(64).IsRequired();
+            e.HasOne(x => x.StockItem).WithMany(i => i.Movements).HasForeignKey(x => x.StockItemId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => x.StockItemId);
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.MovementType);
+        });
     }
 }
+

@@ -360,6 +360,47 @@ public class ApiClient
             return await new IpAddressService(db, _lock).ImportWorkbookAsync(fs, actor);
         });
 
+    public Task<StockOverviewDto> StockOverviewAsync(string? search = null, string? status = null, bool includeInactive = false) =>
+        Read(Permissions.View, (db, _) => new StockService(db, _lock).OverviewAsync(search, status, includeInactive));
+
+    public Task<StockItemDto> StockGetAsync(int id) =>
+        Read(Permissions.View, (db, _) => new StockService(db, _lock).GetAsync(id));
+
+    public Task<List<StockMovementDto>> StockMovementsAsync(int? itemId = null, int? userId = null, string? search = null) =>
+        Read(Permissions.View, (db, _) => new StockService(db, _lock).MovementsAsync(itemId, userId, search));
+
+    public Task<StockItemDto> SaveStockItemAsync(int? id, SaveStockItemRequest req) =>
+        Read(Permissions.View, (db, actor) => new StockService(db, _lock).SaveItemAsync(id, req, actor));
+
+    public Task<StockItemDto> StockReceiveAsync(StockMoveRequest req) =>
+        Read(Permissions.Assign, (db, actor) => new StockService(db, _lock).ReceiveAsync(req, actor));
+
+    public Task<StockItemDto> StockIssueAsync(StockMoveRequest req) =>
+        Read(Permissions.Assign, (db, actor) => new StockService(db, _lock).IssueAsync(req, actor));
+
+    public Task<StockItemDto> StockReturnAsync(StockMoveRequest req) =>
+        Read(Permissions.Assign, (db, actor) => new StockService(db, _lock).ReturnAsync(req, actor));
+
+    public Task<StockItemDto> StockAdjustAsync(StockMoveRequest req) =>
+        Read(Permissions.View, (db, actor) => new StockService(db, _lock).AdjustAsync(req, actor));
+
+    public Task<StockImportPreviewDto> PreviewStockImportAsync(string filePath) =>
+        Read(Permissions.View, async (db, _) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new StockService(db, _lock).PreviewImportAsync(fs, Path.GetFileName(filePath));
+        });
+
+    public Task<StockImportResultDto> ImportStockAsync(string filePath) =>
+        Read(Permissions.View, async (db, actor) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new StockService(db, _lock).ImportAsync(fs, Path.GetFileName(filePath), actor);
+        });
+
+    public Task<byte[]> ExportStockAsync() =>
+        Read(Permissions.Export, (db, _) => new StockService(db, _lock).ExportAsync());
+
     private async Task<T> Read<T>(string permission, Func<AppDbContext, CurrentUser, Task<T>> work)
     {
         var actor = Actor();

@@ -434,3 +434,118 @@ public class IpImportResult
     public List<string> Errors { get; set; } = [];
     public string Summary { get; set; } = "";
 }
+
+public class StockItemDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string? Category { get; set; }
+    public string? Manufacturer { get; set; }
+    public string? Model { get; set; }
+    public string Unit { get; set; } = "pcs";
+    public int OnHand { get; set; }
+    public int MinimumQuantity { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool NeedsReview { get; set; }
+    public string? Notes { get; set; }
+    public string StockStatus { get; set; } = "In Stock";
+    public bool IsLow { get; set; }
+    public int Received { get; set; }
+    public int Issued { get; set; }
+    public int Returned { get; set; }
+    public int Adjusted { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    public override string ToString() => Name;
+}
+
+public class StockMovementDto
+{
+    public int Id { get; set; }
+    public int StockItemId { get; set; }
+    public string ItemName { get; set; } = "";
+    public string MovementType { get; set; } = "";
+    public int Quantity { get; set; }
+    public int SignedQuantity { get; set; }
+    public int? UserId { get; set; }
+    public string? AssignedUser { get; set; }
+    public string? Reference { get; set; }
+    public string? Notes { get; set; }
+    public string? SerialNumber { get; set; }
+    public string CreatedBy { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SaveStockItemRequest
+{
+    public string Name { get; set; } = "";
+    public string? Category { get; set; }
+    public string? Manufacturer { get; set; }
+    public string? Model { get; set; }
+    public string? Unit { get; set; }
+    public int MinimumQuantity { get; set; }
+    public bool IsActive { get; set; } = true;
+    public string? Notes { get; set; }
+}
+
+public class StockMoveRequest
+{
+    public int StockItemId { get; set; }
+    public int Quantity { get; set; }
+    public int? UserId { get; set; }
+    public string? AssignedUserName { get; set; }
+    public string? Reference { get; set; }
+    public string? Notes { get; set; }
+    public string? SerialNumber { get; set; }
+}
+
+public class StockOverviewDto
+{
+    public int ItemCount { get; set; }
+    public int OnHandUnits { get; set; }
+    public int LowStock { get; set; }
+    public int OutOfStock { get; set; }
+    public List<StockItemDto> Items { get; set; } = [];
+}
+
+public class StockImportLineDto
+{
+    public string Name { get; set; } = "";
+    public string? Manufacturer { get; set; }
+    public string? Model { get; set; }
+    public string Category { get; set; } = "";
+    public int OpeningQty { get; set; }
+    public int IssuedQty { get; set; }
+    public string Classification { get; set; } = "Stock";
+    public string Action { get; set; } = "Create";
+    public string? Notes { get; set; }
+    public List<string> Issues { get; set; } = [];
+}
+
+public class StockImportPreviewDto
+{
+    public string SourceName { get; set; } = "";
+    public string SourceKind { get; set; } = "";
+    public bool CanImport { get; set; }
+    public int NewItems { get; set; }
+    public int ExistingMatched { get; set; }
+    public int OpeningUnits { get; set; }
+    public int IssueRows { get; set; }
+    public int AmbiguousItems { get; set; }
+    public int ReviewRows { get; set; }
+    public string Summary { get; set; } = "";
+    public List<string> Issues { get; set; } = [];
+    public List<string> SkippedSheets { get; set; } = [];
+    public List<StockImportLineDto> Lines { get; set; } = [];
+}
+
+public class StockImportResultDto
+{
+    public int ItemsCreated { get; set; }
+    public int OpeningUnits { get; set; }
+    public int IssuesRecorded { get; set; }
+    public int SkippedExisting { get; set; }
+    public string Summary { get; set; } = "";
+    public List<string> Errors { get; set; } = [];
+}
+

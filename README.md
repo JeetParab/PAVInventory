@@ -41,6 +41,15 @@ Static office IPs live in the same database. Import the SIDBI workbook (`Floors_
 - **Allocation list** is the full Excel-style grid (default: used + reserved). Filter Free / All when you want the complete view.
 - Wi-Fi and other subnets stay on the asset record; they are not part of the Floor 1–7 pool.
 
+### Stock / consumables
+
+Quantity items (mice, cables, batteries, toner, spare monitors without serials) live in **Stock**, not the Inventory grid. Issue and return link to existing PAV users.
+
+- Import **Consumable Stock Details 2026.xlsx** (one Excel row = one piece on the shelf). That is the opening balance.
+- Do **not** import the 2025 workbook as stock — it is history, laptops, printers and purchase lists. Importing it would double-count.
+- Receive / Issue / Return (engineer). Adjust and item master (admin). Low stock = on hand at or below minimum.
+- Already-issued 2026 rows (e.g. KM7321W to CGM Sandeep Verma) become an Opening + Issue, so on-hand is the remaining shelf count.
+
 | | Admin | Engineer | Guest |
 |---|---|---|---|
 | View / search / filter | ✓ | ✓ | ✓ |
@@ -49,6 +58,8 @@ Static office IPs live in the same database. Import the SIDBI workbook (`Floors_
 | Import / export | ✓ | ✓ | export only |
 | Users, locations, categories | ✓ | | |
 | Backup / restore | ✓ | | |
+| Stock receive / issue / return | ✓ | ✓ | |
+| Stock adjust / item master / stock import | ✓ | | |
 
 ---
 

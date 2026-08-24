@@ -78,6 +78,10 @@
                          Tag="&#xE968;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=IpInventory, Mode=OneWay}"
                          Command="{Binding GoCommand}" CommandParameter="IpInventory"/>
+            <RadioButton Style="{StaticResource NavButton}" Content="Stock"
+                         Tag="&#xE7BF;"
+                         IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Stock, Mode=OneWay}"
+                         Command="{Binding GoCommand}" CommandParameter="Stock"/>
             <RadioButton Style="{StaticResource NavButton}" Content="Users"
                          Tag="&#xE716;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Users, Mode=OneWay}"
@@ -177,6 +181,19 @@
             </Style>
           </views:IpInventoryView.Style>
         </views:IpInventoryView>
+
+        <views:StockView DataContext="{Binding Stock}">
+          <views:StockView.Style>
+            <Style TargetType="UserControl">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}}" Value="Stock">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </views:StockView.Style>
+        </views:StockView>
 
         <views:UsersView DataContext="{Binding Users}">
           <views:UsersView.Style>
