@@ -47,11 +47,18 @@ public static class StockExcel
             preview.CanImport = false;
             preview.SkippedSheets = names;
             preview.Issues.Add(
-                "This looks like Consumable Stock Details 2025.xlsx (laptops, printers, historical issues, purchase lists).");
+                "This is the original 2025 workbook (laptops, printers, issue ledger, purchase lists mixed together).");
             preview.Issues.Add(
-                "It is not current opening stock. Import Consumable Stock Details 2026.xlsx instead so 2025 and 2026 are not double-counted.");
-            preview.Summary = "Rejected: historical 2025 workbook. Use the 2026 stock file.";
+                "Do not import it. Use Consumable Stock Details 2026.xlsx for new stock, then PAV-Stock-2025-Remaining.xlsx for leftover 2025 quantity that is not in 2026.");
+            preview.Summary = "Rejected: original 2025 workbook. Use the cleaned remaining file.";
             return preview;
+        }
+
+        var summarySheet = FindSummarySheet(wb);
+        if (summarySheet is not null)
+        {
+            var groups = ReadSummaryGroups(summarySheet);
+            return FillPreview(preview, groups, existingStock, users, "summary-opening");
         }
 
         var sheet = FindUnitSheet(wb);
@@ -88,32 +95,111 @@ public static class StockExcel
         }
 
         preview.SourceKind = "2026-unit-list";
-        var grouped = rows.GroupBy(r => NormalizeKey(r.MakeModel)).ToList();
+        var grouped = rows.GroupBy(r => NormalizeKey(r.MakeModel))
+            .Select(g =>
+            {
+                var first = g.First();
+                var parsed = ParseProduct(first.MakeModel);
+                return new ParsedStockGroup
+                {
+                    Key = g.Key,
+                    Name = parsed.Name,
+                    Manufacturer = parsed.Manufacturer,
+                    Model = parsed.Model,
+                    Category = parsed.Category,
+                    Classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model),
+                    OpeningQty = g.Count(),
+                    Rows = g.ToList()
+                };
+            })
+            .ToList();
+        return FillPreview(preview, grouped, existingStock, users, "2026-unit-list");
+    }
+
+    public static List<ParsedStockGroup> GroupsForImport(Stream stream)
+    {
+        using var wb = new XLWorkbook(stream);
+        var names = wb.Worksheets.Select(s => s.Name).ToList();
+        if (names.Any(n =>
+                n.Contains("New Laptop", StringComparison.OrdinalIgnoreCase) ||
+                n.Contains("Printer list", StringComparison.OrdinalIgnoreCase) ||
+                n.Contains("Printer catrage", StringComparison.OrdinalIgnoreCase)))
+            throw new AppException(400, "validation", "Original 2025 workbook cannot be imported. Use PAV-Stock-2025-Remaining.xlsx.");
+
+        var summary = FindSummarySheet(wb);
+        if (summary is not null)
+            return ReadSummaryGroups(summary);
+
+        var sheet = FindUnitSheet(wb) ?? throw new AppException(400, "validation", "No stock sheet found.");
+        var rows = ReadUnitRows(sheet);
+        var list = new List<ParsedStockGroup>();
+        foreach (var g in rows.GroupBy(r => NormalizeKey(r.MakeModel)))
+        {
+            var first = g.First();
+            var parsed = ParseProduct(first.MakeModel);
+            list.Add(new ParsedStockGroup
+            {
+                Key = g.Key,
+                Name = parsed.Name,
+                Manufacturer = parsed.Manufacturer,
+                Model = parsed.Model,
+                Category = parsed.Category,
+                Classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model),
+                OpeningQty = g.Count(),
+                Rows = g.ToList()
+            });
+        }
+        return list;
+    }
+
+    private static StockImportPreviewDto FillPreview(
+        StockImportPreviewDto preview,
+        List<ParsedStockGroup> grouped,
+        IReadOnlyList<(int Id, string Name, string Key)> existingStock,
+        IReadOnlyList<(int Id, string Name, string Username)> users,
+        string kind)
+    {
+        preview.SourceKind = kind;
         var existingByKey = existingStock
             .GroupBy(x => x.Key, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
 
         foreach (var g in grouped)
         {
-            var first = g.First();
-            var parsed = ParseProduct(first.MakeModel);
-            var classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model);
-            var issued = g.Where(x => x.IsIssued).ToList();
+            if (g.Classification == "SerializedAsset")
+            {
+                preview.Lines.Add(new StockImportLineDto
+                {
+                    Name = g.Name,
+                    Manufacturer = g.Manufacturer,
+                    Model = g.Model,
+                    Category = g.Category,
+                    OpeningQty = g.OpeningQty,
+                    Classification = g.Classification,
+                    Action = "SkipSerialized",
+                    Notes = "Looks like a serialized asset. Not imported as stock."
+                });
+                preview.ReviewRows++;
+                continue;
+            }
+
+            var issued = g.Rows.Where(x => x.IsIssued).ToList();
             var line = new StockImportLineDto
             {
-                Name = parsed.Name,
-                Manufacturer = parsed.Manufacturer,
-                Model = parsed.Model,
-                Category = parsed.Category,
-                OpeningQty = g.Count(),
+                Name = g.Name,
+                Manufacturer = g.Manufacturer,
+                Model = g.Model,
+                Category = g.Category,
+                OpeningQty = g.OpeningQty,
                 IssuedQty = issued.Count,
-                Classification = classification,
-                Action = "Create"
+                Classification = g.Classification,
+                Action = "Create",
+                Notes = g.Notes
             };
 
-            if (classification == "Ambiguous")
+            if (g.Classification == "Ambiguous")
             {
-                line.Notes = AmbiguousReason(parsed.Name);
+                line.Notes = string.Join(" ", new[] { line.Notes, AmbiguousReason(g.Name) }.Where(s => !string.IsNullOrWhiteSpace(s)));
                 preview.AmbiguousItems++;
                 preview.ReviewRows++;
             }
@@ -152,40 +238,97 @@ public static class StockExcel
             preview.Lines.Add(line);
         }
 
-        var skip = preview.Lines.Count(l => l.Action is "SkipExisting" or "AmbiguousMatch");
+        var skip = preview.Lines.Count(l => l.Action is "SkipExisting" or "AmbiguousMatch" or "SkipSerialized");
         preview.CanImport = preview.NewItems > 0;
         preview.Summary = preview.CanImport
-            ? $"{preview.NewItems} new items, {preview.OpeningUnits} opening units, {preview.IssueRows} already issued, {preview.AmbiguousItems} need review, {skip} skipped as existing."
+            ? $"{preview.NewItems} new items, {preview.OpeningUnits} opening units, {preview.IssueRows} already issued, {preview.AmbiguousItems} need review, {skip} skipped."
             : skip > 0
-                ? "Every product already exists. Import would double-count — nothing will be written."
+                ? "Every product already exists or was skipped. Nothing will be written."
                 : "Nothing to import.";
+
+        if (kind == "summary-opening")
+            preview.Issues.Add("Summary file: one row per product, Quantity = opening balance. Walk the cupboard before you trust old remaining numbers.");
 
         if (preview.AmbiguousItems > 0)
             preview.Issues.Add(
-                "Monitors / the Brother label machine are stored as stock quantity (2026 has no serials). Move to Inventory later if you tag them.");
+                "Some items may belong in Inventory if they have serials (monitors, routers, label machines). They are still imported as stock quantity.");
 
         return preview;
     }
 
-    public static List<ParsedStockGroup> GroupsForImport(Stream stream)
+    private static IXLWorksheet? FindSummarySheet(XLWorkbook wb)
     {
-        using var wb = new XLWorkbook(stream);
-        var sheet = FindUnitSheet(wb) ?? throw new AppException(400, "validation", "No stock sheet found.");
-        var rows = ReadUnitRows(sheet);
-        var list = new List<ParsedStockGroup>();
-        foreach (var g in rows.GroupBy(r => NormalizeKey(r.MakeModel)))
+        foreach (var name in new[] { "OpeningStock", "Stock", "Remaining" })
         {
-            var first = g.First();
-            var parsed = ParseProduct(first.MakeModel);
+            var hit = wb.Worksheets.FirstOrDefault(s =>
+                s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (hit is not null) return hit;
+        }
+
+        foreach (var ws in wb.Worksheets)
+        {
+            if (ws.Name.StartsWith("DoNotImport", StringComparison.OrdinalIgnoreCase)) continue;
+            if (ws.Name.Equals("README", StringComparison.OrdinalIgnoreCase)) continue;
+            var map = Headers(ws);
+            var hasQty = map.ContainsKey("quantity") || map.ContainsKey("qty") || map.ContainsKey("opening");
+            var hasName = map.ContainsKey("name") || map.ContainsKey("item");
+            var unitList = map.ContainsKey("make & model") || map.ContainsKey("make and model");
+            if (hasQty && hasName && !unitList)
+                return ws;
+        }
+        return null;
+    }
+
+    private static List<ParsedStockGroup> ReadSummaryGroups(IXLWorksheet ws)
+    {
+        var map = Headers(ws);
+        int Col(params string[] keys)
+        {
+            foreach (var k in keys)
+                if (map.TryGetValue(k, out var i)) return i;
+            return 0;
+        }
+        var nameCol = Col("name", "item", "product");
+        var makeCol = Col("manufacturer", "make");
+        var modelCol = Col("model");
+        var catCol = Col("category", "type");
+        var qtyCol = Col("quantity", "qty", "opening", "remaining");
+        var notesCol = Col("notes", "remarks");
+        if (nameCol == 0 || qtyCol == 0)
+            return [];
+
+        var last = ws.LastRowUsed()?.RowNumber() ?? 1;
+        var list = new List<ParsedStockGroup>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var r = 2; r <= last; r++)
+        {
+            var name = Clean(ws.Cell(r, nameCol).GetString());
+            if (name is null) continue;
+            var qty = 0;
+            if (ws.Cell(r, qtyCol).TryGetValue(out double q))
+                qty = (int)q;
+            if (qty <= 0) continue;
+
+            var manufacturer = makeCol == 0 ? null : Clean(ws.Cell(r, makeCol).GetString());
+            var model = modelCol == 0 ? null : Clean(ws.Cell(r, modelCol).GetString());
+            var category = catCol == 0 ? null : Clean(ws.Cell(r, catCol).GetString());
+            var notes = notesCol == 0 ? null : Clean(ws.Cell(r, notesCol).GetString());
+            var parsed = ParseProduct(name);
+            var key = NormalizeKey(name);
+            if (!seen.Add(key))
+                continue;
+
             list.Add(new ParsedStockGroup
             {
-                Key = g.Key,
-                Name = parsed.Name,
-                Manufacturer = parsed.Manufacturer,
-                Model = parsed.Model,
-                Category = parsed.Category,
-                Classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model),
-                Rows = g.ToList()
+                Key = key,
+                Name = name,
+                Manufacturer = manufacturer ?? parsed.Manufacturer,
+                Model = model ?? parsed.Model,
+                Category = category ?? parsed.Category,
+                Classification = Classify(name, manufacturer, model),
+                OpeningQty = qty,
+                Notes = notes,
+                Rows = []
             });
         }
         return list;
@@ -381,6 +524,8 @@ public static class StockExcel
         public string? Model { get; set; }
         public string Category { get; set; } = "Other";
         public string Classification { get; set; } = "Stock";
+        public int OpeningQty { get; set; }
+        public string? Notes { get; set; }
         public List<UnitRow> Rows { get; set; } = [];
     }
 }

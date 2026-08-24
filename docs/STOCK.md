@@ -2,20 +2,14 @@
 
 Separate from Inventory. Quantity items only. Issue/return use existing PAV users.
 
-## Excel (do not merge 2025 + 2026)
+## Excel (do not merge original 2025 + 2026)
 
-| Workbook | Sheet | What it is | Import? |
-|---|---|---|---|
-| **2026** Sheet1 | One row = one physical piece currently on the shelf (168 rows, 15 products). One already issued (KM7321W → CGM Sandeep Verma). | **Yes — opening stock** |
-| 2025 Sheet1 | Historical issue ledger (425 rows, many “Provided to user”) | No |
-| 2025 New Laptop | Serialized laptops with serials | No — Inventory |
-| 2025 Printer list | Serialized printers | No — Inventory |
-| 2025 Printer catrage | Toner qty + messy issue notes | No |
-| 2025 Sheet2 | Older remaining/utilized summary | No — would double-count |
-| 2025 Sheet3 / Sheet5 | Purchase / requirement / price | No |
+| File | What it is | Import? |
+|---|---|---|
+| **Consumable Stock Details 2026.xlsx** | Current 2026 shelf (one row = one piece, 15 products) | **Yes — first** |
+| **PAV-Stock-2025-Remaining.xlsx** | Cleaned leftover from 2025 Sheet2 that is **not** in 2026 | **Yes — second** |
+| Original **Consumable Stock Details 2025.xlsx** | Mixed ledger + laptops + printers + purchase lists | **No — PAV rejects it** |
 
-## 2026 opening (after import)
+2025 leftover that *is* the same SKU as 2026 (KM5221W, KM7321W, Portronics VGA, 65W USB-C) stays out so counts are not doubled.
 
-Opening 168 units − 1 already issued = **167 on hand**. Re-import is refused (would double-count).
-
-Ambiguous (imported as stock, flagged for review): Dell 22" E2225HSM monitors (no serials in 2026), Brother P-Touch label machine (qty 1, no serial).
+Walk the cupboard before trusting Sheet2 remaining numbers — they are an old tally.

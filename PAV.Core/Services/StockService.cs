@@ -265,14 +265,14 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
                 db.StockItems.Add(item);
                 await db.SaveChangesAsync();
 
-                var openQty = g.Rows.Count;
+                var openQty = g.OpeningQty > 0 ? g.OpeningQty : g.Rows.Count;
                 db.StockMovements.Add(new StockMovement
                 {
                     StockItemId = item.Id,
                     MovementType = StockMovementType.OpeningBalance,
                     Quantity = openQty,
                     Reference = Path.GetFileName(fileName),
-                    Notes = $"{openQty} units from 2026 workbook (one Excel row = one piece).",
+                    Notes = Mapping.Clean(g.Notes) ?? $"{openQty} units opening balance from {Path.GetFileName(fileName)}.",
                     CreatedBy = actor.Username,
                     CreatedAt = now
                 });
