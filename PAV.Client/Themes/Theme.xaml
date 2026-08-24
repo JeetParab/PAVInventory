@@ -106,6 +106,7 @@
     <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
   </Style>
 
+
   <Style x:Key="PageTab" TargetType="RadioButton">
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="FontSize" Value="13"/>
@@ -641,8 +642,79 @@
     <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/>
   </Style>
 
+  <!-- ===== Scrollbars (thin, theme-aware) ===== -->
+  <Style x:Key="ScrollBarThumb" TargetType="Thumb">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="IsTabStop" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Border x:Name="Bd" Background="{DynamicResource ScrollBarThumbBrush}"
+                  CornerRadius="4" Margin="1" SnapsToDevicePixels="True"/>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ScrollBarThumbHoverBrush}"/>
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ScrollBarThumbDragBrush}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <ControlTemplate x:Key="VerticalScrollBar" TargetType="ScrollBar">
+    <Grid Background="{DynamicResource ScrollBarTrackBrush}">
+      <Track x:Name="PART_Track" IsDirectionReversed="True">
+        <Track.DecreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Height="0"/>
+        </Track.DecreaseRepeatButton>
+        <Track.Thumb>
+          <Thumb Style="{StaticResource ScrollBarThumb}" MinHeight="28"/>
+        </Track.Thumb>
+        <Track.IncreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Height="0"/>
+        </Track.IncreaseRepeatButton>
+      </Track>
+    </Grid>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="HorizontalScrollBar" TargetType="ScrollBar">
+    <Grid Background="{DynamicResource ScrollBarTrackBrush}">
+      <Track x:Name="PART_Track" IsDirectionReversed="False">
+        <Track.DecreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageLeftCommand" Opacity="0" Width="0"/>
+        </Track.DecreaseRepeatButton>
+        <Track.Thumb>
+          <Thumb Style="{StaticResource ScrollBarThumb}" MinWidth="28"/>
+        </Track.Thumb>
+        <Track.IncreaseRepeatButton>
+          <RepeatButton Command="ScrollBar.PageRightCommand" Opacity="0" Width="0"/>
+        </Track.IncreaseRepeatButton>
+      </Track>
+    </Grid>
+  </ControlTemplate>
+
+  <Style TargetType="ScrollBar">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="MinWidth" Value="10"/>
+    <Setter Property="Template" Value="{StaticResource VerticalScrollBar}"/>
+    <Style.Triggers>
+      <Trigger Property="Orientation" Value="Horizontal">
+        <Setter Property="Width" Value="Auto"/>
+        <Setter Property="Height" Value="10"/>
+        <Setter Property="MinHeight" Value="10"/>
+        <Setter Property="Template" Value="{StaticResource HorizontalScrollBar}"/>
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
   <Style TargetType="ScrollViewer">
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="Background" Value="Transparent"/>
   </Style>
 
   <Style TargetType="Label">
