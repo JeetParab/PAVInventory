@@ -360,14 +360,14 @@ public class ApiClient
             return await new IpAddressService(db, _lock).ImportWorkbookAsync(fs, actor);
         });
 
-    public Task<StockOverviewDto> StockOverviewAsync(string? search = null, string? status = null, bool includeInactive = false) =>
-        Read(Permissions.View, (db, _) => new StockService(db, _lock).OverviewAsync(search, status, includeInactive));
+    public Task<StockOverviewDto> StockOverviewAsync(string? search = null, string? status = null, bool includeInactive = false, string? categoryScope = null) =>
+        Read(Permissions.View, (db, _) => new StockService(db, _lock).OverviewAsync(search, status, includeInactive, categoryScope));
 
     public Task<StockItemDto> StockGetAsync(int id) =>
         Read(Permissions.View, (db, _) => new StockService(db, _lock).GetAsync(id));
 
-    public Task<List<StockMovementDto>> StockMovementsAsync(int? itemId = null, int? userId = null, string? search = null) =>
-        Read(Permissions.View, (db, _) => new StockService(db, _lock).MovementsAsync(itemId, userId, search));
+    public Task<List<StockMovementDto>> StockMovementsAsync(int? itemId = null, int? userId = null, string? search = null, string? categoryScope = null) =>
+        Read(Permissions.View, (db, _) => new StockService(db, _lock).MovementsAsync(itemId, userId, search, categoryScope));
 
     public Task<StockItemDto> SaveStockItemAsync(int? id, SaveStockItemRequest req) =>
         Read(Permissions.View, (db, actor) => new StockService(db, _lock).SaveItemAsync(id, req, actor));

@@ -8,9 +8,9 @@ namespace PAV.Core.Services;
 
 public class StockService(AppDbContext db, SqliteWriteLock writeLock)
 {
-    public async Task<StockOverviewDto> OverviewAsync(string? search, string? status, bool includeInactive)
+    public async Task<StockOverviewDto> OverviewAsync(string? search, string? status, bool includeInactive, string? categoryScope = null)
     {
-        var items = await QueryItems(search, status, includeInactive).ToListAsync();
+        var items = await QueryItems(search, status, includeInactive, categoryScope).ToListAsync();
         var ids = items.Select(x => x.Id).ToList();
         var totals = await MovementTotalsAsync(ids);
 
@@ -33,7 +33,7 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
         return ToDto(item, totals.GetValueOrDefault(id));
     }
 
-    public async Task<List<StockMovementDto>> MovementsAsync(int? itemId, int? userId, string? search)
+    public async Task<List<StockMovementDto>> MovementsAsync(int? itemId, int? userId, string? search, string? categoryScope = null)
     {
         var q = db.StockMovements.AsNoTracking()
             .Include(x => x.StockItem)
@@ -41,6 +41,8 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
             .AsQueryable();
         if (itemId is > 0) q = q.Where(x => x.StockItemId == itemId);
         if (userId is > 0) q = q.Where(x => x.UserId == userId);
+        q = ApplyCategoryScope(q, categoryScope);
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
@@ -381,11 +383,12 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
         return ms.ToArray();
     }
 
-    private IQueryable<StockItem> QueryItems(string? search, string? status, bool includeInactive)
+    private IQueryable<StockItem> QueryItems(string? search, string? status, bool includeInactive, string? categoryScope = null)
     {
         var q = db.StockItems.AsNoTracking().AsQueryable();
         if (!includeInactive)
             q = q.Where(x => x.IsActive);
+        q = ApplyCategoryScope(q, categoryScope);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.Trim().ToLower();
@@ -408,6 +411,38 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
             _ => q
         };
         return q.OrderBy(x => x.Name);
+    }
+
+    private static IQueryable<StockItem> ApplyCategoryScope(IQueryable<StockItem> q, string? categoryScope)
+    {
+        var scope = (categoryScope ?? "all").Trim().ToLowerInvariant();
+        if (scope == "toner")
+            return q.Where(x =>
+                (x.Category != null && x.Category.ToLower() == "toner")
+                || x.Name.ToLower().Contains("toner")
+                || x.Name.ToLower().Contains("cartridge"));
+        if (scope == "stock")
+            return q.Where(x =>
+                (x.Category == null || x.Category.ToLower() != "toner")
+                && !x.Name.ToLower().Contains("toner")
+                && !x.Name.ToLower().Contains("cartridge"));
+        return q;
+    }
+
+    private static IQueryable<StockMovement> ApplyCategoryScope(IQueryable<StockMovement> q, string? categoryScope)
+    {
+        var scope = (categoryScope ?? "all").Trim().ToLowerInvariant();
+        if (scope == "toner")
+            return q.Where(x =>
+                (x.StockItem.Category != null && x.StockItem.Category.ToLower() == "toner")
+                || x.StockItem.Name.ToLower().Contains("toner")
+                || x.StockItem.Name.ToLower().Contains("cartridge"));
+        if (scope == "stock")
+            return q.Where(x =>
+                (x.StockItem.Category == null || x.StockItem.Category.ToLower() != "toner")
+                && !x.StockItem.Name.ToLower().Contains("toner")
+                && !x.StockItem.Name.ToLower().Contains("cartridge"));
+        return q;
     }
 
     private async Task<Dictionary<int, (int Rec, int Iss, int Ret, int Adj)>> MovementTotalsAsync(List<int> ids)

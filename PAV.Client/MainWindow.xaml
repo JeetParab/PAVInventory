@@ -82,6 +82,10 @@
                          Tag="&#xE7BF;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Stock, Mode=OneWay}"
                          Command="{Binding GoCommand}" CommandParameter="Stock"/>
+            <RadioButton Style="{StaticResource NavButton}" Content="Toner"
+                         Tag="&#xE749;"
+                         IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Toner, Mode=OneWay}"
+                         Command="{Binding GoCommand}" CommandParameter="Toner"/>
             <RadioButton Style="{StaticResource NavButton}" Content="Users"
                          Tag="&#xE716;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Users, Mode=OneWay}"
@@ -188,6 +192,19 @@
               <Setter Property="Visibility" Value="Collapsed"/>
               <Style.Triggers>
                 <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}}" Value="Stock">
+                  <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </views:StockView.Style>
+        </views:StockView>
+
+        <views:StockView DataContext="{Binding Toner}">
+          <views:StockView.Style>
+            <Style TargetType="UserControl">
+              <Setter Property="Visibility" Value="Collapsed"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPage, RelativeSource={RelativeSource AncestorType=Window}}" Value="Toner">
                   <Setter Property="Visibility" Value="Visible"/>
                 </DataTrigger>
               </Style.Triggers>

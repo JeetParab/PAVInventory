@@ -26,10 +26,19 @@ public partial class StockItemEditViewModel : ObservableObject
     public ObservableCollection<string> Categories { get; } = new(StockExcel.Categories);
     public event Action<bool>? CloseRequested;
 
-    public StockItemEditViewModel(ApiClient api, StockItemDto? existing)
+    public StockItemEditViewModel(ApiClient api, StockItemDto? existing, string? defaultCategory = null)
     {
         _api = api;
-        if (existing is null) return;
+        if (existing is null)
+        {
+            if (!string.IsNullOrWhiteSpace(defaultCategory))
+            {
+                Category = defaultCategory;
+                if (defaultCategory.Equals("Toner", StringComparison.OrdinalIgnoreCase))
+                    Title = "Add toner";
+            }
+            return;
+        }
         _id = existing.Id;
         Title = "Edit stock item";
         Name = existing.Name;

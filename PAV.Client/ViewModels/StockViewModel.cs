@@ -13,9 +13,15 @@ public partial class StockViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly ShellViewModel _shell;
 
+    private readonly string _scope;
+
     public ObservableCollection<StockItemDto> Items { get; } = [];
     public ObservableCollection<StockMovementDto> Movements { get; } = [];
     public ObservableCollection<string> StatusChoices { get; } = ["All", "In Stock", "Low Stock", "Out of Stock", "Review"];
+
+    public string Title { get; }
+    public string DefaultCategory { get; }
+    public bool IsToner => _scope == "toner";
 
     [ObservableProperty] private string page = "Stock";
     [ObservableProperty] private string search = "";
@@ -35,10 +41,13 @@ public partial class StockViewModel : ObservableObject
     public bool CanManage => _shell.Me?.Role == UserRole.Administrator;
     public bool CanExport => _shell.CanExport;
 
-    public StockViewModel(ApiClient api, ShellViewModel shell)
+    public StockViewModel(ApiClient api, ShellViewModel shell, string scope = "stock")
     {
         _api = api;
         _shell = shell;
+        _scope = string.IsNullOrWhiteSpace(scope) ? "stock" : scope.Trim().ToLowerInvariant();
+        Title = _scope == "toner" ? "Toner" : "Stock";
+        DefaultCategory = _scope == "toner" ? "Toner" : "Peripheral";
     }
 
     partial void OnPageChanged(string value)
@@ -59,7 +68,8 @@ public partial class StockViewModel : ObservableObject
         Loading = true;
         try
         {
-            var ov = await _api.StockOverviewAsync(Search, StatusFilter, includeInactive: false);
+            var ov = await _api.StockOverviewAsync(Search, StatusFilter, includeInactive: false, categoryScope: _scope);
+
             ItemCount = ov.ItemCount;
             OnHandUnits = ov.OnHandUnits;
             LowStock = ov.LowStock;
@@ -123,7 +133,8 @@ public partial class StockViewModel : ObservableObject
     {
         try
         {
-            var list = await _api.StockMovementsAsync(search: Search);
+            var list = await _api.StockMovementsAsync(search: Search, categoryScope: _scope);
+
             Movements.Clear();
             foreach (var m in list)
                 Movements.Add(m);
@@ -153,7 +164,8 @@ public partial class StockViewModel : ObservableObject
 
     private async Task OpenItemEditor(StockItemDto? existing)
     {
-        var vm = new StockItemEditViewModel(_api, existing);
+        var vm = new StockItemEditViewModel(_api, existing, DefaultCategory);
+
         var win = new StockItemEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
             await LoadAsync();
@@ -177,7 +189,9 @@ public partial class StockViewModel : ObservableObject
         if (kind != "Adjust" && !CanMove) return;
         if (Items.Count == 0)
         {
-            Ui.Info("Add a stock item first (or import the 2026 Excel).");
+            Ui.Info(_scope == "toner"
+                ? "No toner items yet. Import the cleaned 2025 file, or add a toner row."
+                : "Add a stock item first (or import the 2026 Excel).");
             return;
         }
         var vm = new StockMoveViewModel(_api, kind, Items.ToList(), Selected);
