@@ -4,13 +4,21 @@ Separate from Inventory. Quantity items only. Issue/return use existing PAV user
 
 ## Excel import order
 
-1. **Consumable Stock Details 2026.xlsx** — current 2026 shelf (one row = one piece).
+1. **Consumable Stock Details 2026.xlsx** — current opening (one row = one piece).
 2. **Consumable Stock Details 2025 - Cleaned.xlsx** — leftover 2025 on-hand only.
 
-| File | Import? |
-|---|---|
-| 2026 workbook | Yes — first |
-| Cleaned 2025 (10 columns, Review Needed sheet) | Yes — second. Unissued rows only. Same models as 2026 are skipped. Monitors stay in Inventory. |
-| Original 2025 (New Laptop / Printer list sheets) | No — rejected |
+| File | Detected as | Import? |
+|---|---|---|
+| 2026 workbook (filename / unit sheet) | `2026-unit-list` | Yes — first |
+| Cleaned 2025 (`Review Needed` / `Read Me` sheets) | `2025-cleaned-ledger` | Yes — leftover on-hand only |
+| OpeningStock sheet | `summary-opening` | Yes — Name + Quantity |
+| Original 2025 (`New Laptop` / Printer sheets) | `2025-historical` | No |
 
-Do not import both leftover files. The cleaned 2025 ledger replaces `PAV-Stock-2025-Remaining.xlsx`.
+Detection uses filename and sheet names, not “how many rows are issued”.
+
+Product identity: Name + Manufacturer + Model. Same generic name with different models can coexist.
+
+On-hand = Opening + Received + Returned + Adjustment − Issued.
+Opening is not counted as Received.
+
+Admin: **Check integrity** compares stored OnHand to the movement ledger. It does not change stock.

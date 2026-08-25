@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using PAV.Shared.Dtos;
@@ -25,124 +23,169 @@ public static class StockExcel
         return collapsed;
     }
 
-    public static StockImportPreviewDto Preview(
+    public static string IdentityKey(string? name, string? manufacturer = null, string? model = null) =>
+        NormalizeKey(name, manufacturer, model);
+
+    public static string DetectKind(string? fileName, IEnumerable<string> sheetNames)
+    {
+        var names = sheetNames.ToList();
+        if (names.Any(n =>
+                n.Contains("New Laptop", StringComparison.OrdinalIgnoreCase) ||
+                n.Contains("Printer list", StringComparison.OrdinalIgnoreCase) ||
+                n.Contains("Printer catrage", StringComparison.OrdinalIgnoreCase) ||
+                n.Contains("Printer cartridge", StringComparison.OrdinalIgnoreCase)))
+            return "2025-historical";
+
+        if (names.Any(n =>
+                n.Equals("Review Needed", StringComparison.OrdinalIgnoreCase) ||
+                n.Equals("Read Me", StringComparison.OrdinalIgnoreCase)))
+            return "2025-cleaned-ledger";
+
+        if (names.Any(n =>
+                n.Equals("OpeningStock", StringComparison.OrdinalIgnoreCase) ||
+                n.Equals("Remaining", StringComparison.OrdinalIgnoreCase)))
+            return "summary-opening";
+
+        var file = fileName ?? "";
+        if (file.Contains("2025", StringComparison.OrdinalIgnoreCase) &&
+            file.Contains("cleaned", StringComparison.OrdinalIgnoreCase))
+            return "2025-cleaned-ledger";
+        if (file.Contains("2025", StringComparison.OrdinalIgnoreCase) &&
+            file.Contains("remaining", StringComparison.OrdinalIgnoreCase))
+            return "summary-opening";
+        if (file.Contains("2026", StringComparison.OrdinalIgnoreCase))
+            return "2026-unit-list";
+        return "current-unit-list";
+    }
+
+    public readonly record struct ExistingStock(int Id, string Name, string Key, string? Manufacturer, string? Model);
+
+    public static StockImportPlan BuildPlan(
         Stream stream,
         string fileName,
-        IReadOnlyList<(int Id, string Name, string Key)> existingStock,
+        IReadOnlyList<ExistingStock> existingStock,
         IReadOnlyList<(int Id, string Name, string Username)> users)
     {
         using var wb = new XLWorkbook(stream);
         var preview = new StockImportPreviewDto { SourceName = fileName };
-
         var names = wb.Worksheets.Select(s => s.Name).ToList();
-        var historical = names.Any(n =>
-            n.Contains("New Laptop", StringComparison.OrdinalIgnoreCase) ||
-            n.Contains("Printer list", StringComparison.OrdinalIgnoreCase) ||
-            n.Contains("Printer catrage", StringComparison.OrdinalIgnoreCase) ||
-            n.Contains("Printer cartridge", StringComparison.OrdinalIgnoreCase));
+        var kind = DetectKind(fileName, names);
+        preview.SourceKind = kind;
+        preview.SkippedSheets = names;
 
-        if (historical)
+        if (kind == "2025-historical")
         {
-            preview.SourceKind = "2025-historical";
             preview.CanImport = false;
-            preview.SkippedSheets = names;
             preview.Issues.Add(
                 "This is the original 2025 workbook (laptops, printers, issue ledger, purchase lists mixed together).");
             preview.Issues.Add(
-                "Do not import it. Use Consumable Stock Details 2026.xlsx for new stock, then PAV-Stock-2025-Remaining.xlsx for leftover 2025 quantity that is not in 2026.");
-            preview.Summary = "Rejected: original 2025 workbook. Use the cleaned remaining file.";
-            return preview;
+                "Do not import it. Use Consumable Stock Details 2026.xlsx first, then the cleaned 2025 file.");
+            preview.Summary = "Rejected: original 2025 workbook. Use the cleaned 2025 file.";
+            return new StockImportPlan(preview, []);
         }
 
-        var summarySheet = FindSummarySheet(wb);
-        if (summarySheet is not null)
+        List<ParsedStockGroup> groups;
+        if (kind == "summary-opening")
         {
-            var groups = ReadSummaryGroups(summarySheet);
-            return FillPreview(preview, groups, existingStock, users, "summary-opening");
+            var summarySheet = FindSummarySheet(wb);
+            if (summarySheet is null)
+            {
+                preview.CanImport = false;
+                preview.Issues.Add("No OpeningStock sheet with Name + Quantity was found.");
+                preview.Summary = "Could not read this workbook as stock.";
+                return new StockImportPlan(preview, []);
+            }
+            groups = ReadSummaryGroups(summarySheet);
+        }
+        else
+        {
+            var sheet = FindUnitSheet(wb);
+            if (sheet is null)
+            {
+                preview.CanImport = false;
+                preview.Issues.Add("No sheet with columns Sr.No / Make & Model was found.");
+                preview.Summary = "Could not read this workbook as stock.";
+                return new StockImportPlan(preview, []);
+            }
+            var rows = ReadUnitRows(sheet);
+            if (rows.Count == 0)
+            {
+                preview.CanImport = false;
+                preview.Issues.Add("The stock sheet has no product rows.");
+                preview.Summary = "No rows to import.";
+                return new StockImportPlan(preview, []);
+            }
+            groups = BuildGroups(rows, leftoverOnly: kind == "2025-cleaned-ledger");
         }
 
-        var sheet = FindUnitSheet(wb);
-        if (sheet is null)
-        {
-            preview.SourceKind = "unknown";
-            preview.CanImport = false;
-            preview.SkippedSheets = names;
-            preview.Issues.Add("No sheet with columns Sr.No / Make & Model was found.");
-            preview.Summary = "Could not read this workbook as stock.";
-            return preview;
-        }
-
-        var rows = ReadUnitRows(sheet);
-        if (rows.Count == 0)
-        {
-            preview.SourceKind = "empty";
-            preview.CanImport = false;
-            preview.Issues.Add("The stock sheet has no product rows.");
-            preview.Summary = "No rows to import.";
-            return preview;
-        }
-
-        var issuedShare = rows.Count(r => r.IsIssued) / (double)rows.Count;
-        var leftoverOnly = issuedShare > 0.4 && rows.Count > 50;
-        var grouped = BuildGroups(rows, leftoverOnly);
-        if (leftoverOnly)
-        {
-            preview.Issues.Add(
-                "This is the cleaned 2025 ledger (one row per piece, most already issued). Only leftover on-hand is imported — issue history is not replayed.");
-            preview.Issues.Add(
-                "Import Consumable Stock Details 2026.xlsx first. Anything already in PAV (same model) is skipped so 2025 and 2026 are not double-counted.");
-        }
-        return FillPreview(preview, grouped, existingStock, users, leftoverOnly ? "2025-cleaned-ledger" : "2026-unit-list");
+        AssignActions(groups, existingStock, users, kind);
+        FillPreviewFromGroups(preview, groups, kind);
+        return new StockImportPlan(preview, groups);
     }
 
-    public static List<ParsedStockGroup> GroupsForImport(Stream stream)
-    {
-        using var wb = new XLWorkbook(stream);
-        var names = wb.Worksheets.Select(s => s.Name).ToList();
-        if (names.Any(n =>
-                n.Contains("New Laptop", StringComparison.OrdinalIgnoreCase) ||
-                n.Contains("Printer list", StringComparison.OrdinalIgnoreCase) ||
-                n.Contains("Printer catrage", StringComparison.OrdinalIgnoreCase)))
-            throw new AppException(400, "validation", "Original 2025 workbook cannot be imported. Use the cleaned 2025 file after 2026.");
+    public static StockImportPreviewDto Preview(
+        Stream stream,
+        string fileName,
+        IReadOnlyList<ExistingStock> existingStock,
+        IReadOnlyList<(int Id, string Name, string Username)> users) =>
+        BuildPlan(stream, fileName, existingStock, users).Preview;
 
-        var summary = FindSummarySheet(wb);
-        if (summary is not null)
-            return ReadSummaryGroups(summary);
+    public sealed record StockImportPlan(StockImportPreviewDto Preview, List<ParsedStockGroup> Groups);
 
-        var sheet = FindUnitSheet(wb) ?? throw new AppException(400, "validation", "No stock sheet found.");
-        var rows = ReadUnitRows(sheet);
-        var leftoverOnly = rows.Count > 50 && rows.Count(r => r.IsIssued) / (double)rows.Count > 0.4;
-        return BuildGroups(rows, leftoverOnly);
-    }
-
-    private static StockImportPreviewDto FillPreview(
-        StockImportPreviewDto preview,
+    private static void AssignActions(
         List<ParsedStockGroup> grouped,
-        IReadOnlyList<(int Id, string Name, string Key)> existingStock,
+        IReadOnlyList<ExistingStock> existingStock,
         IReadOnlyList<(int Id, string Name, string Username)> users,
         string kind)
     {
-        preview.SourceKind = kind;
         foreach (var g in grouped)
         {
+            g.Key = IdentityKey(g.Name, g.Manufacturer, g.Model);
             if (g.Classification == "SerializedAsset")
             {
-                preview.Lines.Add(new StockImportLineDto
-                {
-                    Name = g.Name,
-                    Manufacturer = g.Manufacturer,
-                    Model = g.Model,
-                    Category = g.Category,
-                    OpeningQty = g.OpeningQty,
-                    Classification = g.Classification,
-                    Action = "SkipSerialized",
-                    Notes = "Looks like a serialized asset. Not imported as stock."
-                });
-                preview.ReviewRows++;
+                g.Action = "SkipSerialized";
+                g.Notes = "Looks like a serialized asset. Not imported as stock.";
                 continue;
             }
 
-            var issued = g.Rows.Where(x => x.IsIssued).ToList();
+            var hits = FindExisting(g, existingStock);
+            if (hits.Count == 1)
+            {
+                g.Action = "SkipExisting";
+                g.LineIssues.Add($"Already in PAV as '{hits[0].Name}'. Will not add another opening balance.");
+            }
+            else if (hits.Count > 1)
+            {
+                g.Action = "AmbiguousMatch";
+                g.LineIssues.Add($"Matches {hits.Count} existing stock items. Will not merge.");
+            }
+            else if (g.OpeningQty <= 0)
+            {
+                g.Action = "SkipEmpty";
+                g.LineIssues.Add("No leftover on the shelf (every row is already issued).");
+            }
+            else
+            {
+                g.Action = "Create";
+                if (g.Classification == "Ambiguous")
+                    g.Notes = string.Join(" ", new[] { g.Notes, AmbiguousReason(g.Name) }.Where(s => !string.IsNullOrWhiteSpace(s)));
+            }
+
+            foreach (var iss in g.Rows.Where(x => x.IsIssued))
+            {
+                var n = UserNameResolver.MatchCount(users, iss.User);
+                if (n == 0 && !string.IsNullOrWhiteSpace(iss.User))
+                    g.LineIssues.Add($"Issued to '{iss.User}' — no PAV user match. Name stored as text.");
+                else if (n > 1)
+                    g.LineIssues.Add($"Issued to '{iss.User}' — multiple PAV users. Name stored as text, not linked.");
+            }
+        }
+    }
+
+    private static void FillPreviewFromGroups(StockImportPreviewDto preview, List<ParsedStockGroup> grouped, string kind)
+    {
+        foreach (var g in grouped)
+        {
             var line = new StockImportLineDto
             {
                 Name = g.Name,
@@ -150,55 +193,27 @@ public static class StockExcel
                 Model = g.Model,
                 Category = g.Category,
                 OpeningQty = g.OpeningQty,
-                IssuedQty = g.IssuedCount > 0 ? g.IssuedCount : issued.Count,
+                IssuedQty = g.IssuedCount > 0 ? g.IssuedCount : g.Rows.Count(x => x.IsIssued),
                 Classification = g.Classification,
-                Action = "Create",
+                Action = g.Action,
                 Notes = g.Notes
             };
+            line.Issues.AddRange(g.LineIssues);
 
-            if (g.Classification == "Ambiguous")
-            {
-                line.Notes = string.Join(" ", new[] { line.Notes, AmbiguousReason(g.Name) }.Where(s => !string.IsNullOrWhiteSpace(s)));
-                preview.AmbiguousItems++;
-                preview.ReviewRows++;
-            }
-
-            var hits = g.MatchExistingFuzzy
-                ? MatchExistingAll(g.Name, g.Key, g.Model, existingStock)
-                : existingStock.Where(x => x.Key == g.Key).ToList();
-
-            if (hits.Count == 1)
-            {
-                line.Action = "SkipExisting";
-                line.Issues.Add($"Already in PAV as '{hits[0].Name}'. Will not add another opening balance (avoids double-count).");
-                preview.ExistingMatched++;
-            }
-            else if (hits.Count > 1)
-            {
-                line.Action = "AmbiguousMatch";
-                line.Issues.Add($"Matches {hits.Count} existing stock items. Will not merge.");
-                preview.ExistingMatched++;
-                preview.ReviewRows++;
-            }
-            else if (g.OpeningQty <= 0)
-            {
-                line.Action = "SkipEmpty";
-                line.Issues.Add("No leftover on the shelf (every row is already issued). Nothing to open.");
-            }
-            else
+            if (g.Action == "Create")
             {
                 preview.NewItems++;
                 preview.OpeningUnits += line.OpeningQty;
-                preview.IssueRows += kind == "2026-unit-list" ? line.IssuedQty : 0;
+                if (kind is "2026-unit-list" or "current-unit-list")
+                    preview.IssueRows += line.IssuedQty;
             }
+            else if (g.Action is "SkipExisting" or "AmbiguousMatch")
+                preview.ExistingMatched++;
 
-            foreach (var iss in issued)
+            if (g.Classification == "Ambiguous" || g.Action is "AmbiguousMatch" or "SkipSerialized")
             {
-                if (!string.IsNullOrWhiteSpace(iss.User) &&
-                    UserNameResolver.ResolveUniqueId(users, iss.User) is null)
-                {
-                    line.Issues.Add($"Issued to '{iss.User}' — no unique PAV user match. Name will be stored as text.");
-                }
+                preview.AmbiguousItems += g.Classification == "Ambiguous" ? 1 : 0;
+                preview.ReviewRows++;
             }
 
             preview.Lines.Add(line);
@@ -212,14 +227,17 @@ public static class StockExcel
                 ? "Every product already exists or was skipped. Nothing will be written."
                 : "Nothing to import.";
 
+        if (kind == "2025-cleaned-ledger")
+        {
+            preview.Issues.Add("Cleaned 2025 ledger: only leftover on-hand is imported. Issue history is not replayed.");
+            preview.Issues.Add("Import the 2026 workbook first. Same models already in PAV are skipped.");
+        }
         if (kind == "summary-opening")
-            preview.Issues.Add("Summary file: one row per product, Quantity = opening balance. Walk the cupboard before you trust old remaining numbers.");
-
+            preview.Issues.Add("Summary file: one row per product, Quantity = opening balance.");
+        if (kind is "2026-unit-list" or "current-unit-list")
+            preview.Issues.Add("Opening stock: one Excel row = one piece. Already-issued rows become Issue movements.");
         if (preview.AmbiguousItems > 0)
-            preview.Issues.Add(
-                "Some items may belong in Inventory if they have serials (monitors, routers, label machines). They are still imported as stock quantity.");
-
-        return preview;
+            preview.Issues.Add("Some items may belong in Inventory if they have serials. They stay as stock quantity with review flagged.");
     }
 
     private static List<ParsedStockGroup> BuildGroups(List<UnitRow> rows, bool leftoverOnly)
@@ -262,7 +280,7 @@ public static class StockExcel
 
             list.Add(new ParsedStockGroup
             {
-                Key = NormalizeKey(parsed.Name),
+                Key = IdentityKey(parsed.Name, parsed.Manufacturer, parsed.Model),
 
                 Name = parsed.Name,
                 Manufacturer = parsed.Manufacturer,
@@ -295,26 +313,34 @@ public static class StockExcel
         return n.Contains("toner") || n.Contains("cartridge");
     }
 
-    public static (int Id, string Name, string Key)? MatchExisting(
-        string name, string key, string? model,
-        IReadOnlyList<(int Id, string Name, string Key)> existing)
+    public static ExistingStock? MatchExisting(
+        ParsedStockGroup g,
+        IReadOnlyList<ExistingStock> existing)
     {
-        var hits = MatchExistingAll(name, key, model, existing);
+        var hits = FindExisting(g, existing);
         return hits.Count == 1 ? hits[0] : null;
     }
 
-    private static List<(int Id, string Name, string Key)> MatchExistingAll(
-        string name, string key, string? model,
-        IReadOnlyList<(int Id, string Name, string Key)> existing)
+    private static List<ExistingStock> FindExisting(ParsedStockGroup g, IReadOnlyList<ExistingStock> existing)
     {
-        var exact = existing.Where(x => x.Key == key).ToList();
-        if (exact.Count > 0) return exact;
+        var identity = IdentityKey(g.Name, g.Manufacturer, g.Model);
+        var nameKey = NormalizeKey(g.Name);
+        var exact = existing.Where(x =>
+                x.Key == identity
+                || x.Key == nameKey
+                || IdentityKey(x.Name, x.Manufacturer, x.Model) == identity)
+            .Distinct()
+            .ToList();
+        if (exact.Count > 0)
+            return exact;
+        if (!g.MatchExistingFuzzy)
+            return [];
 
-        var incoming = ModelCodes(name + " " + model);
-        var hits = new List<(int Id, string Name, string Key)>();
+        var incoming = ModelCodes(string.Join(" ", new[] { g.Name, g.Manufacturer, g.Model }));
+        var hits = new List<ExistingStock>();
         foreach (var e in existing)
         {
-            if (SameProduct(name, key, incoming, e.Name, e.Key))
+            if (SameProduct(g.Name, identity, incoming, e.Name, e.Key))
                 hits.Add(e);
         }
         return hits.Distinct().ToList();
@@ -406,7 +432,7 @@ public static class StockExcel
             var category = catCol == 0 ? null : Clean(ws.Cell(r, catCol).GetString());
             var notes = notesCol == 0 ? null : Clean(ws.Cell(r, notesCol).GetString());
             var parsed = ParseProduct(name);
-            var key = NormalizeKey(name);
+            var key = IdentityKey(name, manufacturer ?? parsed.Manufacturer, model ?? parsed.Model);
             if (!seen.Add(key))
                 continue;
 
@@ -626,7 +652,9 @@ public static class StockExcel
         public int OpeningQty { get; set; }
         public int IssuedCount { get; set; }
         public bool MatchExistingFuzzy { get; set; }
+        public string Action { get; set; } = "Create";
         public string? Notes { get; set; }
+        public List<string> LineIssues { get; set; } = [];
         public List<UnitRow> Rows { get; set; } = [];
     }
 }

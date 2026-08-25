@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
+using PAV.Core.Services;
 using PAV.Shared.Dtos;
 
 namespace PAV.Client.ViewModels;
@@ -23,6 +24,7 @@ public partial class StockMoveViewModel : ObservableObject
     [ObservableProperty] private bool needsUser;
     [ObservableProperty] private bool needsReason;
     [ObservableProperty] private string hint = "";
+    [ObservableProperty] private string userHint = "";
 
     public ObservableCollection<StockItemDto> Items { get; } = [];
     public ObservableCollection<UserDto> Users { get; } = [];
@@ -52,6 +54,7 @@ public partial class StockMoveViewModel : ObservableObject
 
     partial void OnItemChanged(StockItemDto? value) => UpdateHint();
     partial void OnQuantityChanged(int value) => UpdateHint();
+    partial void OnAssignedUserNameChanged(string? value) => UpdateUserHint();
 
     private void UpdateHint()
     {
@@ -71,6 +74,17 @@ public partial class StockMoveViewModel : ObservableObject
         };
     }
 
+    private void UpdateUserHint()
+    {
+        if (!NeedsUser)
+        {
+            UserHint = "";
+            return;
+        }
+        var tuples = Users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+        UserHint = UserNameResolver.Describe(tuples, AssignedUserName);
+    }
+
     private async Task LoadUsersAsync()
     {
         try
@@ -79,6 +93,7 @@ public partial class StockMoveViewModel : ObservableObject
             Users.Clear();
             foreach (var u in list.Where(x => x.IsActive).OrderBy(x => x.Name))
                 Users.Add(u);
+            UpdateUserHint();
         }
         catch
         {
@@ -97,20 +112,22 @@ public partial class StockMoveViewModel : ObservableObject
         }
         try
         {
+            var tuples = Users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+            if (NeedsUser && UserNameResolver.MatchCount(tuples, AssignedUserName) > 1)
+            {
+                // keep free text — do not send a UserId
+            }
+
             var req = new StockMoveRequest
             {
                 StockItemId = Item.Id,
                 Quantity = Quantity,
+                UserId = null,
                 AssignedUserName = AssignedUserName,
                 Reference = Reference,
                 Notes = Notes,
                 SerialNumber = SerialNumber
             };
-            var match = Users.FirstOrDefault(u =>
-                string.Equals(u.Name, AssignedUserName, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(u.Username, AssignedUserName, StringComparison.OrdinalIgnoreCase));
-            if (match is not null)
-                req.UserId = match.Id;
 
             if (Kind == "Receive") await _api.StockReceiveAsync(req);
             else if (Kind == "Issue") await _api.StockIssueAsync(req);

@@ -401,6 +401,9 @@ public class ApiClient
     public Task<byte[]> ExportStockAsync() =>
         Read(Permissions.Export, (db, _) => new StockService(db, _lock).ExportAsync());
 
+    public Task<StockIntegrityDto> StockIntegrityAsync() =>
+        Read(Permissions.View, (db, actor) => new StockService(db, _lock).IntegrityCheckAsync(actor));
+
     private async Task<T> Read<T>(string permission, Func<AppDbContext, CurrentUser, Task<T>> work)
     {
         var actor = Actor();

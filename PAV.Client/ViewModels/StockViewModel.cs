@@ -14,6 +14,11 @@ public partial class StockViewModel : ObservableObject
     private readonly ShellViewModel _shell;
 
     private readonly string _scope;
+    private readonly List<StockItemDto> _allItems = [];
+    private readonly List<StockMovementDto> _allMoves = [];
+    private bool _loadedMoves;
+    private int? _loadedMoveItemId;
+
 
     public ObservableCollection<StockItemDto> Items { get; } = [];
     public ObservableCollection<StockMovementDto> Movements { get; } = [];
@@ -68,19 +73,14 @@ public partial class StockViewModel : ObservableObject
         Loading = true;
         try
         {
-            var ov = await _api.StockOverviewAsync(Search, StatusFilter, includeInactive: false, categoryScope: _scope);
-
-            ItemCount = ov.ItemCount;
-            OnHandUnits = ov.OnHandUnits;
-            LowStock = ov.LowStock;
-            OutOfStock = ov.OutOfStock;
-            var keep = Selected?.Id;
-            Items.Clear();
-            foreach (var i in ov.Items)
-                Items.Add(i);
-            Selected = Items.FirstOrDefault(x => x.Id == keep) ?? Items.FirstOrDefault();
+            var ov = await _api.StockOverviewAsync(search: null, status: "All", includeInactive: false, categoryScope: _scope);
+            _allItems.Clear();
+            _allItems.AddRange(ov.Items);
+            _loadedMoves = false;
+            _allMoves.Clear();
+            ApplyFilter();
             if (ShowMovements)
-                await ReloadMovementsAsync();
+                await EnsureMovementsAsync();
             else
                 await ReloadItemMovementsAsync();
             OnPropertyChanged(nameof(CanMove));
@@ -96,17 +96,59 @@ public partial class StockViewModel : ObservableObject
         }
     }
 
-    partial void OnSearchChanged(string value) => _ = DebouncedLoad();
-    partial void OnStatusFilterChanged(string value) => _ = LoadAsync();
-    partial void OnSelectedChanged(StockItemDto? value) => _ = ReloadItemMovementsAsync();
-
-    private async Task DebouncedLoad()
+    partial void OnSearchChanged(string value)
     {
-        var token = Search;
-        await Task.Delay(180);
-        if (token != Search) return;
-        await LoadAsync();
+        ApplyFilter();
+        if (ShowMovements)
+            ApplyMoveFilter();
     }
+
+    partial void OnStatusFilterChanged(string value) => ApplyFilter();
+    partial void OnSelectedChanged(StockItemDto? value)
+    {
+        if (value?.Id == _loadedMoveItemId) return;
+        _ = ReloadItemMovementsAsync();
+    }
+
+
+    private void ApplyFilter()
+    {
+        var keep = Selected?.Id;
+        var q = _allItems.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            var s = Search.Trim();
+            q = q.Where(i =>
+                Contains(i.Name, s) ||
+                Contains(i.Manufacturer, s) ||
+                Contains(i.Model, s) ||
+                Contains(i.Category, s) ||
+                Contains(i.Notes, s));
+        }
+
+        q = (StatusFilter ?? "all").Trim().ToLowerInvariant() switch
+
+        {
+            "low" or "low stock" => q.Where(x => x.IsLow),
+            "out" or "out of stock" => q.Where(x => x.OnHand <= 0),
+            "in" or "in stock" => q.Where(x => x.StockStatus == "In Stock"),
+            "review" => q.Where(x => x.NeedsReview),
+            _ => q
+        };
+
+        var list = q.ToList();
+        ItemCount = list.Count;
+        OnHandUnits = list.Where(x => x.IsActive).Sum(x => x.OnHand);
+        LowStock = list.Count(x => x.IsLow && x.IsActive);
+        OutOfStock = list.Count(x => x.OnHand <= 0 && x.IsActive);
+        Items.Clear();
+        foreach (var i in list)
+            Items.Add(i);
+        Selected = Items.FirstOrDefault(x => x.Id == keep) ?? Items.FirstOrDefault();
+    }
+
+    private static bool Contains(string? value, string s) =>
+        !string.IsNullOrEmpty(value) && value.Contains(s, StringComparison.OrdinalIgnoreCase);
 
     private async Task ReloadItemMovementsAsync()
     {
@@ -115,10 +157,13 @@ public partial class StockViewModel : ObservableObject
         {
             if (Selected is null)
             {
+                _loadedMoveItemId = null;
                 Movements.Clear();
                 return;
             }
+            _loadedMoveItemId = Selected.Id;
             var list = await _api.StockMovementsAsync(Selected.Id);
+
             Movements.Clear();
             foreach (var m in list.Take(40))
                 Movements.Add(m);
@@ -129,21 +174,37 @@ public partial class StockViewModel : ObservableObject
         }
     }
 
-    private async Task ReloadMovementsAsync()
+    private async Task EnsureMovementsAsync()
     {
-        try
+        if (!_loadedMoves)
         {
-            var list = await _api.StockMovementsAsync(search: Search, categoryScope: _scope);
-
-            Movements.Clear();
-            foreach (var m in list)
-                Movements.Add(m);
+            var list = await _api.StockMovementsAsync(categoryScope: _scope);
+            _allMoves.Clear();
+            _allMoves.AddRange(list);
+            _loadedMoves = true;
         }
-        catch (Exception ex)
-        {
-            Ui.Error(ex);
-        }
+        ApplyMoveFilter();
     }
+
+    private void ApplyMoveFilter()
+    {
+        var q = _allMoves.AsEnumerable();
+        if (!string.IsNullOrWhiteSpace(Search))
+        {
+            var s = Search.Trim();
+            q = q.Where(m =>
+                Contains(m.ItemName, s) ||
+                Contains(m.AssignedUser, s) ||
+                Contains(m.Notes, s) ||
+                Contains(m.Reference, s) ||
+                Contains(m.SerialNumber, s));
+        }
+        Movements.Clear();
+        foreach (var m in q)
+            Movements.Add(m);
+    }
+
+    private async Task ReloadMovementsAsync() => await EnsureMovementsAsync();
 
     [RelayCommand]
     private Task RefreshAsync() => LoadAsync();
@@ -239,6 +300,30 @@ public partial class StockViewModel : ObservableObject
             var bytes = await _api.ExportStockAsync();
             await Ui.SaveBytes(path, bytes);
             Ui.Info("Exported stock and movements.");
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task IntegrityAsync()
+    {
+        if (!CanManage) return;
+        try
+        {
+            var report = await _api.StockIntegrityAsync();
+            if (report.MismatchCount == 0)
+            {
+                Ui.Info(report.Summary);
+                return;
+            }
+
+            var lines = report.Rows
+                .Where(r => r.Status == "MISMATCH")
+                .Select(r => $"{r.Name}: stored {r.StoredOnHand}, ledger {r.CalculatedOnHand}");
+            Ui.Info(report.Summary + Environment.NewLine + Environment.NewLine + string.Join(Environment.NewLine, lines));
         }
         catch (Exception ex)
         {

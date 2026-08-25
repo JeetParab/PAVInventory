@@ -92,6 +92,8 @@
           <Button Content="Return" Style="{StaticResource SecondaryButton}" Command="{Binding ReturnCommand}"
                   IsEnabled="{Binding CanMove}" Margin="0,0,8,0" Padding="10,6"/>
           <Button Content="Adjust" Style="{StaticResource SecondaryButton}" Command="{Binding AdjustCommand}"
+                  IsEnabled="{Binding CanManage}" Margin="0,0,8,0" Padding="10,6"/>
+          <Button Content="Check integrity" Style="{StaticResource SecondaryButton}" Command="{Binding IntegrityCommand}"
                   IsEnabled="{Binding CanManage}" Padding="10,6"/>
         </StackPanel>
         <ComboBox DockPanel.Dock="Right" Width="140" Margin="0,0,8,0"
@@ -135,9 +137,11 @@
             <DataGridTextColumn Header="On hand" Binding="{Binding OnHand}" Width="80"/>
             <DataGridTextColumn Header="Min" Binding="{Binding MinimumQuantity}" Width="50"/>
             <DataGridTextColumn Header="Status" Binding="{Binding StockStatus}" Width="110"/>
+            <DataGridTextColumn Header="Opening" Binding="{Binding Opening}" Width="75"/>
             <DataGridTextColumn Header="Received" Binding="{Binding Received}" Width="80"/>
             <DataGridTextColumn Header="Issued" Binding="{Binding Issued}" Width="70"/>
             <DataGridTextColumn Header="Returned" Binding="{Binding Returned}" Width="80"/>
+            <DataGridTextColumn Header="Adjusted" Binding="{Binding Adjusted}" Width="80"/>
           </DataGrid.Columns>
         </DataGrid>
       </Border>

@@ -450,6 +450,7 @@ public class StockItemDto
     public string? Notes { get; set; }
     public string StockStatus { get; set; } = "In Stock";
     public bool IsLow { get; set; }
+    public int Opening { get; set; }
     public int Received { get; set; }
     public int Issued { get; set; }
     public int Returned { get; set; }
@@ -547,5 +548,23 @@ public class StockImportResultDto
     public int SkippedExisting { get; set; }
     public string Summary { get; set; } = "";
     public List<string> Errors { get; set; } = [];
+}
+
+public class StockIntegrityRowDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public int StoredOnHand { get; set; }
+    public int CalculatedOnHand { get; set; }
+    public string Status { get; set; } = "PASS";
+}
+
+public class StockIntegrityDto
+{
+    public int ItemCount { get; set; }
+    public int PassCount { get; set; }
+    public int MismatchCount { get; set; }
+    public string Summary { get; set; } = "";
+    public List<StockIntegrityRowDto> Rows { get; set; } = [];
 }
 

@@ -65,7 +65,8 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
         var name = Mapping.Clean(req.Name) ?? throw new AppException(400, "validation", "Name is required.");
         var manufacturer = Mapping.Clean(req.Manufacturer);
         var model = Mapping.Clean(req.Model);
-        var key = StockExcel.NormalizeKey(name);
+        var key = StockExcel.IdentityKey(name, manufacturer, model);
+
 
         return await writeLock.WriteAsync(async () =>
         {
@@ -84,7 +85,9 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
             var clash = await db.StockItems.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.NormalizedKey == key && x.Id != (id ?? 0));
             if (clash is not null)
-                throw new AppException(409, "conflict", $"'{name}' already exists.");
+                throw new AppException(409, "conflict",
+                    $"A stock item with the same name/make/model already exists ('{clash.Name}').");
+
 
             item.Name = name;
             item.NormalizedKey = key;
@@ -150,18 +153,9 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
                 .Select(u => new { u.Id, u.Name, u.Username })
                 .ToListAsync();
             var userTuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
-            int? userId = req.UserId;
-            var userName = Mapping.Clean(req.AssignedUserName);
-            if (userId is { } uid)
-            {
-                var u = users.FirstOrDefault(x => x.Id == uid);
-                if (u is null) throw new AppException(400, "validation", "User not found.");
-                userName = Mapping.Clean(u.Name) ?? u.Username;
-            }
-            else if (userName is not null)
-            {
-                userId = UserNameResolver.ResolveUniqueId(userTuples, userName);
-            }
+            var resolved = UserNameResolver.ResolveMovement(req.UserId, req.AssignedUserName, userTuples);
+            var userId = resolved.UserId;
+            var userName = resolved.UserName;
 
             var signed = type.SignedDelta(qty);
             var next = item.OnHand + signed;
@@ -198,135 +192,172 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
 
     public async Task<StockImportPreviewDto> PreviewImportAsync(Stream stream, string fileName)
     {
-        var existing = await db.StockItems.AsNoTracking()
-            .Select(x => new { x.Id, x.Name, x.NormalizedKey })
-            .ToListAsync();
-        var users = await db.Users.AsNoTracking()
-            .Select(u => new { u.Id, u.Name, u.Username })
-            .ToListAsync();
-        // reuse Preview's existing list as stock keys; users resolved inside per-line
-        var keys = existing.Select(x => (x.Id, x.Name, x.NormalizedKey)).ToList();
-        var userTuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
-        return StockExcel.Preview(stream, fileName, keys, userTuples);
+        var existing = await LoadExistingStockAsync();
+        var users = await LoadUserTuplesAsync();
+        return StockExcel.BuildPlan(stream, fileName, existing, users).Preview;
     }
 
     public async Task<StockImportResultDto> ImportAsync(Stream stream, string fileName, CurrentUser actor)
     {
         RequireAdmin(actor);
         stream.Position = 0;
-        var preview = await PreviewImportAsync(stream, fileName);
-        if (!preview.CanImport)
-            throw new AppException(400, "validation", preview.Summary, preview.Issues);
-
-        stream.Position = 0;
-        var groups = StockExcel.GroupsForImport(stream);
-        var existing = await db.StockItems.AsNoTracking().ToListAsync();
-        var existingList = existing.Select(x => (x.Id, x.Name, x.NormalizedKey)).ToList();
-        var existingKeys = existing
-            .GroupBy(x => x.NormalizedKey)
-            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
-        var users = (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username }).ToListAsync())
-            .Select(u => (u.Id, u.Name, u.Username))
-            .ToList();
+        var existing = await LoadExistingStockAsync();
+        var users = await LoadUserTuplesAsync();
+        var plan = StockExcel.BuildPlan(stream, fileName, existing, users);
+        if (!plan.Preview.CanImport)
+            throw new AppException(400, "validation", plan.Preview.Summary, plan.Preview.Issues);
 
         return await writeLock.WriteAsync(async () =>
         {
-            var created = 0;
-            var opening = 0;
-            var issues = 0;
-            var skipped = 0;
-            var now = DateTime.Now;
-
-            foreach (var g in groups)
+            await using var tx = await db.Database.BeginTransactionAsync();
+            try
             {
-                var fuzzyHit = g.MatchExistingFuzzy
-                    ? StockExcel.MatchExisting(g.Name, g.Key, g.Model, existingList)
-                    : null;
-                existingKeys.TryGetValue(g.Key, out var hits);
-                if (fuzzyHit is not null || hits is { Count: > 0 })
-                {
-                    skipped++;
-                    continue;
-                }
+                var created = 0;
+                var opening = 0;
+                var issues = 0;
+                var skipped = 0;
+                var now = DateTime.Now;
 
-                if (g.Classification == "SerializedAsset")
-                    continue;
-                if (g.OpeningQty <= 0 && g.Rows.Count == 0)
-                    continue;
-
-                var item = new StockItem
+                foreach (var g in plan.Groups)
                 {
-                    Name = g.Name,
-                    NormalizedKey = g.Key,
-                    Category = g.Category,
-                    Manufacturer = g.Manufacturer,
-                    Model = g.Model,
-                    Unit = "pcs",
-                    MinimumQuantity = 0,
-                    IsActive = true,
-                    NeedsReview = g.Classification == "Ambiguous",
-                    Notes = g.Classification == "Ambiguous" ? StockExcel.AmbiguousReason(g.Name) : "Imported from " + fileName,
-                    OnHand = 0,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                };
-                db.StockItems.Add(item);
-                await db.SaveChangesAsync();
+                    if (g.Action != "Create")
+                    {
+                        skipped++;
+                        continue;
+                    }
 
-                var openQty = g.OpeningQty > 0 ? g.OpeningQty : g.Rows.Count;
-                db.StockMovements.Add(new StockMovement
-                {
-                    StockItemId = item.Id,
-                    MovementType = StockMovementType.OpeningBalance,
-                    Quantity = openQty,
-                    Reference = Path.GetFileName(fileName),
-                    Notes = Mapping.Clean(g.Notes) ?? $"{openQty} units opening balance from {Path.GetFileName(fileName)}.",
-                    CreatedBy = actor.Username,
-                    CreatedAt = now
-                });
-                item.OnHand += openQty;
-                opening += openQty;
-                created++;
+                    var item = new StockItem
+                    {
+                        Name = g.Name,
+                        NormalizedKey = g.Key,
+                        Category = g.Category,
+                        Manufacturer = g.Manufacturer,
+                        Model = g.Model,
+                        Unit = "pcs",
+                        MinimumQuantity = 0,
+                        IsActive = true,
+                        NeedsReview = g.Classification == "Ambiguous",
+                        Notes = Mapping.Clean(g.Notes) ?? "Imported from " + fileName,
+                        OnHand = 0,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    db.StockItems.Add(item);
+                    await db.SaveChangesAsync();
 
-                foreach (var row in g.Rows.Where(x => x.IsIssued))
-                {
-                    var userName = Mapping.Clean(row.User);
-                    var userId = UserNameResolver.ResolveUniqueId(users, userName);
-                    var when = row.Date ?? now;
+                    var openQty = g.OpeningQty;
                     db.StockMovements.Add(new StockMovement
                     {
                         StockItemId = item.Id,
-                        MovementType = StockMovementType.Issue,
-                        Quantity = 1,
-                        UserId = userId,
-                        AssignedUserName = userName,
-                        SerialNumber = Mapping.Clean(row.Serial),
-                        Reference = row.Sr > 0 ? $"Sr {row.Sr}" : null,
-                        Notes = JoinNotes(row.Status, row.Remarks, "Imported issued row from 2026 workbook."),
+                        MovementType = StockMovementType.OpeningBalance,
+                        Quantity = openQty,
+                        Reference = Path.GetFileName(fileName),
+                        Notes = Mapping.Clean(g.Notes) ?? $"{openQty} units opening balance from {Path.GetFileName(fileName)}.",
                         CreatedBy = actor.Username,
-                        CreatedAt = when
+                        CreatedAt = now
                     });
-                    item.OnHand -= 1;
-                    issues++;
+                    item.OnHand += openQty;
+                    opening += openQty;
+                    created++;
+
+                    foreach (var row in g.Rows.Where(x => x.IsIssued))
+                    {
+                        var userName = Mapping.Clean(row.User);
+                        var userId = UserNameResolver.ResolveUniqueId(users, userName);
+                        var when = row.Date ?? now;
+                        db.StockMovements.Add(new StockMovement
+                        {
+                            StockItemId = item.Id,
+                            MovementType = StockMovementType.Issue,
+                            Quantity = 1,
+                            UserId = userId,
+                            AssignedUserName = userName,
+                            SerialNumber = Mapping.Clean(row.Serial),
+                            Reference = row.Sr > 0 ? $"Sr {row.Sr}" : null,
+                            Notes = JoinNotes(row.Status, row.Remarks, "Imported issued row."),
+                            CreatedBy = actor.Username,
+                            CreatedAt = when
+                        });
+                        item.OnHand -= 1;
+                        issues++;
+                    }
+
+                    if (item.OnHand < 0)
+                        throw new AppException(400, "validation",
+                            $"{item.Name}: issued count exceeds opening. File was not imported.");
+
+                    item.UpdatedAt = now;
                 }
 
-                if (item.OnHand < 0)
-                    throw new AppException(400, "validation",
-                        $"{item.Name}: issued count exceeds rows. File was not imported.");
-
-                item.UpdatedAt = now;
                 await db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return new StockImportResultDto
+                {
+                    ItemsCreated = created,
+                    OpeningUnits = opening,
+                    IssuesRecorded = issues,
+                    SkippedExisting = skipped,
+                    Summary = $"Created {created} items. Opening {opening} units. Recorded {issues} already-issued. Skipped {skipped}."
+                };
             }
-
-            return new StockImportResultDto
+            catch
             {
-                ItemsCreated = created,
-                OpeningUnits = opening,
-                IssuesRecorded = issues,
-                SkippedExisting = skipped,
-                Summary = $"Created {created} items. Opening {opening} units. Recorded {issues} already-issued. Skipped {skipped} existing."
-            };
+                await tx.RollbackAsync();
+                throw;
+            }
         });
+    }
+
+    public async Task<StockIntegrityDto> IntegrityCheckAsync(CurrentUser actor)
+    {
+        RequireAdmin(actor);
+        var items = await db.StockItems.AsNoTracking().OrderBy(x => x.Name).ToListAsync();
+        var moves = await db.StockMovements.AsNoTracking()
+            .Select(m => new { m.StockItemId, m.MovementType, m.Quantity })
+            .ToListAsync();
+        var calc = moves
+            .GroupBy(m => m.StockItemId)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.MovementType.SignedDelta(x.Quantity)));
+
+        var rows = items.Select(i =>
+        {
+            var calculated = calc.GetValueOrDefault(i.Id);
+            return new StockIntegrityRowDto
+            {
+                Id = i.Id,
+                Name = i.Name,
+                StoredOnHand = i.OnHand,
+                CalculatedOnHand = calculated,
+                Status = i.OnHand == calculated ? "PASS" : "MISMATCH"
+            };
+        }).ToList();
+
+        var pass = rows.Count(r => r.Status == "PASS");
+        var bad = rows.Count - pass;
+        return new StockIntegrityDto
+        {
+            ItemCount = rows.Count,
+            PassCount = pass,
+            MismatchCount = bad,
+            Summary = bad == 0
+                ? $"PASS — {pass} items, stored OnHand matches movement ledger."
+                : $"MISMATCH — {bad} of {rows.Count} items differ from the movement ledger. Nothing was changed.",
+            Rows = rows
+        };
+    }
+
+    private async Task<List<StockExcel.ExistingStock>> LoadExistingStockAsync()
+    {
+        var rows = await db.StockItems.AsNoTracking()
+            .Select(x => new { x.Id, x.Name, x.NormalizedKey, x.Manufacturer, x.Model })
+            .ToListAsync();
+        return rows.Select(x => new StockExcel.ExistingStock(x.Id, x.Name, x.NormalizedKey, x.Manufacturer, x.Model)).ToList();
+    }
+
+    private async Task<List<(int Id, string Name, string Username)>> LoadUserTuplesAsync()
+    {
+        var users = await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username }).ToListAsync();
+        return users.Select(u => (u.Id, u.Name, u.Username)).ToList();
     }
 
     public async Task<byte[]> ExportAsync()
@@ -445,7 +476,7 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
         return q;
     }
 
-    private async Task<Dictionary<int, (int Rec, int Iss, int Ret, int Adj)>> MovementTotalsAsync(List<int> ids)
+    private async Task<Dictionary<int, (int Open, int Rec, int Iss, int Ret, int Adj)>> MovementTotalsAsync(List<int> ids)
     {
         if (ids.Count == 0) return [];
         var rows = await db.StockMovements.AsNoTracking()
@@ -453,25 +484,26 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
             .GroupBy(x => new { x.StockItemId, x.MovementType })
             .Select(g => new { g.Key.StockItemId, g.Key.MovementType, Qty = g.Sum(x => x.Quantity) })
             .ToListAsync();
-        var map = new Dictionary<int, (int Rec, int Iss, int Ret, int Adj)>();
+        var map = new Dictionary<int, (int Open, int Rec, int Iss, int Ret, int Adj)>();
         foreach (var id in ids)
-            map[id] = (0, 0, 0, 0);
+            map[id] = (0, 0, 0, 0, 0);
         foreach (var row in rows)
         {
             var cur = map.GetValueOrDefault(row.StockItemId);
             map[row.StockItemId] = row.MovementType switch
             {
-                StockMovementType.Receive or StockMovementType.OpeningBalance => (cur.Rec + row.Qty, cur.Iss, cur.Ret, cur.Adj),
-                StockMovementType.Issue => (cur.Rec, cur.Iss + row.Qty, cur.Ret, cur.Adj),
-                StockMovementType.Return => (cur.Rec, cur.Iss, cur.Ret + row.Qty, cur.Adj),
-                StockMovementType.Adjustment => (cur.Rec, cur.Iss, cur.Ret, cur.Adj + row.Qty),
+                StockMovementType.OpeningBalance => (cur.Open + row.Qty, cur.Rec, cur.Iss, cur.Ret, cur.Adj),
+                StockMovementType.Receive => (cur.Open, cur.Rec + row.Qty, cur.Iss, cur.Ret, cur.Adj),
+                StockMovementType.Issue => (cur.Open, cur.Rec, cur.Iss + row.Qty, cur.Ret, cur.Adj),
+                StockMovementType.Return => (cur.Open, cur.Rec, cur.Iss, cur.Ret + row.Qty, cur.Adj),
+                StockMovementType.Adjustment => (cur.Open, cur.Rec, cur.Iss, cur.Ret, cur.Adj + row.Qty),
                 _ => cur
             };
         }
         return map;
     }
 
-    private static StockItemDto ToDto(StockItem i, (int Rec, int Iss, int Ret, int Adj) t)
+    private static StockItemDto ToDto(StockItem i, (int Open, int Rec, int Iss, int Ret, int Adj) t)
     {
         var status = StatusOf(i);
         return new StockItemDto
@@ -489,6 +521,7 @@ public class StockService(AppDbContext db, SqliteWriteLock writeLock)
             Notes = i.Notes,
             StockStatus = status,
             IsLow = status == "Low Stock",
+            Opening = t.Open,
             Received = t.Rec,
             Issued = t.Iss,
             Returned = t.Ret,
