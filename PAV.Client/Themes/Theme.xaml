@@ -424,7 +424,7 @@
             </TextBox>
             <Popup x:Name="PART_Popup" Grid.ColumnSpan="2"
                    Placement="Bottom" AllowsTransparency="True" Focusable="False"
-                   PopupAnimation="Slide"
+                   PopupAnimation="None"
                    IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
               <Border Margin="0,4,0,0"
                       Background="{DynamicResource SurfaceBrush}"

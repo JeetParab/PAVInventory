@@ -277,7 +277,9 @@
                   BorderThickness="0"
                   FrozenColumnCount="{Binding FrozenColumnCount}"
                   CanUserReorderColumns="True"
-                  CanUserResizeColumns="True">
+                  CanUserResizeColumns="True"
+                  EnableColumnVirtualization="False"
+                  EnableRowVirtualization="True">
           <DataGrid.ContextMenu>
             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
               <MenuItem Header="Open" Command="{Binding OpenCommand}" InputGestureText="Enter">

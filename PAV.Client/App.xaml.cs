@@ -32,11 +32,21 @@ public partial class App : Application
         }
 
         var shell = new ShellViewModel(api, config);
-        var window = new MainWindow { DataContext = shell };
+        var window = new MainWindow { DataContext = shell, Opacity = 0 };
         MainWindow = window;
         window.Show();
         ShutdownMode = ShutdownMode.OnMainWindowClose;
-        _ = shell.InitializeAsync();
+        window.Dispatcher.InvokeAsync(async () =>
+        {
+            try
+            {
+                await shell.InitializeAsync();
+            }
+            finally
+            {
+                window.Opacity = 1;
+            }
+        });
     }
 
     internal static bool ShowLogin(ApiClient api, ClientConfig config, Window? owner)
