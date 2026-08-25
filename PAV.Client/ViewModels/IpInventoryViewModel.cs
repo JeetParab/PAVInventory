@@ -217,10 +217,23 @@ public partial class IpInventoryViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task AssignCustomAsync()
+    {
+        if (!CanAssign) return;
+        var typed = CheckInput?.Trim();
+        await OpenAssignAsync(null, null, string.IsNullOrWhiteSpace(typed) ? null : typed);
+    }
+
+    [RelayCommand]
     private async Task AssignCheckedAsync()
     {
-        if (!CanAssign || CheckResult?.Record is null) return;
-        await OpenAssignAsync(CheckResult.Record, null, CheckResult.Record.Address);
+        if (!CanAssign) return;
+        if (CheckResult?.Record is not null)
+        {
+            await OpenAssignAsync(CheckResult.Record, null, CheckResult.Record.Address);
+            return;
+        }
+        await AssignCustomAsync();
     }
 
     [RelayCommand]

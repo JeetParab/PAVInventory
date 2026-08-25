@@ -128,7 +128,7 @@
             <StackPanel>
               <TextBlock Text="Get a free IP" FontWeight="SemiBold" Margin="0,0,0,4"/>
               <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
-                         Text="Select a floor above. The next free IP is the lowest unused address on that floor."/>
+                         Text="Select a floor above. Next free is the lowest unused address. You can still change it in the dialog."/>
               <TextBlock Style="{StaticResource FieldLabel}" Text="Selected"/>
               <TextBlock Margin="0,0,0,8">
                 <Run Text="{Binding SelectedFloorName, Mode=OneWay}"/>
@@ -140,10 +140,13 @@
                       IsEnabled="{Binding CanAssign}"/>
             </StackPanel>
             <StackPanel Grid.Column="2">
-              <TextBlock Text="Check an IP" FontWeight="SemiBold" Margin="0,0,0,4"/>
+              <TextBlock Text="Assign a specific IP" FontWeight="SemiBold" Margin="0,0,0,4"/>
               <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
-                         Text="Type an address. If it is free you can assign it. If it is taken you will see who has it."/>
+                         Text="Type any address in 172.16.101–107. If it is free it opens assign. If it is taken you will see who has it."/>
               <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Assign" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding AssignCustomCommand}" Margin="8,0,0,0"
+                        IsEnabled="{Binding CanAssign}"/>
                 <Button DockPanel.Dock="Right" Content="Check" Style="{StaticResource SecondaryButton}"
                         Command="{Binding CheckCommand}" Margin="8,0,0,0"/>
                 <TextBox Text="{Binding CheckInput, UpdateSourceTrigger=PropertyChanged}"/>
@@ -167,16 +170,10 @@
                   <Run Text="{Binding CheckResult.Record.DeviceType, Mode=OneWay}"/>
                 </TextBlock>
               </StackPanel>
-              <StackPanel Orientation="Horizontal">
-                <Button Content="Assign this IP" Style="{StaticResource PrimaryButton}"
-                        Command="{Binding AssignCheckedCommand}" Margin="0,0,8,0"
-                        Visibility="{Binding CheckIsFree, Converter={StaticResource BoolToVis}}"
-                        IsEnabled="{Binding CanAssign}"/>
-                <Button Content="Release" Style="{StaticResource DangerButton}"
-                        Command="{Binding ReleaseCommand}"
-                        Visibility="{Binding CheckIsTaken, Converter={StaticResource BoolToVis}}"
-                        IsEnabled="{Binding CanAssign}"/>
-              </StackPanel>
+              <Button Content="Release" Style="{StaticResource DangerButton}"
+                      Command="{Binding ReleaseCommand}" HorizontalAlignment="Left"
+                      Visibility="{Binding CheckIsTaken, Converter={StaticResource BoolToVis}}"
+                      IsEnabled="{Binding CanAssign}"/>
             </StackPanel>
           </Grid>
         </Border>
@@ -186,6 +183,8 @@
     <DockPanel Grid.Row="1" Visibility="{Binding ShowList, Converter={StaticResource BoolToVis}}">
       <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10" LastChildFill="True">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Assign custom IP" Style="{StaticResource PrimaryButton}" Command="{Binding AssignCustomCommand}"
+                  IsEnabled="{Binding CanAssign}" Margin="0,0,8,0" Padding="10,6"/>
           <Button Content="Assign selected" Style="{StaticResource SecondaryButton}" Command="{Binding AssignSelectedCommand}"
                   IsEnabled="{Binding CanAssign}" Margin="0,0,8,0" Padding="10,6"/>
           <Button Content="Reserve" Style="{StaticResource SecondaryButton}" Command="{Binding ReserveSelectedCommand}"
