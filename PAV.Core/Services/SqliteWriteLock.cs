@@ -6,7 +6,7 @@ namespace PAV.Core.Services;
 /// Serialises writes in this process. SQLite file locks handle other PCs.
 /// Busy/locked errors are retried — normal on a network share.
 /// </summary>
-public sealed class SqliteWriteLock
+public sealed class SqliteWriteLock : IWriteLock
 {
     public SemaphoreSlim Gate { get; } = new(1, 1);
 

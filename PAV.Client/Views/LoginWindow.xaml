@@ -25,14 +25,16 @@
     </StackPanel>
 
     <StackPanel>
-      <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
-      <DockPanel Margin="0,0,0,10">
-        <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
-                Command="{Binding BrowseCommand}" Margin="8,0,0,0"/>
-        <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"/>
-      </DockPanel>
-      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
-                 Text="Leave empty to use inventory.db next to this app. Browse to the shared folder if the app is installed locally."/>
+      <StackPanel Visibility="{Binding ShowSqlitePath, Converter={StaticResource BoolToVis}}">
+        <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
+        <DockPanel Margin="0,0,0,10">
+          <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding BrowseCommand}" Margin="8,0,0,0"/>
+          <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"/>
+        </DockPanel>
+        <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
+                   Text="Leave empty to use inventory.db next to this app. Browse to the shared folder if the app is installed locally."/>
+      </StackPanel>
       <TextBlock Text="Username" Style="{StaticResource FieldLabel}"/>
       <TextBox x:Name="UsernameBox" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
 

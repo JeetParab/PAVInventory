@@ -6,7 +6,8 @@ using PAV.Core.Data;
 
 namespace PAV.Core.Services;
 
-public class LookupService(AppDbContext db, SqliteWriteLock writeLock)
+public class LookupService(AppDbContext db, IWriteLock writeLock)
+
 {
     public async Task<List<UserDto>> UsersAsync() =>
         (await db.Users.AsNoTracking().Include(u => u.Location).OrderBy(u => u.Name).ToListAsync())

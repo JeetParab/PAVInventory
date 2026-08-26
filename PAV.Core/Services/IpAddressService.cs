@@ -10,7 +10,8 @@ using PAV.Shared.Models;
 
 namespace PAV.Core.Services;
 
-public class IpAddressService(AppDbContext db, SqliteWriteLock writeLock)
+public class IpAddressService(AppDbContext db, IWriteLock writeLock)
+
 {
     public static readonly string[] DeviceTypes =
     [

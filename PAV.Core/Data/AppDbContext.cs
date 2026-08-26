@@ -26,7 +26,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.SerialNumber).HasMaxLength(128);
             e.HasIndex(x => x.SerialNumber)
                 .IsUnique()
-                .HasFilter("SerialNumber IS NOT NULL AND SerialNumber != ''");
+                .HasFilter(SerialFilter());
+
             e.Property(x => x.Manufacturer).HasMaxLength(128);
             e.Property(x => x.Model).HasMaxLength(256);
             e.Property(x => x.Hostname).HasMaxLength(128);
@@ -174,6 +175,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => x.MovementType);
         });
+    }
+
+    private string SerialFilter()
+    {
+        if (Database.IsSqlServer())
+            return "SerialNumber IS NOT NULL AND SerialNumber <> N''";
+        return "SerialNumber IS NOT NULL AND SerialNumber != ''";
     }
 }
 

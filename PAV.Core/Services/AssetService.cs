@@ -25,7 +25,8 @@ public class AppException(int statusCode, string code, string message, List<stri
     public List<string>? Errors { get; } = errors;
 }
 
-public class AssetService(AppDbContext db, SqliteWriteLock writeLock)
+public class AssetService(AppDbContext db, IWriteLock writeLock)
+
 {
     public async Task<List<AssetListDto>> ListAsync(AssetQuery q)
     {

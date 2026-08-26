@@ -237,14 +237,14 @@ public partial class InventoryViewModel : ObservableObject
     partial void OnFreezeIdentityColumnsChanged(bool value)
     {
         _config.FreezeIdentityColumns = value;
-        _config.Save();
+        _config.SaveUi();
         OnPropertyChanged(nameof(FrozenColumnCount));
     }
 
     public void SaveColumnOrder(IEnumerable<string> headers)
     {
         _config.ColumnOrder = headers.ToList();
-        _config.Save();
+        _config.SaveUi();
     }
 
     public event Action? ColumnOrderReset;
@@ -371,7 +371,7 @@ public partial class InventoryViewModel : ObservableObject
     {
         ToolsOpen = false;
         _config.ColumnOrder = [];
-        _config.Save();
+        _config.SaveUi();
         ColumnOrderReset?.Invoke();
     }
 

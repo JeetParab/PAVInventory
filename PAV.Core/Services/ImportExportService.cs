@@ -7,7 +7,8 @@ using PAV.Core.Data;
 
 namespace PAV.Core.Services;
 
-public class ImportExportService(AppDbContext db, SqliteWriteLock writeLock)
+public class ImportExportService(AppDbContext db, IWriteLock writeLock)
+
 {
     private static readonly string[] ExportHeaders =
     [

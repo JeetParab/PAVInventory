@@ -1,3 +1,5 @@
+using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using PAV.Core.Data;
 
@@ -22,6 +24,10 @@ public static class SqliteGuard
     {
         for (Exception? e = ex; e is not null; e = e.InnerException)
         {
+            if (e is SqliteException sqlite && sqlite.SqliteErrorCode == 19)
+                return true;
+            if (e is SqlException sql && sql.Number is 2601 or 2627)
+                return true;
             if (e.Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase))
                 return true;
         }

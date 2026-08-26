@@ -10,16 +10,31 @@ public sealed class PavDatabase
     private bool _ready;
     private bool _backfillDone;
 
+    public DatabaseSettings Settings { get; }
+    public DatabaseProvider Provider => Settings.Kind;
+    public bool IsSqlite => Settings.IsSqlite;
+    public bool IsSqlServer => Settings.IsSqlServer;
+
     public string DatabasePath { get; }
-    public string Folder => Path.GetDirectoryName(DatabasePath) ?? ".";
+    public string SqlConnectionString { get; }
+    public string Folder => IsSqlite
+        ? (Path.GetDirectoryName(DatabasePath) ?? ".")
+        : LocalDataFolder;
     public string BackupDirectory => Path.Combine(Folder, "Backups");
     public bool IsReady => _ready;
 
-    public PavDatabase(string databasePath)
+    public static string LocalDataFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PAV Inventory");
+
+    public PavDatabase(string databasePath) : this(new DatabaseSettings { Provider = "SQLite", SqlitePath = databasePath })
     {
-        DatabasePath = Path.IsPathRooted(databasePath)
-            ? databasePath
-            : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, databasePath));
+    }
+
+    public PavDatabase(DatabaseSettings settings)
+    {
+        Settings = settings.Clone();
+        DatabasePath = ResolvePath(Settings.SqlitePath);
+        SqlConnectionString = DatabaseSettings.NormalizeSqlServer(Settings.SqlServerConnectionString);
     }
 
     public static string ResolvePath(string? configured)
@@ -35,20 +50,30 @@ public sealed class PavDatabase
         return path;
     }
 
+    public static IWriteLock CreateWriteLock(DatabaseProvider provider) =>
+        provider == DatabaseProvider.SqlServer ? new SqlServerWriteLock() : new SqliteWriteLock();
+
     public AppDbContext Create()
     {
-        var cs = new SqliteConnectionStringBuilder
+        var builder = new DbContextOptionsBuilder<AppDbContext>();
+        if (IsSqlServer)
         {
-            DataSource = DatabasePath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Cache = SqliteCacheMode.Private,
-            DefaultTimeout = 15
-        }.ToString();
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(cs, o => o.CommandTimeout(30))
-            .Options;
-        return new AppDbContext(options);
+            if (string.IsNullOrWhiteSpace(SqlConnectionString))
+                throw new InvalidOperationException("SQL Server connection string is not set.");
+            builder.UseSqlServer(SqlConnectionString, o => o.CommandTimeout(30));
+        }
+        else
+        {
+            var cs = new SqliteConnectionStringBuilder
+            {
+                DataSource = DatabasePath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Cache = SqliteCacheMode.Private,
+                DefaultTimeout = 15
+            }.ToString();
+            builder.UseSqlite(cs, o => o.CommandTimeout(30));
+        }
+        return new AppDbContext(builder.Options);
     }
 
     public void Invalidate()
@@ -65,66 +90,115 @@ public sealed class PavDatabase
         {
             if (_ready) return;
             using var _ = Perf.Measure("Database.Open");
-
-            Directory.CreateDirectory(Folder);
-            Directory.CreateDirectory(BackupDirectory);
-
-            await using var db = Create();
-
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            var fileExisted = File.Exists(DatabasePath);
-            if (!fileExisted)
-            {
-                await db.Database.EnsureCreatedAsync();
-            }
+            if (IsSqlServer)
+                await OpenSqlServerAsync();
             else
-            {
-                await db.Database.OpenConnectionAsync();
-                var conn = db.Database.GetDbConnection();
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Assets' LIMIT 1";
-                var has = await cmd.ExecuteScalarAsync();
-                if (has is null)
-                    await db.Database.EnsureCreatedAsync();
-            }
-            Perf.Log("Database.EnsureCreated", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=DELETE;");
-            await db.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=15000;");
-            await db.Database.ExecuteSqlRawAsync("PRAGMA synchronous=FULL;");
-            await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
-            Perf.Log("Database.Pragma", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await EnsureColumnsAsync(db);
-            Perf.Log("Database.EnsureColumns", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await EnsureIpTablesAsync(db);
-            Perf.Log("Database.IpTables", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await EnsureStockTablesAsync(db);
-            Perf.Log("Database.StockTables", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await EnsureSerialNumberUniqueAsync(db);
-            Perf.Log("Database.SerialIndex", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await SeedData.EnsureSeededAsync(db);
-            Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
-
-            sw.Restart();
-            await BackfillAssignedUserIdsAsync(db);
-            Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
-
+                await OpenSqliteAsync();
             _ready = true;
         }
         finally
         {
             _openGate.Release();
+        }
+    }
+
+    private async Task OpenSqliteAsync()
+    {
+        Directory.CreateDirectory(Folder);
+        Directory.CreateDirectory(BackupDirectory);
+
+        await using var db = Create();
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var fileExisted = File.Exists(DatabasePath);
+        if (!fileExisted)
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            await db.Database.OpenConnectionAsync();
+            var conn = db.Database.GetDbConnection();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='Assets' LIMIT 1";
+            var has = await cmd.ExecuteScalarAsync();
+            if (has is null)
+                await db.Database.EnsureCreatedAsync();
+        }
+        Perf.Log("Database.EnsureCreated", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=DELETE;");
+        await db.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=15000;");
+        await db.Database.ExecuteSqlRawAsync("PRAGMA synchronous=FULL;");
+        await db.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys=ON;");
+        Perf.Log("Database.Pragma", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await EnsureColumnsAsync(db);
+        Perf.Log("Database.EnsureColumns", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await EnsureIpTablesAsync(db);
+        Perf.Log("Database.IpTables", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await EnsureStockTablesAsync(db);
+        Perf.Log("Database.StockTables", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await EnsureSerialNumberUniqueAsync(db);
+        Perf.Log("Database.SerialIndex", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await SeedData.EnsureSeededAsync(db);
+        Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await BackfillAssignedUserIdsAsync(db);
+        Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
+    }
+
+    private async Task OpenSqlServerAsync()
+    {
+        Directory.CreateDirectory(LocalDataFolder);
+        Directory.CreateDirectory(BackupDirectory);
+
+        await using var db = Create();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                "Unable to connect to the PAV database server." + Environment.NewLine + Environment.NewLine +
+                "Please contact the PAV administrator.", ex);
+        }
+        Perf.Log("Database.EnsureCreated", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await SeedData.EnsureSeededAsync(db);
+        Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
+
+        sw.Restart();
+        await BackfillAssignedUserIdsAsync(db);
+        Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
+    }
+
+    public bool CanOpen()
+    {
+        try
+        {
+            if (IsSqlite && !File.Exists(DatabasePath) && !Directory.Exists(Folder))
+                Directory.CreateDirectory(Folder);
+            using var db = Create();
+            return db.Database.CanConnect();
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -374,22 +448,5 @@ public sealed class PavDatabase
             "CREATE INDEX IF NOT EXISTS IX_StockMovements_CreatedAt ON StockMovements(CreatedAt);");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS IX_StockMovements_MovementType ON StockMovements(MovementType);");
-    }
-
-    public bool CanOpen()
-    {
-        try
-        {
-            if (!File.Exists(DatabasePath) && !Directory.Exists(Folder))
-            {
-                Directory.CreateDirectory(Folder);
-            }
-            using var db = Create();
-            return db.Database.CanConnect();
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

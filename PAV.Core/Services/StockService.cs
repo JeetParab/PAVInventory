@@ -6,7 +6,8 @@ using PAV.Shared.Models;
 
 namespace PAV.Core.Services;
 
-public class StockService(AppDbContext db, SqliteWriteLock writeLock)
+public class StockService(AppDbContext db, IWriteLock writeLock)
+
 {
     public async Task<StockOverviewDto> OverviewAsync(string? search, string? status, bool includeInactive, string? categoryScope = null)
     {

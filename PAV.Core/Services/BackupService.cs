@@ -5,7 +5,7 @@ using PAV.Shared.Dtos;
 
 namespace PAV.Core.Services;
 
-public class BackupService(PavDatabase pav, SqliteWriteLock writeLock)
+public class BackupService(PavDatabase pav, IWriteLock writeLock)
 {
     public string BackupDirectory
     {
@@ -17,10 +17,13 @@ public class BackupService(PavDatabase pav, SqliteWriteLock writeLock)
     }
 
     public string DatabasePath => pav.DatabasePath;
+    public bool IsSqlite => pav.IsSqlite;
 
     public List<BackupInfo> List()
     {
-        return Directory.GetFiles(BackupDirectory, "PAVInventory_*.db")
+        if (!Directory.Exists(BackupDirectory))
+            return [];
+        return Directory.GetFiles(BackupDirectory, "PAVInventory_*.*")
             .Select(f => new FileInfo(f))
             .OrderByDescending(f => f.CreationTimeUtc)
             .Select(f => new BackupInfo
@@ -33,27 +36,20 @@ public class BackupService(PavDatabase pav, SqliteWriteLock writeLock)
     }
 
     public Task<BackupInfo> BackupNowAsync(string reason = "manual") =>
-        writeLock.WriteAsync(() =>
+        writeLock.WriteAsync(async () =>
         {
-            SqliteConnection.ClearAllPools();
-            var name = $"PAVInventory_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.db";
-            var dest = Path.Combine(BackupDirectory, name);
-            if (!File.Exists(DatabasePath))
-                throw new AppException(500, "error", "Database file was not found.");
-            File.Copy(DatabasePath, dest, overwrite: false);
-            PruneUnlocked();
-            var info = new FileInfo(dest);
-            return Task.FromResult(new BackupInfo
-            {
-                FileName = info.Name,
-                CreatedAt = info.CreationTimeUtc,
-                SizeBytes = info.Length
-            });
+            if (pav.IsSqlServer)
+                return await SnapshotSqlServerAsync();
+            return FileCopySqlite();
         });
 
     public Task RestoreAsync(string fileName) =>
         writeLock.WriteAsync(() =>
         {
+            if (pav.IsSqlServer)
+                throw new AppException(400, "validation",
+                    "SQL Server restore is done on the database host from a .bak file. Do not copy a live database file.");
+
             if (string.IsNullOrWhiteSpace(fileName) ||
                 fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
                 fileName.Contains("..") ||
@@ -74,12 +70,13 @@ public class BackupService(PavDatabase pav, SqliteWriteLock writeLock)
             {
                 if (File.Exists(extra)) File.Delete(extra);
             }
+            pav.Invalidate();
             return Task.CompletedTask;
         });
 
     public void PruneUnlocked()
     {
-        var files = Directory.GetFiles(BackupDirectory, "PAVInventory_*.db")
+        var files = Directory.GetFiles(BackupDirectory, "PAVInventory_*.*")
             .Select(f => new FileInfo(f))
             .OrderByDescending(f => f.CreationTimeUtc)
             .Skip(30)
@@ -88,5 +85,43 @@ public class BackupService(PavDatabase pav, SqliteWriteLock writeLock)
         {
             try { f.Delete(); } catch { /* ignore */ }
         }
+    }
+
+    private BackupInfo FileCopySqlite()
+    {
+        SqliteConnection.ClearAllPools();
+        var name = $"PAVInventory_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.db";
+        var dest = Path.Combine(BackupDirectory, name);
+        if (!File.Exists(DatabasePath))
+            throw new AppException(500, "error", "Database file was not found.");
+        File.Copy(DatabasePath, dest, overwrite: false);
+        PruneUnlocked();
+        var info = new FileInfo(dest);
+        return new BackupInfo
+        {
+            FileName = info.Name,
+            CreatedAt = info.CreationTimeUtc,
+            SizeBytes = info.Length
+        };
+    }
+
+    private async Task<BackupInfo> SnapshotSqlServerAsync()
+    {
+        var name = $"PAVInventory_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.snapshot.db";
+        var dest = Path.Combine(BackupDirectory, name);
+        if (File.Exists(dest)) File.Delete(dest);
+        var sqlite = new PavDatabase(new DatabaseSettings { Provider = "SQLite", SqlitePath = dest });
+        await sqlite.OpenAsync();
+        var result = await new SqliteToSqlServerMigrator().CopyAsync(pav, sqlite, replaceDestination: true);
+        if (!result.Ok)
+            throw new AppException(500, "error", "Could not write a SQL Server data snapshot.", result.Errors);
+        PruneUnlocked();
+        var info = new FileInfo(dest);
+        return new BackupInfo
+        {
+            FileName = info.Name,
+            CreatedAt = info.CreationTimeUtc,
+            SizeBytes = info.Length
+        };
     }
 }

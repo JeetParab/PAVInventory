@@ -141,8 +141,8 @@
           <Button DockPanel.Dock="Right" Content="Retry" Style="{StaticResource PrimaryButton}"
                   Command="{Binding RetryCommand}" Padding="14,6"/>
           <StackPanel>
-            <TextBlock Text="Cannot open the shared database." FontWeight="SemiBold"/>
-            <TextBlock Text="Check the shared folder path and that you can write to it." Style="{StaticResource MutedText}"/>
+            <TextBlock Text="Cannot open the PAV database." FontWeight="SemiBold"/>
+            <TextBlock Text="If you use a shared file, check the folder. If you use SQL Server, contact the PAV administrator." Style="{StaticResource MutedText}"/>
           </StackPanel>
         </DockPanel>
       </Border>

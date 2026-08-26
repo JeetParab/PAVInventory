@@ -7,7 +7,8 @@ No server process. One SQLite database sits in a **shared folder**. Each enginee
 | Project | What it is |
 |---|---|
 | **PAV.Client** | Windows desktop app (WPF, .NET 8) |
-| **PAV.Core** | Database, login, Excel import/export, backup |
+| **PAV.Core** | Database (SQLite or SQL Server Express), login, Excel import/export, backup |
+
 | **PAV.Shared** | Models and DTOs |
 
 ---
@@ -121,6 +122,8 @@ Each engineer runs `PAV.Client.exe` from the share (or a shortcut to it).
 If you prefer a local install, copy the folder to `C:\Program Files\PAV Inventory` and in the sign-in screen Browse to the shared folder so everyone still uses the same `inventory.db`.
 
 You need write permission on the share. Two people can be in the app at once; if both save at the same instant one waits a moment and retries.
+
+Optional **SQL Server Express** (same app, different backend) is documented in [docs/SQLSERVER.md](docs/SQLSERVER.md). SQLite remains the default. Engineer PCs never install SQL Server.
 
 ---
 

@@ -63,7 +63,7 @@ public partial class ShellViewModel : ObservableObject
     {
         SidebarCollapsed = !SidebarCollapsed;
         _config.SidebarCollapsed = SidebarCollapsed;
-        _config.Save();
+        _config.SaveUi();
     }
 
     public bool Can(string permission) => Me?.Permissions.Contains(permission) == true;
@@ -154,7 +154,10 @@ public partial class ShellViewModel : ObservableObject
     private void ApplyConnection(bool ok)
     {
         IsConnected = ok;
-        ConnectionLabel = ok ? "Shared database" : "Cannot open the shared database";
+        ConnectionLabel = ok
+            ? (_api.IsSqlServer ? "SQL Server" : "Shared database")
+            : (_api.IsSqlServer ? "Cannot reach the PAV database server" : "Cannot open the shared database");
+
     }
 
     [RelayCommand]

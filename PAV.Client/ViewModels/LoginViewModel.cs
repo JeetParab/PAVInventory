@@ -15,6 +15,7 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] private bool busy;
     [ObservableProperty] private bool needsSetup;
     [ObservableProperty] private string statusLine = "Point this app at the shared folder so everyone uses the same database.";
+    [ObservableProperty] private bool showSqlitePath = true;
 
     public string PrimaryAction => NeedsSetup ? "Create administrator" : "Sign in";
     public string Title => NeedsSetup ? "Create administrator" : "Sign in";
@@ -23,6 +24,9 @@ public partial class LoginViewModel : ObservableObject
     {
         _api = api;
         databasePath = config.DatabasePath;
+        showSqlitePath = !api.IsSqlServer;
+        if (api.IsSqlServer)
+            statusLine = "Connecting to the PAV database server.";
     }
 
     partial void OnNeedsSetupChanged(bool value)
@@ -31,7 +35,9 @@ public partial class LoginViewModel : ObservableObject
         OnPropertyChanged(nameof(Title));
         StatusLine = value
             ? "This database has no users yet. Create the first administrator. Choose a password that is not admin / engineer / guest."
-            : "Use a PAV account. Point this app at the shared folder so everyone uses the same database.";
+            : ShowSqlitePath
+                ? "Use a PAV account. Point this app at the shared folder so everyone uses the same database."
+                : "Use a PAV account. The administrator has pointed this PC at the PAV database server.";
     }
 
     [RelayCommand]
@@ -49,7 +55,10 @@ public partial class LoginViewModel : ObservableObject
         try
         {
             using var _ = PAV.Core.Services.Perf.Measure("Login.Prepare");
-            await _api.SetDatabasePath(DatabasePath);
+            if (ShowSqlitePath)
+                await _api.SetDatabasePath(DatabasePath);
+            else
+                await _api.OpenAsync();
             NeedsSetup = await _api.NeedsSetupAsync();
         }
         catch (Exception ex)
@@ -71,7 +80,10 @@ public partial class LoginViewModel : ObservableObject
         Busy = true;
         try
         {
-            await _api.SetDatabasePath(DatabasePath);
+            if (ShowSqlitePath)
+                await _api.SetDatabasePath(DatabasePath);
+            else
+                await _api.OpenAsync();
             NeedsSetup = await _api.NeedsSetupAsync();
 
             if (NeedsSetup)
