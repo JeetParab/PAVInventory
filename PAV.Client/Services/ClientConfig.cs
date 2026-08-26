@@ -26,12 +26,18 @@ public class ClientConfig
         SqlServerConnectionString = SqlServerConnectionString
     };
 
+    /// <summary>
+    /// Precedence (last wins for database):
+    /// defaults → next-to-exe appsettings.json → AppData database.json →
+    /// team database.json next to the exe. UI always comes from AppData ui.json.
+    /// Put database.json beside PAV.Client.exe to switch every PC at once.
+    /// </summary>
     public static ClientConfig Load()
     {
         var cfg = new ClientConfig();
         Overlay(cfg, LegacyFilePath);
-        OverlayDatabase(cfg, TeamDatabaseFilePath);
         OverlayDatabase(cfg, DatabaseFilePath);
+        OverlayDatabase(cfg, TeamDatabaseFilePath);
         OverlayUi(cfg, UiFilePath);
         return cfg;
     }

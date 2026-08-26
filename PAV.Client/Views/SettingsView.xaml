@@ -129,7 +129,8 @@
           <DockPanel>
             <TextBlock DockPanel.Dock="Top" Text="Backup and restore" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" Margin="0,0,0,10"
-                       Text="Automatic daily backup is kept for the last 30 copies. Restore is blocked while a write is running."/>
+                       Text="SQLite: copies inventory.db (last 30 kept). SQL Server: writes a data snapshot here; official backup is BACKUP DATABASE on the host. Do not copy a live MDF file."/>
+
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
               <Button Content="Backup now" Style="{StaticResource PrimaryButton}" Command="{Binding BackupNowCommand}"
                       IsEnabled="{Binding CanBackup}" Margin="0,0,8,0"/>

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using PAV.Core.Data;
-using PAV.Shared.Models;
 
 namespace PAV.Core.Services;
 
@@ -27,6 +26,12 @@ public sealed class MigrationTableCount
 /// </summary>
 public sealed class SqliteToSqlServerMigrator
 {
+    private static readonly HashSet<string> IdentityTables =
+    [
+        "Locations", "Categories", "Users", "Assets", "AssetHistory",
+        "IpRanges", "IpRecords", "StockItems", "StockMovements"
+    ];
+
     public async Task<MigrationReport> CopyAsync(PavDatabase source, PavDatabase destination, bool replaceDestination)
     {
         var report = new MigrationReport();
@@ -46,9 +51,12 @@ public sealed class SqliteToSqlServerMigrator
         var stock = await src.StockItems.AsNoTracking().ToListAsync();
         var moves = await src.StockMovements.AsNoTracking().ToListAsync();
 
-        if (!replaceDestination && await dst.Users.AsNoTracking().AnyAsync())
+        if (!replaceDestination &&
+            (await dst.Users.AsNoTracking().AnyAsync() ||
+             await dst.Assets.AsNoTracking().AnyAsync() ||
+             await dst.StockItems.AsNoTracking().AnyAsync()))
         {
-            report.Errors.Add("Destination already has users. Migration refused so existing SQL Server data is not overwritten.");
+            report.Errors.Add("Destination already has PAV data. Migration refused so existing data is not overwritten. Re-run with replace only after a backup.");
             report.Summary = "Aborted — destination is not empty.";
             return report;
         }
@@ -100,7 +108,56 @@ public sealed class SqliteToSqlServerMigrator
             : "Copied, but some table counts do not match. Check the report before switching clients.";
         foreach (var t in mismatch)
             report.Errors.Add($"{t.Table}: source {t.Source}, destination {t.Destination}");
+
+        await ValidateIntegrityAsync(dst, report);
+        if (report.Errors.Count > 0)
+            report.Ok = false;
+        if (report.Ok)
+            report.Summary = $"Copied {report.Tables.Sum(t => t.Source)} rows. Counts and relationships match.";
         return report;
+    }
+
+    private static async Task ValidateIntegrityAsync(AppDbContext dst, MigrationReport report)
+    {
+        var userIds = await dst.Users.AsNoTracking().Select(u => u.Id).ToListAsync();
+        var assetIds = await dst.Assets.AsNoTracking().Select(a => a.Id).ToListAsync();
+        if (userIds.Count != userIds.Distinct().Count()) report.Errors.Add("Users: duplicate primary keys.");
+        if (assetIds.Count != assetIds.Distinct().Count()) report.Errors.Add("Assets: duplicate primary keys.");
+
+        var orphanAssign = await dst.Assets.AsNoTracking()
+            .CountAsync(a => a.AssignedUserId != null && !dst.Users.Any(u => u.Id == a.AssignedUserId));
+        if (orphanAssign > 0)
+            report.Errors.Add($"Assets: {orphanAssign} AssignedUserId values do not match a User.");
+
+        var badCat = await dst.Assets.AsNoTracking()
+            .CountAsync(a => !dst.Categories.Any(c => c.Id == a.CategoryId));
+        if (badCat > 0)
+            report.Errors.Add($"Assets: {badCat} rows have a missing Category.");
+
+        var badLoc = await dst.Assets.AsNoTracking()
+            .CountAsync(a => a.LocationId != null && !dst.Locations.Any(l => l.Id == a.LocationId));
+        if (badLoc > 0)
+            report.Errors.Add($"Assets: {badLoc} rows have a missing Location.");
+
+        var orphanHist = await dst.AssetHistory.AsNoTracking()
+            .CountAsync(h => !dst.Assets.Any(a => a.Id == h.AssetId));
+        if (orphanHist > 0)
+            report.Errors.Add($"AssetHistory: {orphanHist} rows point at a missing Asset.");
+
+        var orphanMoveItem = await dst.StockMovements.AsNoTracking()
+            .CountAsync(m => !dst.StockItems.Any(s => s.Id == m.StockItemId));
+        if (orphanMoveItem > 0)
+            report.Errors.Add($"StockMovements: {orphanMoveItem} rows point at a missing StockItem.");
+
+        var orphanMoveUser = await dst.StockMovements.AsNoTracking()
+            .CountAsync(m => m.UserId != null && !dst.Users.Any(u => u.Id == m.UserId));
+        if (orphanMoveUser > 0)
+            report.Errors.Add($"StockMovements: {orphanMoveUser} rows point at a missing User.");
+
+        var orphanIp = await dst.IpRecords.AsNoTracking()
+            .CountAsync(i => !dst.IpRanges.Any(r => r.Id == i.RangeId));
+        if (orphanIp > 0)
+            report.Errors.Add($"IpRecords: {orphanIp} rows point at a missing IpRange.");
     }
 
     private static async Task<MigrationTableCount> CountAsync(
@@ -130,6 +187,8 @@ public sealed class SqliteToSqlServerMigrator
     private static async Task InsertAsync<T>(AppDbContext dst, string table, List<T> rows) where T : class
     {
         if (rows.Count == 0) return;
+        if (!IdentityTables.Contains(table))
+            throw new InvalidOperationException("Unknown table: " + table);
         var sqlServer = dst.Database.IsSqlServer();
         if (sqlServer)
             await dst.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [" + table + "] ON");

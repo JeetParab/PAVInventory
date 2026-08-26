@@ -97,6 +97,11 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     {
         try
         {
+            if (ShowSqlSettings && string.IsNullOrWhiteSpace(SqlServerConnectionString))
+            {
+                ServerMessage = "Enter the SQL Server name (HOST\\SQLEXPRESS) or a connection string.";
+                return;
+            }
             await api.ApplyDatabaseAsync(new DatabaseSettings
             {
                 Provider = Provider,

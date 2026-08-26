@@ -5,19 +5,21 @@ namespace PAV.Core.Services;
 /// <summary>
 /// SQL Server handles multi-user locking. Retry only deadlocks / lock timeouts.
 /// Do not serialise all writes — that would undo the reason for SQL Server.
+/// Permanent errors (login, missing db, unique) are not retried.
 /// </summary>
 public sealed class SqlServerWriteLock : IWriteLock
 {
+    public const int MaxAttempts = 5;
+
     public async Task<T> WriteAsync<T>(Func<Task<T>> action, CancellationToken ct = default)
     {
-        const int attempts = 5;
-        for (var i = 1; i <= attempts; i++)
+        for (var i = 1; i <= MaxAttempts; i++)
         {
             try
             {
                 return await action();
             }
-            catch (Exception ex) when (i < attempts && IsRetryable(ex))
+            catch (Exception ex) when (i < MaxAttempts && IsRetryable(ex))
             {
                 await Task.Delay(80 * i, ct);
             }
@@ -34,7 +36,7 @@ public sealed class SqlServerWriteLock : IWriteLock
         }, ct);
     }
 
-    private static bool IsRetryable(Exception ex)
+    public static bool IsRetryable(Exception ex)
     {
         for (var e = ex; e is not null; e = e.InnerException)
         {

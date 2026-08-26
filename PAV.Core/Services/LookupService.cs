@@ -51,7 +51,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 IsActive = req.IsActive
             };
             db.Users.Add(user);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(await db.Users.Include(u => u.Location).FirstAsync(u => u.Id == user.Id));
         });
 
@@ -96,7 +96,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             user.LocationId = req.LocationId;
             user.Role = req.Role;
             user.IsActive = req.IsActive;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(await db.Users.Include(u => u.Location).FirstAsync(u => u.Id == user.Id));
         });
 
@@ -110,7 +110,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"Location '{name}' already exists.");
             var loc = new Location { Name = name, Description = Mapping.Clean(req.Description) };
             db.Locations.Add(loc);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(loc);
         });
 
@@ -126,7 +126,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"Location '{name}' already exists.");
             loc.Name = name;
             loc.Description = Mapping.Clean(req.Description);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(loc);
         });
 
@@ -139,7 +139,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             if (inUse)
                 throw new AppException(400, "validation", "Location is in use by one or more assets.");
             db.Locations.Remove(loc);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
         });
 
     public Task<CategoryDto> CreateCategoryAsync(SaveCategoryRequest req) =>
@@ -152,7 +152,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"Category '{name}' already exists.");
             var cat = new Category { Name = name, Description = Mapping.Clean(req.Description) };
             db.Categories.Add(cat);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(cat);
         });
 
@@ -168,7 +168,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"Category '{name}' already exists.");
             cat.Name = name;
             cat.Description = Mapping.Clean(req.Description);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(cat);
         });
 
@@ -181,7 +181,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             if (inUse)
                 throw new AppException(400, "validation", "Category is in use by one or more assets.");
             db.Categories.Remove(cat);
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
         });
 
     private static void ValidateUser(SaveUserRequest req)

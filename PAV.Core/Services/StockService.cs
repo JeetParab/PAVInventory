@@ -100,7 +100,7 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
             item.IsActive = req.IsActive;
             item.Notes = Mapping.Clean(req.Notes);
             item.UpdatedAt = DateTime.Now;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return await GetAsync(item.Id);
         });
     }
@@ -186,7 +186,7 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
             });
             item.OnHand = next;
             item.UpdatedAt = now;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return await GetAsync(item.Id);
         });
     }
@@ -244,7 +244,7 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
                         UpdatedAt = now
                     };
                     db.StockItems.Add(item);
-                    await db.SaveChangesAsync();
+                    await SqliteGuard.SaveChangesAsync(db);
 
                     var openQty = g.OpeningQty;
                     db.StockMovements.Add(new StockMovement
@@ -290,7 +290,7 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
                     item.UpdatedAt = now;
                 }
 
-                await db.SaveChangesAsync();
+                await SqliteGuard.SaveChangesAsync(db);
                 await tx.CommitAsync();
                 return new StockImportResultDto
                 {

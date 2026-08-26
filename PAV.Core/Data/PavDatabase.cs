@@ -170,7 +170,7 @@ public sealed class PavDatabase
         {
             await db.Database.EnsureCreatedAsync();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (SqliteGuard.IsConnectFailure(ex))
         {
             throw new InvalidOperationException(
                 "Unable to connect to the PAV database server." + Environment.NewLine + Environment.NewLine +
@@ -178,9 +178,13 @@ public sealed class PavDatabase
         }
         Perf.Log("Database.EnsureCreated", sw.ElapsedMilliseconds);
 
+        // EnsureCreated is first-install only. Later schema changes need a
+        // controlled upgrade. Concurrent first-start is not guaranteed —
+        // an administrator should open PAV once on the host before clients.
         sw.Restart();
         await SeedData.EnsureSeededAsync(db);
         Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
+
 
         sw.Restart();
         await BackfillAssignedUserIdsAsync(db);

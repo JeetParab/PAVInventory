@@ -55,6 +55,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.CollectBy).HasMaxLength(128);
             e.Property(x => x.Remarks).HasMaxLength(2000);
             e.Property(x => x.Status).HasConversion<int>();
+            e.Property(x => x.Version).IsConcurrencyToken();
             e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Location).WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId).OnDelete(DeleteBehavior.SetNull);
@@ -129,7 +130,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(x => x.Id);
             e.Property(x => x.Address).HasMaxLength(64).IsRequired();
             e.HasIndex(x => x.Address).IsUnique();
-            e.Property(x => x.Status).HasConversion<int>();
             e.Property(x => x.AssignedDevice).HasMaxLength(256);
             e.Property(x => x.AssignedUser).HasMaxLength(256);
             e.Property(x => x.Department).HasMaxLength(128);
@@ -137,6 +137,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.DeviceType).HasMaxLength(64);
             e.Property(x => x.Notes).HasMaxLength(2000);
             e.Property(x => x.AllocatedBy).HasMaxLength(128);
+            e.Property(x => x.Status).HasConversion<int>().IsConcurrencyToken();
             e.HasOne(x => x.Range).WithMany(r => r.Addresses).HasForeignKey(x => x.RangeId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.RangeId);
             e.HasIndex(x => x.Status);
@@ -154,6 +155,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Model).HasMaxLength(128);
             e.Property(x => x.Unit).HasMaxLength(16);
             e.Property(x => x.Notes).HasMaxLength(2000);
+            e.Property(x => x.OnHand).IsConcurrencyToken();
             e.HasIndex(x => x.IsActive);
             e.HasIndex(x => x.Category);
         });

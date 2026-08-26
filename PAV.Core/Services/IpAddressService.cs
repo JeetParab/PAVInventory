@@ -192,7 +192,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             rec.DateAssigned = DateTime.UtcNow;
             rec.LastUpdated = DateTime.UtcNow;
             rec.AllocatedBy = actor.DisplayName;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return ToDto(rec);
         });
 
@@ -208,7 +208,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
                 rec.Notes = Clean(notes);
             rec.LastUpdated = DateTime.UtcNow;
             rec.AllocatedBy = actor.DisplayName;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return ToDto(rec);
         });
 
@@ -226,7 +226,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             rec.DateAssigned = null;
             rec.LastUpdated = DateTime.UtcNow;
             rec.AllocatedBy = actor.DisplayName;
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             return ToDto(rec);
         });
 
@@ -287,7 +287,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
                     rangeByOctet[range.ThirdOctet] = range;
                 }
 
-                await db.SaveChangesAsync();
+                await SqliteGuard.SaveChangesAsync(db);
             }
 
             var existingIps = await db.IpRecords.ToListAsync();
@@ -332,7 +332,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
                         GatewayIp = $"172.16.{third}.1"
                     };
                     db.IpRanges.Add(range);
-                    await db.SaveChangesAsync();
+                    await SqliteGuard.SaveChangesAsync(db);
                     rangeByFloor[range.FloorNumber] = range;
                     rangeByOctet[range.ThirdOctet] = range;
                     result.Ranges++;
@@ -364,7 +364,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
                 rec.AllocatedBy = actor.DisplayName;
             }
 
-            await db.SaveChangesAsync();
+            await SqliteGuard.SaveChangesAsync(db);
             result.Summary =
                 $"Imported {result.Ranges} floor(s), {result.Addresses} new IP(s), updated {result.Updated} existing.";
             return result;

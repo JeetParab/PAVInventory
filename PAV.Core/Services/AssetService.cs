@@ -209,6 +209,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             UserNameResolver.ApplyTo(asset, req.AssignedUserId, req.AssignedUserName, users);
             asset.AssignedDate = string.IsNullOrWhiteSpace(asset.AssignedUserName) ? null : now;
 
+            await using var tx = await db.Database.BeginTransactionAsync();
             db.Assets.Add(asset);
             await SqliteGuard.SaveChangesAsync(db);
 
@@ -233,6 +234,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                 });
             }
             await SqliteGuard.SaveChangesAsync(db);
+            await tx.CommitAsync();
             return await GetAsync(asset.Id, history: false);
         });
 
