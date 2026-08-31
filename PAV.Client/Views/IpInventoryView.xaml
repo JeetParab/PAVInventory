@@ -128,16 +128,28 @@
             <StackPanel>
               <TextBlock Text="Get a free IP" FontWeight="SemiBold" Margin="0,0,0,4"/>
               <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
-                         Text="Select a floor above. Next free is the lowest unused address. You can still change it in the dialog."/>
+                         Text="Select a floor. Next free is the lowest unused address. Random free picks any unused address on that floor — you can still change it in the dialog."/>
               <TextBlock Style="{StaticResource FieldLabel}" Text="Selected"/>
               <TextBlock Margin="0,0,0,8">
                 <Run Text="{Binding SelectedFloorName, Mode=OneWay}"/>
                 <Run Text="  ·  "/>
                 <Run Text="{Binding NextFreeIp, Mode=OneWay}"/>
               </TextBlock>
-              <Button Content="Assign next free IP" Style="{StaticResource PrimaryButton}"
-                      Command="{Binding AssignNextFreeCommand}" HorizontalAlignment="Left"
-                      IsEnabled="{Binding CanAssign}"/>
+              <StackPanel Orientation="Horizontal">
+                <Button Content="Assign next free IP" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding AssignNextFreeCommand}"
+                        IsEnabled="{Binding CanAssign}"/>
+                <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0"
+                        Command="{Binding AssignRandomFreeCommand}"
+                        IsEnabled="{Binding CanAssign}"
+                        ToolTip="Pick a random free address on this floor instead of the next in sequence">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE8B1;" Style="{StaticResource BtnIcon}"
+                               Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    <TextBlock Text="Random free IP" Style="{StaticResource BtnLabel}"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Text="Assign a specific IP" FontWeight="SemiBold" Margin="0,0,0,4"/>

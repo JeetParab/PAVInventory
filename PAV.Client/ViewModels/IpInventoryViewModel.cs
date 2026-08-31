@@ -201,19 +201,36 @@ public partial class IpInventoryViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task AssignNextFreeAsync()
+    private Task AssignNextFreeAsync() => AssignSuggestedAsync(random: false);
+
+    [RelayCommand]
+    private Task AssignRandomFreeAsync() => AssignSuggestedAsync(random: true);
+
+    private async Task AssignSuggestedAsync(bool random)
     {
         if (!CanAssign) return;
-        var rangeId = SelectedRangeId ?? Floors.FirstOrDefault()?.Data.RangeId;
-        var next = SelectedRangeId is null
-            ? Floors.FirstOrDefault()?.Data.NextFreeIp
-            : NextFreeIp;
-        if (rangeId is null || string.IsNullOrWhiteSpace(next))
+        var rangeId = SelectedRangeId
+            ?? Floors.FirstOrDefault(x => x.Data.Free > 0)?.Data.RangeId
+            ?? Floors.FirstOrDefault()?.Data.RangeId;
+        if (rangeId is null)
         {
             Ui.Info("No free IP on the selected floor.");
             return;
         }
-        await OpenAssignAsync(null, rangeId, next);
+        try
+        {
+            var next = await _api.IpSuggestFreeAsync(rangeId.Value, random);
+            if (string.IsNullOrWhiteSpace(next))
+            {
+                Ui.Info("No free IP on the selected floor.");
+                return;
+            }
+            await OpenAssignAsync(null, rangeId, next);
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
     }
 
     [RelayCommand]

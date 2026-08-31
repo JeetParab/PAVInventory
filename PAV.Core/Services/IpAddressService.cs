@@ -72,6 +72,18 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
         };
     }
 
+    public async Task<string?> SuggestFreeAsync(int rangeId, bool random)
+    {
+        var free = await db.IpRecords.AsNoTracking()
+            .Where(x => x.RangeId == rangeId && x.Status == IpStatus.Free)
+            .Select(x => new { x.Address, x.HostOctet })
+            .ToListAsync();
+        if (free.Count == 0) return null;
+        if (!random)
+            return free.OrderBy(x => x.HostOctet).Select(x => x.Address).First();
+        return free[Random.Shared.Next(free.Count)].Address;
+    }
+
     public async Task<List<IpAddressDto>> ListAsync(int? rangeId, string? statusFilter, string? search)
     {
         var q = db.IpRecords.AsNoTracking().Include(x => x.Range).AsQueryable();

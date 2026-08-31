@@ -378,6 +378,9 @@ public class ApiClient
     public Task<List<IpAddressDto>> IpListAsync(int? rangeId = null, string? status = null, string? search = null) =>
         Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).ListAsync(rangeId, status, search));
 
+    public Task<string?> IpSuggestFreeAsync(int rangeId, bool random = false) =>
+        Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).SuggestFreeAsync(rangeId, random));
+
     public Task<IpCheckResultDto> IpCheckAsync(string address) =>
         Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).CheckAsync(address));
 
