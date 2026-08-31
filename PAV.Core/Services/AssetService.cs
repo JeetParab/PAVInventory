@@ -402,8 +402,119 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             Standby = CountOf(AssetStatus.Standby),
             ByCategory = byCategory,
             RecentActivity = recent.Select(h => Mapping.ToDto(h, names.GetValueOrDefault(h.Username))).ToList(),
-            WarrantyExpiringSoon = warranty.Select(Mapping.ToListDto).ToList()
+            WarrantyExpiringSoon = warranty.Select(Mapping.ToListDto).ToList(),
+            PendingCount = (await PendingAsync()).Count
         };
+    }
+
+    public async Task<List<PendingDetailDto>> PendingAsync()
+    {
+        var ips = await db.IpRecords.AsNoTracking()
+            .Where(x => x.Status == IpStatus.Used && !x.IsTemporary)
+            .Select(x => new { x.Id, x.Address, x.AssignedUser, x.AssignedDevice, x.MacAddress })
+            .ToListAsync();
+        var assets = await db.Assets.AsNoTracking()
+            .Where(a => !a.IsTemporary)
+            .Select(a => new
+            {
+                a.Id,
+                a.AssetTag,
+                a.IpAddress,
+                a.SerialNumber,
+                a.Hostname,
+                a.Manufacturer,
+                a.Model,
+                a.MacAddress,
+                Assigned = a.AssignedUser != null ? a.AssignedUser.Name : a.AssignedUserName
+            })
+            .ToListAsync();
+
+        var byIp = new Dictionary<string, List<(int Id, string Tag, string? Serial, string? Host, string? Mfr, string? Model, string? Mac, string? User)>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in assets)
+        {
+            if (!IpAddressService.TryNormalize(a.IpAddress, out var ip, out var third, out _) || third is < 101 or > 107)
+                continue;
+            if (!byIp.TryGetValue(ip, out var list))
+            {
+                list = [];
+                byIp[ip] = list;
+            }
+            list.Add((a.Id, a.AssetTag, a.SerialNumber, a.Hostname, a.Manufacturer, a.Model, a.MacAddress, a.Assigned));
+        }
+
+        var pending = new List<PendingDetailDto>();
+        var seen = new HashSet<int>();
+        foreach (var rec in ips)
+        {
+            if (!byIp.TryGetValue(rec.Address, out var linked) || linked.Count == 0)
+            {
+                pending.Add(new PendingDetailDto
+                {
+                    Kind = "Missing inventory",
+                    IpId = rec.Id,
+                    Address = rec.Address,
+                    AssignedUser = rec.AssignedUser,
+                    Hostname = rec.AssignedDevice,
+                    MacAddress = rec.MacAddress,
+                    Missing = "Inventory asset"
+                });
+                continue;
+            }
+
+            foreach (var a in linked)
+            {
+                seen.Add(a.Id);
+                var missing = Gaps(a.Serial, a.Host, a.Mfr, a.Model, a.User);
+                if (missing.Count == 0) continue;
+                pending.Add(new PendingDetailDto
+                {
+                    Kind = "Incomplete asset",
+                    AssetId = a.Id,
+                    IpId = rec.Id,
+                    AssetTag = a.Tag,
+                    Address = rec.Address,
+                    AssignedUser = a.User ?? rec.AssignedUser,
+                    Hostname = a.Host ?? rec.AssignedDevice,
+                    MacAddress = a.Mac ?? rec.MacAddress,
+                    Missing = string.Join(", ", missing)
+                });
+            }
+        }
+
+        foreach (var a in assets)
+        {
+            if (seen.Contains(a.Id)) continue;
+            if (!IpAddressService.TryNormalize(a.IpAddress, out var ip, out var third, out _) || third is < 101 or > 107)
+                continue;
+            var missing = Gaps(a.SerialNumber, a.Hostname, a.Manufacturer, a.Model, a.Assigned);
+            if (missing.Count == 0) continue;
+            pending.Add(new PendingDetailDto
+            {
+                Kind = "Incomplete asset",
+                AssetId = a.Id,
+                AssetTag = a.AssetTag,
+                Address = ip,
+                AssignedUser = a.Assigned,
+                Hostname = a.Hostname,
+                MacAddress = a.MacAddress,
+                Missing = string.Join(", ", missing)
+            });
+        }
+
+        return pending
+            .OrderBy(x => x.Address)
+            .ThenBy(x => x.AssetTag)
+            .ToList();
+    }
+
+    private static List<string> Gaps(string? serial, string? host, string? mfr, string? model, string? user)
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(serial)) missing.Add("Serial");
+        if (string.IsNullOrWhiteSpace(host)) missing.Add("Hostname");
+        if (string.IsNullOrWhiteSpace(mfr) && string.IsNullOrWhiteSpace(model)) missing.Add("Make/model");
+        if (string.IsNullOrWhiteSpace(user)) missing.Add("Assigned user");
+        return missing;
     }
 
     private async Task<List<string>> ValidateAsync(SaveAssetRequest req, int? excludeId)

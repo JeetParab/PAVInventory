@@ -222,6 +222,9 @@ public class ApiClient
     public Task<DashboardDto> DashboardAsync() =>
         Read(Permissions.View, (db, _) => new AssetService(db, _lock).DashboardAsync());
 
+    public Task<List<PendingDetailDto>> PendingAsync() =>
+        Read(Permissions.View, (db, _) => new AssetService(db, _lock).PendingAsync());
+
     public Task<List<AssetListDto>> AssetsAsync(string? query = null) =>
         Read(Permissions.View, (db, _) => new AssetService(db, _lock).ListAsync(ParseQuery(query)));
 

@@ -11,18 +11,24 @@ public partial class DashboardViewModel(ApiClient api, ShellViewModel shell) : O
     [ObservableProperty] private DashboardDto? data;
     [ObservableProperty] private bool loading;
 
+    public bool HasPending => (Data?.PendingCount ?? 0) > 0;
+
     public async Task LoadAsync()
     {
         Loading = true;
         try
         {
             Data = await api.DashboardAsync();
+            OnPropertyChanged(nameof(HasPending));
         }
         finally
         {
             Loading = false;
         }
     }
+
+    [RelayCommand]
+    private Task OpenPending() => shell.GoAsync("Pending");
 
     [RelayCommand]
     private Task OpenTotal() => shell.ShowInventoryAsync();

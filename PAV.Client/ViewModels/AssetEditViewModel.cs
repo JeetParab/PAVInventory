@@ -78,13 +78,14 @@ public partial class AssetEditViewModel : ObservableObject
         List<UserDto> users,
         List<string> assigneeNames,
         AssetListDto? existing,
-        bool copy = false)
+        bool copy = false,
+        PendingDetailDto? seed = null)
     {
         _api = api;
         _users = users;
         Categories = categories;
         Locations = [new LocationDto { Id = 0, Name = "(None)" }, .. locations];
-        Title = copy ? "Copy asset" : existing is null ? "Add asset" : "Edit asset";
+        Title = copy ? "Copy asset" : existing is null ? (seed is null ? "Add asset" : "Complete asset details") : "Edit asset";
 
         AssigneeChoices =
         [
@@ -173,6 +174,16 @@ public partial class AssetEditViewModel : ObservableObject
             ChromeUpdated = "";
             PmCompleted = "";
             CollectBy = "";
+            if (seed is not null)
+            {
+                IpAddress = seed.Address;
+                Hostname = seed.Hostname;
+                AssignedUserName = seed.AssignedUser;
+                MacAddress = seed.MacAddress;
+                if (!string.IsNullOrWhiteSpace(AssignedUserName) &&
+                    !AssigneeChoices.Contains(AssignedUserName, StringComparer.OrdinalIgnoreCase))
+                    AssigneeChoices.Insert(1, AssignedUserName);
+            }
         }
     }
 

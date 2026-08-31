@@ -9,6 +9,16 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <WrapPanel Margin="0,0,0,16">
+          <Button Style="{StaticResource GhostButton}" Command="{Binding OpenPendingCommand}" Margin="0,0,10,10" Padding="0"
+                  Visibility="{Binding HasPending, Converter={StaticResource BoolToVis}}">
+            <Border Style="{StaticResource StatCard}" Width="200" BorderBrush="#C47B17">
+              <StackPanel>
+                <TextBlock Text="Pending details" Style="{StaticResource MutedText}" Foreground="#C47B17"/>
+                <TextBlock Text="{Binding Data.PendingCount}" FontSize="26" FontWeight="SemiBold" Foreground="#C47B17" Margin="0,4,0,0"/>
+                <TextBlock Text="IP assigned, kit details missing" FontSize="11" Foreground="#C47B17" Margin="0,4,0,0" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+          </Button>
           <Button Style="{StaticResource GhostButton}" Command="{Binding OpenTotalCommand}" Margin="0,0,10,10" Padding="0">
             <Border Style="{StaticResource StatCard}" Width="156">
               <StackPanel>

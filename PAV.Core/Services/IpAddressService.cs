@@ -198,6 +198,8 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             var dto = ToDto(rec);
             var addAsset = req.AddToInventory && !req.IsTemporary;
             dto.InventorySync = await IpAssetBridge.AfterIpAssignedAsync(db, rec, addAsset, actor);
+            if (addAsset && dto.InventorySync is not null)
+                dto.InventorySync += " Serial and make/model still needed — see Pending.";
             if (req.IsTemporary)
                 dto.InventorySync = $"{rec.Address} is temporary — kept in IP Inventory only, not added as office kit.";
             return dto;

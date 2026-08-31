@@ -329,6 +329,20 @@ public class DashboardDto
     public List<CategoryCountDto> ByCategory { get; set; } = [];
     public List<HistoryDto> RecentActivity { get; set; } = [];
     public List<AssetListDto> WarrantyExpiringSoon { get; set; } = [];
+    public int PendingCount { get; set; }
+}
+
+public class PendingDetailDto
+{
+    public string Kind { get; set; } = "";
+    public int? AssetId { get; set; }
+    public int? IpId { get; set; }
+    public string? AssetTag { get; set; }
+    public string? Address { get; set; }
+    public string? AssignedUser { get; set; }
+    public string? Hostname { get; set; }
+    public string? MacAddress { get; set; }
+    public string Missing { get; set; } = "";
 }
 
 public class CategoryCountDto
