@@ -233,6 +233,32 @@ public class SavePersonRequest
     public bool IsActive { get; set; } = true;
 }
 
+public class ImportPeopleResult
+{
+    public int Created { get; set; }
+    public int LinkedExisting { get; set; }
+    public int SkippedAmbiguous { get; set; }
+    public int SkippedJunk { get; set; }
+    public int LinkedAssets { get; set; }
+    public int LinkedStock { get; set; }
+
+    public string Summary
+    {
+        get
+        {
+            var parts = new List<string>
+            {
+                $"{Created} people added from inventory"
+            };
+            if (LinkedExisting > 0) parts.Add($"{LinkedExisting} existing names linked");
+            if (LinkedAssets > 0) parts.Add($"{LinkedAssets} assets linked");
+            if (LinkedStock > 0) parts.Add($"{LinkedStock} stock movements linked");
+            if (SkippedAmbiguous > 0) parts.Add($"{SkippedAmbiguous} names skipped (more than one match)");
+            return string.Join(". ", parts) + ".";
+        }
+    }
+}
+
 public class LocationDto
 {
     public int Id { get; set; }

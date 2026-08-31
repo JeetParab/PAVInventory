@@ -169,19 +169,116 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             await SqliteGuard.SaveChangesAsync(db);
         });
 
-    private async Task<string> NextPersonUsernameAsync(string name)
+    public Task<ImportPeopleResult> ImportPeopleFromInventoryAsync() =>
+        writeLock.WriteAsync(async () =>
+        {
+            var result = new ImportPeopleResult();
+            var users = await db.Users.Select(u => new { u.Id, u.Name, u.Username }).ToListAsync();
+            var tuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+            var takenUsernames = new HashSet<string>(users.Select(u => u.Username), StringComparer.OrdinalIgnoreCase);
+
+            var assetNames = await db.Assets.AsNoTracking()
+                .Where(a => a.AssignedUserName != null && a.AssignedUserName != "")
+                .Select(a => a.AssignedUserName!)
+                .ToListAsync();
+            var stockNames = await db.StockMovements.AsNoTracking()
+                .Where(m => m.AssignedUserName != null && m.AssignedUserName != "")
+                .Select(m => m.AssignedUserName!)
+                .ToListAsync();
+
+            var groups = assetNames.Concat(stockNames)
+                .Select(Mapping.Clean)
+                .Where(n => n is not null)
+                .GroupBy(n => n!, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g.Key);
+
+            foreach (var group in groups)
+            {
+                var name = group.OrderByDescending(n => n!.Length).First()!;
+                if (IsJunkName(name))
+                {
+                    result.SkippedJunk++;
+                    continue;
+                }
+
+                var matches = UserNameResolver.MatchIds(tuples, name);
+                int id;
+                if (matches.Count > 1)
+                {
+                    result.SkippedAmbiguous++;
+                    continue;
+                }
+                if (matches.Count == 1)
+                {
+                    id = matches[0];
+                    result.LinkedExisting++;
+                }
+                else
+                {
+                    var person = new User
+                    {
+                        Name = name,
+                        Username = NextPersonUsername(name, takenUsernames),
+                        PasswordHash = "!",
+                        Role = UserRole.Guest,
+                        IsActive = true,
+                        CanSignIn = false
+                    };
+                    db.Users.Add(person);
+                    await SqliteGuard.SaveChangesAsync(db);
+                    id = person.Id;
+                    tuples.Add((person.Id, person.Name, person.Username));
+                    result.Created++;
+                }
+
+                result.LinkedAssets += await db.Assets
+                    .Where(a => a.AssignedUserId == null
+                                && a.AssignedUserName != null
+                                && a.AssignedUserName.ToLower() == name.ToLower())
+                    .ExecuteUpdateAsync(s => s.SetProperty(a => a.AssignedUserId, id));
+                result.LinkedStock += await db.StockMovements
+                    .Where(m => m.UserId == null
+                                && m.AssignedUserName != null
+                                && m.AssignedUserName.ToLower() == name.ToLower())
+                    .ExecuteUpdateAsync(s => s.SetProperty(m => m.UserId, id));
+            }
+
+            return result;
+        });
+
+    private static readonly HashSet<string> JunkNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "-", "--", ".", "na", "n/a", "none", "nil", "unassigned", "not assigned"
+    };
+
+    private static bool IsJunkName(string name)
+    {
+        var n = name.Trim();
+        return n.Length < 2 || JunkNames.Contains(n);
+    }
+
+    private static string NextPersonUsername(string name, HashSet<string> taken)
     {
         var slug = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).Take(32).ToArray());
         if (string.IsNullOrWhiteSpace(slug)) slug = "person";
         var baseName = "person:" + slug;
         var candidate = baseName;
         var n = 2;
-        while (await db.Users.AnyAsync(u => u.Username.ToLower() == candidate))
+        while (taken.Contains(candidate))
         {
             candidate = baseName + "-" + n;
             n++;
         }
+        taken.Add(candidate);
         return candidate;
+    }
+
+    private async Task<string> NextPersonUsernameAsync(string name)
+    {
+        var taken = new HashSet<string>(
+            await db.Users.Select(u => u.Username).ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+        return NextPersonUsername(name, taken);
     }
 
     public Task<UserDto> UpdateUserAsync(int id, SaveUserRequest req) =>

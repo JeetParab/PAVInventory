@@ -290,6 +290,9 @@ public class ApiClient
             return 0;
         });
 
+    public Task<ImportPeopleResult> ImportPeopleFromInventoryAsync() =>
+        Read(Permissions.Add, (db, _) => new LookupService(db, _lock).ImportPeopleFromInventoryAsync());
+
     public Task<List<LocationDto>> LocationsAsync() =>
         Read(Permissions.View, (db, _) => new LookupService(db, _lock).LocationsAsync());
 

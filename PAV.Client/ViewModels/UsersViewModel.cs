@@ -44,7 +44,7 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
             foreach (var u in unlinked) Unlinked.Add(u);
             UnlinkedSummary = unlinked.Count == 0
                 ? null
-                : $"{unlinked.Sum(x => x.AssetCount)} assets use a name that is not in this list. Add the person here (or Assign from Inventory) to link them.";
+                : $"{unlinked.Sum(x => x.AssetCount)} assets use a name that is not in this list. Click Add from inventory to create them and link the assets.";
             OnPropertyChanged(nameof(CanAdd));
             OnPropertyChanged(nameof(CanEditPeople));
             OnPropertyChanged(nameof(CanDeletePeople));
@@ -139,6 +139,27 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         try
         {
             await api.DeletePersonAsync(Selected.Id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportFromInventoryAsync()
+    {
+        if (!CanAdd) return;
+        var pending = Unlinked.Count;
+        var msg = pending > 0
+            ? $"Add people from inventory?\n\n{pending} names on assets are not in this list. They will be added (name only) and their assets will be linked. Existing sign-in accounts are not duplicated."
+            : "Add people from inventory?\n\nPAV will take unique names from Inventory and Stock, skip names that already exist, and link matching assets.";
+        if (!Ui.Confirm(msg)) return;
+        try
+        {
+            var result = await api.ImportPeopleFromInventoryAsync();
+            Ui.Info(result.Summary);
             await LoadAsync();
         }
         catch (Exception ex)

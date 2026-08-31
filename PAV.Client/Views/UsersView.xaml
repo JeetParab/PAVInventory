@@ -20,6 +20,9 @@
         </Button>
         <Button Content="+ Add person" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}"
                 IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
+        <Button Content="Add from inventory" Style="{StaticResource SecondaryButton}"
+                Command="{Binding ImportFromInventoryCommand}"
+                IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
         <Button Content="Edit" Style="{StaticResource SecondaryButton}" Command="{Binding EditCommand}"
                 IsEnabled="{Binding CanEditPeople}" Margin="0,0,8,0"/>
         <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"
@@ -29,7 +32,7 @@
 
     <StackPanel Grid.Row="1" Margin="0,0,0,10">
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
-                 Text="Office people you assign laptops, IPs and stock to. Name, department, email and employee ID only. They cannot sign in. Engineers and admins live in Settings."/>
+                 Text="Office people you assign laptops, IPs and stock to. Name, department, email and employee ID only. They cannot sign in. Engineers and admins live in Settings. Use Add from inventory to pull names already on assets."/>
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="#C47B17"
                  Text="{Binding UnlinkedSummary}"
                  Visibility="{Binding HasUnlinked, Converter={StaticResource BoolToVis}}"/>
