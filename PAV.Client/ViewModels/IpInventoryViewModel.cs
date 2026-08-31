@@ -264,6 +264,8 @@ public partial class IpInventoryViewModel : ObservableObject
         var win = new IpAssignWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
         {
+            if (!string.IsNullOrWhiteSpace(vm.InventorySync))
+                Ui.Info(vm.InventorySync);
             await LoadAsync();
             if (!string.IsNullOrWhiteSpace(address))
                 CheckInput = address;

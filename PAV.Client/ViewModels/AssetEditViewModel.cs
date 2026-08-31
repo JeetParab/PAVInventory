@@ -12,6 +12,7 @@ public partial class AssetEditViewModel : ObservableObject
     private readonly int? _id;
     private readonly int _version;
     private readonly List<UserDto> _users;
+    private bool _lockName;
 
     public string Title { get; }
     public List<CategoryDto> Categories { get; }
@@ -284,6 +285,22 @@ public partial class AssetEditViewModel : ObservableObject
         if (AssignedUserId is { } id && _users.Any(u => u.Id == id))
             return id;
         return null;
+    }
+
+    partial void OnAssignedUserNameChanged(string? value)
+    {
+        if (_lockName || string.IsNullOrWhiteSpace(value) || value.Trim().Length < 2) return;
+        var key = value.Trim();
+        var hits = AssigneeChoices
+            .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (hits.Count == 1 && !hits[0].Equals(key, StringComparison.OrdinalIgnoreCase))
+        {
+            _lockName = true;
+            AssignedUserName = hits[0];
+            _lockName = false;
+        }
     }
 
     public string LastConnectedText

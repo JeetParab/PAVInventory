@@ -14,6 +14,8 @@ public partial class IpAssignViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly int? _id;
     private int _checkSeq;
+    private readonly List<string> _people = [];
+    private bool _suppressFilter;
 
     [ObservableProperty] private string title = "Assign IP";
     [ObservableProperty] private string address = "";
@@ -27,9 +29,13 @@ public partial class IpAssignViewModel : ObservableObject
     [ObservableProperty] private string addressStatus = "Enter an IP in 172.16.101–107.";
     [ObservableProperty] private Brush addressStatusBrush = Brushes.Gray;
     [ObservableProperty] private bool canSave;
+    [ObservableProperty] private bool addToInventory = true;
+    [ObservableProperty] private string userHint = "";
     public ObservableCollection<string> DeviceTypes { get; } = new(IpAddressService.DeviceTypes);
+    public ObservableCollection<string> People { get; } = [];
 
     public bool Saved { get; private set; }
+    public string? InventorySync { get; private set; }
     public event Action<bool>? CloseRequested;
 
     public IpAssignViewModel(ApiClient api, IpAddressDto? existing, int? rangeId, string? nextAddress)
@@ -44,7 +50,74 @@ public partial class IpAssignViewModel : ObservableObject
         DeviceType = existing?.DeviceType;
         Notes = existing?.Notes;
         Title = string.IsNullOrWhiteSpace(Address) ? "Assign IP" : $"Assign {Address}";
+        _ = LoadPeopleAsync();
         _ = RefreshStatusAsync();
+    }
+
+    private async Task LoadPeopleAsync()
+    {
+        try
+        {
+            var users = await _api.UsersAsync();
+            _people.Clear();
+            foreach (var n in users.Where(u => u.IsActive).Select(u => u.Name)
+                         .Where(n => !string.IsNullOrWhiteSpace(n))
+                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                         .OrderBy(n => n))
+                _people.Add(n);
+            ApplyPeopleFilter();
+        }
+        catch
+        {
+            /* type freely if directory cannot load */
+        }
+    }
+
+    partial void OnAssignedUserChanged(string? value)
+    {
+        ApplyPeopleFilter();
+        UpdateUserHint();
+    }
+
+    private void ApplyPeopleFilter()
+    {
+        if (_suppressFilter) return;
+        var typed = AssignedUser?.Trim() ?? "";
+        People.Clear();
+        IEnumerable<string> q = _people;
+        if (typed.Length > 0)
+            q = _people.Where(n => n.Contains(typed, StringComparison.OrdinalIgnoreCase));
+        foreach (var n in q.Take(40))
+            People.Add(n);
+
+        if (typed.Length >= 2)
+        {
+            var hits = _people.Where(n => n.Contains(typed, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (hits.Count == 1 && !hits[0].Equals(typed, StringComparison.OrdinalIgnoreCase))
+            {
+                _suppressFilter = true;
+                AssignedUser = hits[0];
+                _suppressFilter = false;
+                People.Clear();
+                People.Add(hits[0]);
+            }
+        }
+    }
+
+    private void UpdateUserHint()
+    {
+        var typed = AssignedUser?.Trim() ?? "";
+        if (typed.Length == 0)
+        {
+            UserHint = "";
+            return;
+        }
+        var hits = _people.Where(n => n.Contains(typed, StringComparison.OrdinalIgnoreCase)).ToList();
+        UserHint = hits.Count == 1
+            ? $"Will link to {hits[0]}."
+            : hits.Count == 0
+                ? "No directory match — stored as typed name."
+                : $"{hits.Count} people match — keep typing.";
     }
 
     partial void OnAddressChanged(string value)
@@ -112,7 +185,7 @@ public partial class IpAssignViewModel : ObservableObject
         }
         try
         {
-            await _api.IpAssignAsync(new AssignIpRequest
+            var dto = await _api.IpAssignAsync(new AssignIpRequest
             {
                 Id = null,
                 RangeId = null,
@@ -122,8 +195,10 @@ public partial class IpAssignViewModel : ObservableObject
                 Department = Department,
                 MacAddress = MacAddress,
                 DeviceType = DeviceType,
-                Notes = Notes
+                Notes = Notes,
+                AddToInventory = AddToInventory
             });
+            InventorySync = dto.InventorySync;
             Saved = true;
             CloseRequested?.Invoke(true);
         }

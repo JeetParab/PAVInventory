@@ -240,6 +240,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             }
             await SqliteGuard.SaveChangesAsync(db);
             await tx.CommitAsync();
+            await IpAssetBridge.AfterAssetSavedAsync(db, asset, previousIp: null, actor);
             return await GetAsync(asset.Id, history: false);
         });
 
@@ -320,6 +321,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             asset.UpdatedAt = now;
             db.AssetHistory.AddRange(changes);
             await SqliteGuard.SaveChangesAsync(db);
+            await IpAssetBridge.AfterAssetSavedAsync(db, asset, oldIp, actor);
             return await GetAsync(asset.Id, history: false);
         });
 
@@ -328,6 +330,8 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         {
             var asset = await db.Assets.FirstOrDefaultAsync(a => a.Id == id)
                 ?? throw new AppException(404, "not_found", "Asset not found.");
+            var ip = asset.IpAddress;
+            var assetId = asset.Id;
 
             db.AssetHistory.Add(new AssetHistory
             {
@@ -341,6 +345,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             });
             db.Assets.Remove(asset);
             await SqliteGuard.SaveChangesAsync(db);
+            await IpAssetBridge.AfterAssetDeletedAsync(db, ip, assetId, actor);
         });
 
     public async Task<DashboardDto> DashboardAsync()
@@ -467,6 +472,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             var users = await LoadUserKeysAsync();
             var setAssignment = req.SetAssignedUser || req.AssignedUserId is not null || req.AssignedUserName is not null;
             var locNames = await db.Locations.AsNoTracking().ToDictionaryAsync(l => l.Id, l => l.Name);
+            var ipChanges = new List<(string? OldIp, Asset Asset)>();
 
             foreach (var id in req.Ids.Distinct())
             {
@@ -531,7 +537,9 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                 if (req.IpAddress is not null)
                 {
                     Track("IP Address", asset.IpAddress, req.IpAddress);
+                    var oldIp = asset.IpAddress;
                     asset.IpAddress = Mapping.Clean(req.IpAddress);
+                    ipChanges.Add((oldIp, asset));
                 }
                 if (req.Domain is not null)
                 {
@@ -569,6 +577,8 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                 count++;
             }
             await SqliteGuard.SaveChangesAsync(db);
+            foreach (var (oldIp, asset) in ipChanges)
+                await IpAssetBridge.AfterAssetSavedAsync(db, asset, oldIp, actor);
             return count;
         });
 

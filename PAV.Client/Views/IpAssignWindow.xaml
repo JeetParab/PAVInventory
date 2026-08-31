@@ -24,7 +24,11 @@
       <TextBlock Text="{Binding AddressStatus}" TextWrapping="Wrap" Margin="0,0,0,12"
                  Foreground="{Binding AddressStatusBrush}"/>
       <TextBlock Text="Assigned user" Style="{StaticResource FieldLabel}"/>
-      <TextBox Text="{Binding AssignedUser, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
+      <ComboBox ItemsSource="{Binding People}"
+                Text="{Binding AssignedUser, UpdateSourceTrigger=PropertyChanged}"
+                IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                Margin="0,0,0,4"/>
+      <TextBlock Text="{Binding UserHint}" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
       <TextBlock Text="Assigned device / hostname" Style="{StaticResource FieldLabel}"/>
       <TextBox Text="{Binding AssignedDevice, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"/>
       <TextBlock Text="Department" Style="{StaticResource FieldLabel}"/>
@@ -46,8 +50,12 @@
         </StackPanel>
       </Grid>
       <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
-      <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Height="64"
-               TextWrapping="Wrap" AcceptsReturn="True"/>
+      <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Height="56"
+               TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,12"/>
+      <CheckBox IsChecked="{Binding AddToInventory}"
+                Content="Also add / update this in Inventory"/>
+      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                 Text="Creates a serialized asset for this IP, or updates the asset that already has it. Untick to keep the IP pool only."/>
     </StackPanel>
   </DockPanel>
 </Window>

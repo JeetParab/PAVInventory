@@ -84,8 +84,12 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         var keep = Selected?.Id;
         Users.Clear();
         foreach (var u in q) Users.Add(u);
-        if (keep is { } id)
-            Selected = Users.FirstOrDefault(u => u.Id == id);
+        if (!string.IsNullOrWhiteSpace(s))
+            Selected = Users.FirstOrDefault();
+        else if (keep is { } id)
+            Selected = Users.FirstOrDefault(u => u.Id == id) ?? Users.FirstOrDefault();
+        else
+            Selected = Users.FirstOrDefault();
     }
 
     private async Task LoadHoldingsAsync()

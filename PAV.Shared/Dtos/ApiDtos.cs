@@ -447,6 +447,7 @@ public class IpAddressDto
     public string? Notes { get; set; }
     public DateTime? LastUpdated { get; set; }
     public string? AllocatedBy { get; set; }
+    public string? InventorySync { get; set; }
 }
 
 public class IpCheckResultDto
@@ -468,6 +469,7 @@ public class AssignIpRequest
     public string? MacAddress { get; set; }
     public string? DeviceType { get; set; }
     public string? Notes { get; set; }
+    public bool AddToInventory { get; set; } = true;
 }
 
 public class IpImportResult

@@ -25,6 +25,7 @@ public partial class StockMoveViewModel : ObservableObject
     [ObservableProperty] private bool needsReason;
     [ObservableProperty] private string hint = "";
     [ObservableProperty] private string userHint = "";
+    private bool _lockUser;
 
     public ObservableCollection<StockItemDto> Items { get; } = [];
     public ObservableCollection<UserDto> Users { get; } = [];
@@ -54,7 +55,25 @@ public partial class StockMoveViewModel : ObservableObject
 
     partial void OnItemChanged(StockItemDto? value) => UpdateHint();
     partial void OnQuantityChanged(int value) => UpdateHint();
-    partial void OnAssignedUserNameChanged(string? value) => UpdateUserHint();
+    partial void OnAssignedUserNameChanged(string? value)
+    {
+        if (!_lockUser && !string.IsNullOrWhiteSpace(value) && value.Trim().Length >= 2)
+        {
+            var key = value.Trim();
+            var hits = Users
+                .Select(u => u.Name)
+                .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (hits.Count == 1 && !hits[0].Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                _lockUser = true;
+                AssignedUserName = hits[0];
+                _lockUser = false;
+            }
+        }
+        UpdateUserHint();
+    }
 
     private void UpdateHint()
     {

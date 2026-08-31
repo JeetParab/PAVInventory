@@ -193,7 +193,9 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             rec.LastUpdated = DateTime.UtcNow;
             rec.AllocatedBy = actor.DisplayName;
             await SqliteGuard.SaveChangesAsync(db);
-            return ToDto(rec);
+            var dto = ToDto(rec);
+            dto.InventorySync = await IpAssetBridge.AfterIpAssignedAsync(db, rec, req.AddToInventory, actor);
+            return dto;
         });
 
     public Task<IpAddressDto> ReserveAsync(int id, string? notes, CurrentUser actor) =>
@@ -226,7 +228,10 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             rec.DateAssigned = null;
             rec.LastUpdated = DateTime.UtcNow;
             rec.AllocatedBy = actor.DisplayName;
+            var address = rec.Address;
             await SqliteGuard.SaveChangesAsync(db);
+            await IpAssetBridge.AfterIpReleasedAsync(db, address, actor);
+            rec = await db.IpRecords.Include(x => x.Range).FirstAsync(x => x.Id == rec.Id);
             return ToDto(rec);
         });
 
