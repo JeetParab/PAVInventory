@@ -52,10 +52,15 @@
       <TextBlock Text="Notes" Style="{StaticResource FieldLabel}"/>
       <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" Height="56"
                TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,12"/>
-      <CheckBox IsChecked="{Binding AddToInventory}"
-                Content="Also add / update this in Inventory"/>
-      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,4,0,0"
-                 Text="Creates a serialized asset for this IP, or updates the asset that already has it. Untick to keep the IP pool only."/>
+      <TextBlock Text="Purpose" Style="{StaticResource FieldLabel}"/>
+      <RadioButton GroupName="IpPurpose" IsChecked="{Binding IsInventoryPurpose, Mode=TwoWay}"
+                   Margin="0,0,0,4"
+                   Content="Inventory asset — add / update serialized kit"/>
+      <RadioButton GroupName="IpPurpose" IsChecked="{Binding IsTemporary, Mode=TwoWay}"
+                   Margin="0,0,0,6"
+                   Content="Temporary — IP only (visitor, test, meeting, contractor)"/>
+      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap"
+                 Text="Temporary occupies the address until you Release it. It does not create an Inventory row. Put why and until-when in Notes."/>
     </StackPanel>
   </DockPanel>
 </Window>

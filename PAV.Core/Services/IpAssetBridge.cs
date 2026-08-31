@@ -136,6 +136,7 @@ public static class IpAssetBridge
         var rec = await db.IpRecords.FirstOrDefaultAsync(x => x.Address == ip);
         if (rec is null) return;
         rec.Status = IpStatus.Used;
+        rec.IsTemporary = asset.IsTemporary;
         rec.AssignedDevice = Mapping.Clean(asset.Hostname) ?? rec.AssignedDevice;
         rec.AssignedUser = Mapping.Clean(asset.AssignedUserName) ?? rec.AssignedUser;
         rec.MacAddress = Mapping.Clean(asset.MacAddress) ?? rec.MacAddress;
@@ -153,6 +154,7 @@ public static class IpAssetBridge
         var still = await db.Assets.AnyAsync(a => a.Id != exceptAssetId && a.IpAddress != null && a.IpAddress == ip);
         if (still) return;
         rec.Status = IpStatus.Free;
+        rec.IsTemporary = false;
         rec.AssignedDevice = null;
         rec.AssignedUser = null;
         rec.Department = null;

@@ -34,6 +34,7 @@ public partial class InventoryViewModel : ObservableObject
     [ObservableProperty] private int locationFilter;
     [ObservableProperty] private string manufacturerFilter = "All";
     [ObservableProperty] private string assignedFilter = "All";
+    [ObservableProperty] private string purposeFilter = "Inventory";
     [ObservableProperty] private bool filtersOpen;
     [ObservableProperty] private bool toolsOpen;
     [ObservableProperty] private bool freezeIdentityColumns;
@@ -47,10 +48,12 @@ public partial class InventoryViewModel : ObservableObject
 
     public List<string> StatusChoices { get; } = ["All", .. AssetStatusNames.All.Select(s => s.Display())];
     public List<string> AssignedChoices { get; } = ["All", "Assigned", "Unassigned"];
+    public List<string> PurposeChoices { get; } = ["Inventory", "Temporary", "All"];
 
     public bool HasFilters =>
         !IsAll(StatusFilter) || CategoryFilter != 0 || LocationFilter != 0 ||
         !IsAll(ManufacturerFilter) || AssignedFilter is "Assigned" or "Unassigned" ||
+        PurposeFilter is "Temporary" or "All" ||
         !string.IsNullOrWhiteSpace(SearchText);
 
     public List<AssetListDto> SelectedAssets { get; private set; } = [];
@@ -84,6 +87,7 @@ public partial class InventoryViewModel : ObservableObject
     partial void OnLocationFilterChanged(int value) { if (!_suspendFilter) RefreshView(); }
     partial void OnManufacturerFilterChanged(string value) { if (!_suspendFilter) RefreshView(); }
     partial void OnAssignedFilterChanged(string value) { if (!_suspendFilter) RefreshView(); }
+    partial void OnPurposeFilterChanged(string value) { if (!_suspendFilter) RefreshView(); }
 
     private void RefreshView()
     {
@@ -132,6 +136,8 @@ public partial class InventoryViewModel : ObservableObject
             return false;
         if (AssignedFilter == "Assigned" && string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
         if (AssignedFilter == "Unassigned" && !string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
+        if (PurposeFilter == "Inventory" && a.IsTemporary) return false;
+        if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
         return true;
     }
 
@@ -150,6 +156,7 @@ public partial class InventoryViewModel : ObservableObject
         LocationFilter = 0;
         ManufacturerFilter = "All";
         AssignedFilter = "All";
+        PurposeFilter = "Inventory";
         await LoadAsync();
     }
 
@@ -219,6 +226,7 @@ public partial class InventoryViewModel : ObservableObject
         LocationFilter = 0;
         ManufacturerFilter = "All";
         AssignedFilter = "All";
+        PurposeFilter = "Inventory";
         FiltersOpen = false;
     }
 

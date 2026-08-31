@@ -143,6 +143,13 @@ public sealed class PavDatabase
         Perf.Log("Database.IpTables", sw.ElapsedMilliseconds);
 
         sw.Restart();
+        await EnsureTableColumnsAsync(db, "IpRecords",
+        [
+            ("IsTemporary", "INTEGER NOT NULL DEFAULT 0")
+        ]);
+        Perf.Log("Database.IpTemporary", sw.ElapsedMilliseconds);
+
+        sw.Restart();
         await EnsureStockTablesAsync(db);
         Perf.Log("Database.StockTables", sw.ElapsedMilliseconds);
 
@@ -183,6 +190,7 @@ public sealed class PavDatabase
         // an administrator should open PAV once on the host before clients.
         sw.Restart();
         await EnsureCanSignInColumnAsync(db);
+        await EnsureTemporaryColumnsSqlServerAsync(db);
         Perf.Log("Database.CanSignIn", sw.ElapsedMilliseconds);
 
         sw.Restart();
@@ -237,7 +245,8 @@ public sealed class PavDatabase
             ("StockWorking", "TEXT"),
             ("PmCompleted", "TEXT"),
             ("LastConnected", "TEXT"),
-            ("CollectBy", "TEXT")
+            ("CollectBy", "TEXT"),
+            ("IsTemporary", "INTEGER NOT NULL DEFAULT 0")
         ]);
 
         await EnsureTableColumnsAsync(db, "Users",
@@ -281,6 +290,22 @@ public sealed class PavDatabase
             IF COL_LENGTH('dbo.Users', 'CanSignIn') IS NULL
             BEGIN
                 ALTER TABLE dbo.Users ADD CanSignIn BIT NOT NULL CONSTRAINT DF_Users_CanSignIn DEFAULT 1;
+            END
+            """);
+    }
+
+    private static async Task EnsureTemporaryColumnsSqlServerAsync(AppDbContext db)
+    {
+        if (!db.Database.IsSqlServer())
+            return;
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Assets', 'IsTemporary') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Assets ADD IsTemporary BIT NOT NULL CONSTRAINT DF_Assets_IsTemporary DEFAULT 0;
+            END
+            IF COL_LENGTH('dbo.IpRecords', 'IsTemporary') IS NULL
+            BEGIN
+                ALTER TABLE dbo.IpRecords ADD IsTemporary BIT NOT NULL CONSTRAINT DF_IpRecords_IsTemporary DEFAULT 0;
             END
             """);
     }

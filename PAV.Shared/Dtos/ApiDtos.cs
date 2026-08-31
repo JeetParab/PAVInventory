@@ -80,6 +80,8 @@ public class AssetListDto
     public DateTime? PurchaseDate { get; set; }
     public DateTime? WarrantyExpiry { get; set; }
     public int Version { get; set; }
+    public bool IsTemporary { get; set; }
+    public string Purpose => IsTemporary ? "Temporary" : "Inventory";
 
     public AssetListDto Clone() => (AssetListDto)MemberwiseClone();
 }
@@ -132,6 +134,7 @@ public class SaveAssetRequest
     public DateTime? WarrantyExpiry { get; set; }
     public string? Remarks { get; set; }
     public int Version { get; set; }
+    public bool IsTemporary { get; set; }
 }
 
 public class BulkEditRequest
@@ -448,6 +451,7 @@ public class IpAddressDto
     public DateTime? LastUpdated { get; set; }
     public string? AllocatedBy { get; set; }
     public string? InventorySync { get; set; }
+    public bool IsTemporary { get; set; }
 }
 
 public class IpCheckResultDto
@@ -470,6 +474,7 @@ public class AssignIpRequest
     public string? DeviceType { get; set; }
     public string? Notes { get; set; }
     public bool AddToInventory { get; set; } = true;
+    public bool IsTemporary { get; set; }
 }
 
 public class IpImportResult

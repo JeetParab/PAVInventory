@@ -49,6 +49,7 @@ public static class Mapping
         d.PurchaseDate = a.PurchaseDate;
         d.WarrantyExpiry = a.WarrantyExpiry;
         d.Version = a.Version;
+        d.IsTemporary = a.IsTemporary;
     }
 
     public static AssetListDto ToListDto(Asset a)
@@ -108,6 +109,7 @@ public static class Mapping
         asset.PurchaseDate = req.PurchaseDate?.Date;
         asset.WarrantyExpiry = req.WarrantyExpiry?.Date;
         asset.Remarks = Clean(req.Remarks);
+        asset.IsTemporary = req.IsTemporary;
         // Assignment is applied separately (AssignedUserId is authoritative).
     }
 

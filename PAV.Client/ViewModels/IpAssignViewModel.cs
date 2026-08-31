@@ -29,8 +29,15 @@ public partial class IpAssignViewModel : ObservableObject
     [ObservableProperty] private string addressStatus = "Enter an IP in 172.16.101–107.";
     [ObservableProperty] private Brush addressStatusBrush = Brushes.Gray;
     [ObservableProperty] private bool canSave;
-    [ObservableProperty] private bool addToInventory = true;
+    [ObservableProperty] private bool isTemporary;
     [ObservableProperty] private string userHint = "";
+    public bool IsInventoryPurpose
+    {
+        get => !IsTemporary;
+        set { if (value) IsTemporary = false; }
+    }
+
+    partial void OnIsTemporaryChanged(bool value) => OnPropertyChanged(nameof(IsInventoryPurpose));
     public ObservableCollection<string> DeviceTypes { get; } = new(IpAddressService.DeviceTypes);
     public ObservableCollection<string> People { get; } = [];
 
@@ -196,7 +203,8 @@ public partial class IpAssignViewModel : ObservableObject
                 MacAddress = MacAddress,
                 DeviceType = DeviceType,
                 Notes = Notes,
-                AddToInventory = AddToInventory
+                AddToInventory = !IsTemporary,
+                IsTemporary = IsTemporary
             });
             InventorySync = dto.InventorySync;
             Saved = true;

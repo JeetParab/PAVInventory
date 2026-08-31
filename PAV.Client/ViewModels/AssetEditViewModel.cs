@@ -35,6 +35,13 @@ public partial class AssetEditViewModel : ObservableObject
     [ObservableProperty] private string status = AssetStatus.InStock.Display();
     [ObservableProperty] private int? assignedUserId;
     [ObservableProperty] private string? assignedUserName;
+    [ObservableProperty] private bool isTemporary;
+    public bool IsInventoryPurpose
+    {
+        get => !IsTemporary;
+        set { if (value) IsTemporary = false; }
+    }
+    partial void OnIsTemporaryChanged(bool value) => OnPropertyChanged(nameof(IsInventoryPurpose));
     [ObservableProperty] private string? designation;
     [ObservableProperty] private string? alternateUser;
     [ObservableProperty] private string? domain;
@@ -118,6 +125,7 @@ public partial class AssetEditViewModel : ObservableObject
             Status = existing.Status;
             AssignedUserId = existing.AssignedUserId;
             AssignedUserName = existing.AssignedUser;
+            IsTemporary = !copy && existing.IsTemporary;
             Designation = existing.Designation;
             AlternateUser = existing.AlternateUser;
             Domain = existing.Domain;
@@ -239,7 +247,8 @@ public partial class AssetEditViewModel : ObservableObject
             PurchaseDate = PurchaseDate,
             WarrantyExpiry = WarrantyExpiry,
             Remarks = Remarks,
-            Version = _version
+            Version = _version,
+            IsTemporary = IsTemporary
         };
 
         Saving = true;

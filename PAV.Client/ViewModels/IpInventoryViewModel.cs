@@ -30,7 +30,7 @@ public partial class IpInventoryViewModel : ObservableObject
     public ObservableCollection<FloorCard> Floors { get; } = [];
     public ObservableCollection<FloorFilterItem> FloorFilters { get; } = [];
     public ObservableCollection<IpAddressDto> Rows { get; } = [];
-    public ObservableCollection<string> StatusChoices { get; } = ["Allocated", "Used", "Reserved", "Free", "All"];
+    public ObservableCollection<string> StatusChoices { get; } = ["Allocated", "Used", "Temporary", "Reserved", "Free", "All"];
 
     [ObservableProperty] private string ipPage = "Assign";
     [ObservableProperty] private int total;

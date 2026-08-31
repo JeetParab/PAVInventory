@@ -11,7 +11,15 @@
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
   </Window.InputBindings>
   <DockPanel Margin="24,20,20,20">
-    <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,8,14"/>
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,8,8"/>
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,8,12">
+      <TextBlock Text="Purpose" Style="{StaticResource FieldLabel}"/>
+      <RadioButton GroupName="AssetPurpose" IsChecked="{Binding IsInventoryPurpose, Mode=TwoWay}"
+                   Margin="0,0,0,4"
+                   Content="Inventory asset — tracked office kit (serial, PM, assignment)"/>
+      <RadioButton GroupName="AssetPurpose" IsChecked="{Binding IsTemporary, Mode=TwoWay}"
+                   Content="Temporary — visitor / test / short-term (hidden from the main inventory list)"/>
+    </StackPanel>
     <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
                TextWrapping="Wrap" Margin="0,0,8,12"/>
 

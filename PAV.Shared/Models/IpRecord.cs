@@ -19,4 +19,5 @@ public class IpRecord
     public string? Notes { get; set; }
     public DateTime? LastUpdated { get; set; }
     public string? AllocatedBy { get; set; }
+    public bool IsTemporary { get; set; }
 }

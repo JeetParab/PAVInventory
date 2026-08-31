@@ -98,7 +98,9 @@
               <TextBlock Text="Manufacturer" Style="{StaticResource FieldLabel}"/>
               <ComboBox ItemsSource="{Binding Manufacturers}" SelectedItem="{Binding ManufacturerFilter}" Margin="0,0,0,10"/>
               <TextBlock Text="Assignment" Style="{StaticResource FieldLabel}"/>
-              <ComboBox ItemsSource="{Binding AssignedChoices}" SelectedItem="{Binding AssignedFilter}" Margin="0,0,0,14"/>
+              <ComboBox ItemsSource="{Binding AssignedChoices}" SelectedItem="{Binding AssignedFilter}" Margin="0,0,0,10"/>
+              <TextBlock Text="Purpose" Style="{StaticResource FieldLabel}"/>
+              <ComboBox ItemsSource="{Binding PurposeChoices}" SelectedItem="{Binding PurposeFilter}" Margin="0,0,0,14"/>
               <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Clear" Style="{StaticResource SecondaryButton}" Command="{Binding ClearFiltersCommand}" Margin="0,0,8,0"/>
                 <Button Content="Done" Style="{StaticResource PrimaryButton}" Command="{Binding ToggleFiltersCommand}"/>
@@ -372,6 +374,7 @@
             <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
             <DataGridTextColumn Header="User Name" Binding="{Binding AssignedUser}" Width="150"/>
             <DataGridTextColumn Header="Designation" Binding="{Binding Designation}" Width="140"/>
+            <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="90"/>
             <DataGridTemplateColumn Header="Status" Width="110">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>

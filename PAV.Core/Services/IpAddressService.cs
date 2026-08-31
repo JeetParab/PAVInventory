@@ -86,6 +86,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             "free" => q.Where(x => x.Status == IpStatus.Free),
             "quarantine" => q.Where(x => x.Status == IpStatus.Quarantine),
             "deprecated" => q.Where(x => x.Status == IpStatus.Deprecated),
+            "temporary" => q.Where(x => x.IsTemporary),
             "all" => q,
             _ => q.Where(x => x.Status == IpStatus.Used || x.Status == IpStatus.Reserved || x.Status == IpStatus.Quarantine)
         };
@@ -183,6 +184,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
                     (string.IsNullOrWhiteSpace(rec.AssignedUser) ? "" : $" Assigned to {rec.AssignedUser}."));
 
             rec.Status = IpStatus.Used;
+            rec.IsTemporary = req.IsTemporary;
             rec.AssignedDevice = Clean(req.AssignedDevice);
             rec.AssignedUser = Clean(req.AssignedUser);
             rec.Department = Clean(req.Department);
@@ -194,7 +196,10 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             rec.AllocatedBy = actor.DisplayName;
             await SqliteGuard.SaveChangesAsync(db);
             var dto = ToDto(rec);
-            dto.InventorySync = await IpAssetBridge.AfterIpAssignedAsync(db, rec, req.AddToInventory, actor);
+            var addAsset = req.AddToInventory && !req.IsTemporary;
+            dto.InventorySync = await IpAssetBridge.AfterIpAssignedAsync(db, rec, addAsset, actor);
+            if (req.IsTemporary)
+                dto.InventorySync = $"{rec.Address} is temporary — kept in IP Inventory only, not added as office kit.";
             return dto;
         });
 
@@ -220,6 +225,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             var rec = await db.IpRecords.Include(x => x.Range).FirstOrDefaultAsync(x => x.Id == id)
                       ?? throw new AppException(404, "not_found", "IP address was not found.");
             rec.Status = IpStatus.Free;
+            rec.IsTemporary = false;
             rec.AssignedDevice = null;
             rec.AssignedUser = null;
             rec.Department = null;
@@ -388,7 +394,7 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
         HostOctet = x.HostOctet,
         Subnet = x.Range?.Cidr ?? "",
         StatusValue = x.Status,
-        Status = x.Status.Display(),
+        Status = x.IsTemporary ? "Temporary" : x.Status.Display(),
         AssignedDevice = x.AssignedDevice,
         AssignedUser = x.AssignedUser,
         Department = x.Department,
@@ -397,7 +403,8 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
         DeviceType = x.DeviceType,
         Notes = x.Notes,
         LastUpdated = x.LastUpdated,
-        AllocatedBy = x.AllocatedBy
+        AllocatedBy = x.AllocatedBy,
+        IsTemporary = x.IsTemporary
     };
 
     public static bool TryNormalize(string? input, out string address, out int? octet3, out int host)

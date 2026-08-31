@@ -351,6 +351,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
     public async Task<DashboardDto> DashboardAsync()
     {
         var grouped = await db.Assets.AsNoTracking()
+            .Where(a => !a.IsTemporary)
             .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -362,7 +363,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             {
                 CategoryId = c.Id,
                 Name = c.Name,
-                Count = db.Assets.Count(a => a.CategoryId == c.Id)
+                Count = db.Assets.Count(a => a.CategoryId == c.Id && !a.IsTemporary)
             })
             .OrderByDescending(x => x.Count)
             .ThenBy(x => x.Name)
@@ -377,6 +378,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             .Where(a => a.WarrantyExpiry != null
                         && a.WarrantyExpiry >= today
                         && a.WarrantyExpiry <= soon
+                        && !a.IsTemporary
                         && a.Status != AssetStatus.Retired
                         && a.Status != AssetStatus.Disposed)
             .OrderBy(a => a.WarrantyExpiry)
