@@ -49,10 +49,18 @@
       </StackPanel>
     </Grid>
 
-    <DockPanel Grid.Row="1" Visibility="{Binding ShowStock, Converter={StaticResource BoolToVis}}">
-      <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Style="{StaticResource MutedText}" Margin="0,0,0,8"
+    <Grid Grid.Row="1" Visibility="{Binding ShowStock, Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*" MinHeight="160"/>
+        <RowDefinition Height="180"/>
+      </Grid.RowDefinitions>
+
+      <TextBlock Grid.Row="0" Text="{Binding Message}" Style="{StaticResource MutedText}" Margin="0,0,0,8"
                  Visibility="{Binding Message, Converter={StaticResource StringToVis}}"/>
-      <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+      <WrapPanel Grid.Row="1" Margin="0,0,0,12">
         <Border Style="{StaticResource Card}" Padding="14,10" Margin="0,0,10,8" MinWidth="120">
           <StackPanel>
             <TextBlock Text="Items" Style="{StaticResource MutedText}"/>
@@ -79,7 +87,7 @@
         </Border>
       </WrapPanel>
 
-      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <DockPanel Grid.Row="2" Margin="0,0,0,10">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
           <Button Content="+ Item" Style="{StaticResource SecondaryButton}" Command="{Binding AddItemCommand}"
                   IsEnabled="{Binding CanManage}" Margin="0,0,8,0" Padding="10,6"/>
@@ -103,7 +111,32 @@
                  ToolTip="Search name, manufacturer, model, category"/>
       </DockPanel>
 
-      <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="0" Height="180" Margin="0,10,0,0">
+      <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0">
+        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+                  EnableRowVirtualization="True" EnableColumnVirtualization="False"
+                  CanUserResizeColumns="True"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  PreviewMouseWheel="OnGridPreviewMouseWheel"
+                  MouseDoubleClick="OnItemDoubleClick">
+          <DataGrid.Columns>
+            <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="220" MinWidth="140"/>
+            <DataGridTextColumn Header="Make" Binding="{Binding Manufacturer}" Width="110" MinWidth="80"/>
+            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="130" MinWidth="80"/>
+            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120" MinWidth="80"/>
+            <DataGridTextColumn Header="On hand" Binding="{Binding OnHand}" Width="80"/>
+            <DataGridTextColumn Header="Min" Binding="{Binding MinimumQuantity}" Width="55"/>
+            <DataGridTextColumn Header="Status" Binding="{Binding StockStatus}" Width="110"/>
+            <DataGridTextColumn Header="Opening" Binding="{Binding Opening}" Width="80"/>
+            <DataGridTextColumn Header="Received" Binding="{Binding Received}" Width="85"/>
+            <DataGridTextColumn Header="Issued" Binding="{Binding Issued}" Width="75"/>
+            <DataGridTextColumn Header="Returned" Binding="{Binding Returned}" Width="85"/>
+            <DataGridTextColumn Header="Adjusted" Binding="{Binding Adjusted}" Width="85"/>
+          </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+
+      <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0" Margin="0,10,0,0">
         <DockPanel>
           <TextBlock DockPanel.Dock="Top" Margin="12,8,12,4" FontWeight="SemiBold">
             <Run Text="Recent movements"/>
@@ -111,64 +144,55 @@
             <Run Text="{Binding Selected.Name, Mode=OneWay}"/>
           </TextBlock>
           <DataGrid ItemsSource="{Binding Movements}" SelectedItem="{Binding SelectedMovement}"
-                    EnableColumnVirtualization="False">
+                    EnableColumnVirtualization="False"
+                    CanUserResizeColumns="True"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                    PreviewMouseWheel="OnGridPreviewMouseWheel">
             <DataGrid.Columns>
-              <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="130"/>
-              <DataGridTextColumn Header="Type" Binding="{Binding MovementType}" Width="80"/>
+              <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="140"/>
+              <DataGridTextColumn Header="Type" Binding="{Binding MovementType}" Width="90"/>
               <DataGridTextColumn Header="Qty" Binding="{Binding SignedQuantity}" Width="60"/>
-              <DataGridTextColumn Header="User" Binding="{Binding AssignedUser}" Width="160"/>
-              <DataGridTextColumn Header="By" Binding="{Binding CreatedBy}" Width="110"/>
-              <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="120"/>
-              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*"/>
+              <DataGridTextColumn Header="User" Binding="{Binding AssignedUser}" Width="180"/>
+              <DataGridTextColumn Header="By" Binding="{Binding CreatedBy}" Width="120"/>
+              <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="140"/>
+              <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="240" MinWidth="120"/>
             </DataGrid.Columns>
           </DataGrid>
         </DockPanel>
       </Border>
+    </Grid>
 
-      <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
-        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
-                  EnableRowVirtualization="True" EnableColumnVirtualization="False"
-                  MouseDoubleClick="OnItemDoubleClick">
-          <DataGrid.Columns>
-            <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="*"/>
-            <DataGridTextColumn Header="Make" Binding="{Binding Manufacturer}" Width="90"/>
-            <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="110"/>
-            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="100"/>
-            <DataGridTextColumn Header="On hand" Binding="{Binding OnHand}" Width="80"/>
-            <DataGridTextColumn Header="Min" Binding="{Binding MinimumQuantity}" Width="50"/>
-            <DataGridTextColumn Header="Status" Binding="{Binding StockStatus}" Width="110"/>
-            <DataGridTextColumn Header="Opening" Binding="{Binding Opening}" Width="75"/>
-            <DataGridTextColumn Header="Received" Binding="{Binding Received}" Width="80"/>
-            <DataGridTextColumn Header="Issued" Binding="{Binding Issued}" Width="70"/>
-            <DataGridTextColumn Header="Returned" Binding="{Binding Returned}" Width="80"/>
-            <DataGridTextColumn Header="Adjusted" Binding="{Binding Adjusted}" Width="80"/>
-          </DataGrid.Columns>
-        </DataGrid>
-      </Border>
-    </DockPanel>
-
-    <DockPanel Grid.Row="1" Visibility="{Binding ShowMovements, Converter={StaticResource BoolToVis}}">
-      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+    <Grid Grid.Row="1" Visibility="{Binding ShowMovements, Converter={StaticResource BoolToVis}}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <DockPanel Grid.Row="0" Margin="0,0,0,10">
         <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
                  VerticalContentAlignment="Center"
                  ToolTip="Search item, user, notes"/>
       </DockPanel>
-      <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
+      <Border Grid.Row="1" Style="{StaticResource Card}" Padding="0">
         <DataGrid ItemsSource="{Binding Movements}" SelectedItem="{Binding SelectedMovement}"
-                  EnableRowVirtualization="True">
+                  EnableRowVirtualization="True" EnableColumnVirtualization="False"
+                  CanUserResizeColumns="True"
+                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  PreviewMouseWheel="OnGridPreviewMouseWheel">
           <DataGrid.Columns>
-            <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="130"/>
+            <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="140"/>
             <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" Width="220"/>
-            <DataGridTextColumn Header="Type" Binding="{Binding MovementType}" Width="80"/>
+            <DataGridTextColumn Header="Type" Binding="{Binding MovementType}" Width="90"/>
             <DataGridTextColumn Header="Qty" Binding="{Binding SignedQuantity}" Width="60"/>
-            <DataGridTextColumn Header="User" Binding="{Binding AssignedUser}" Width="160"/>
+            <DataGridTextColumn Header="User" Binding="{Binding AssignedUser}" Width="180"/>
             <DataGridTextColumn Header="Serial" Binding="{Binding SerialNumber}" Width="140"/>
-            <DataGridTextColumn Header="By" Binding="{Binding CreatedBy}" Width="110"/>
-            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="120"/>
-            <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="*"/>
+            <DataGridTextColumn Header="By" Binding="{Binding CreatedBy}" Width="120"/>
+            <DataGridTextColumn Header="Reference" Binding="{Binding Reference}" Width="140"/>
+            <DataGridTextColumn Header="Notes" Binding="{Binding Notes}" Width="240" MinWidth="120"/>
           </DataGrid.Columns>
         </DataGrid>
       </Border>
-    </DockPanel>
+    </Grid>
   </Grid>
 </UserControl>

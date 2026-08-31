@@ -14,7 +14,9 @@ public class AssetQuery
     public int? LocationId { get; set; }
     public string? Manufacturer { get; set; }
     public bool? Assigned { get; set; }
+    public int? AssignedUserId { get; set; }
     public string? SortBy { get; set; }
+
     public string? SortDir { get; set; }
 }
 
@@ -119,7 +121,10 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         else if (q.Assigned is false)
             query = query.Where(a => a.AssignedUserId == null
                 && (a.AssignedUserName == null || a.AssignedUserName == ""));
+        if (q.AssignedUserId is > 0)
+            query = query.Where(a => a.AssignedUserId == q.AssignedUserId);
         return query;
+
     }
 
     private static IQueryable<AssetListDto> ProjectList(IQueryable<Asset> query) =>

@@ -537,6 +537,11 @@
     <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
     <Setter Property="RowHeaderWidth" Value="0"/>
     <Setter Property="TextElement.Foreground" Value="{DynamicResource TextBrush}"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+    <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+    <Setter Property="CanUserResizeColumns" Value="True"/>
+
     <Style.Resources>
       <Style TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>

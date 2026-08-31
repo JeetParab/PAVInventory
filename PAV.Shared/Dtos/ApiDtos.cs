@@ -198,8 +198,16 @@ public class UserDto
     public UserRole Role { get; set; }
     public string RoleName { get; set; } = "";
     public bool IsActive { get; set; }
+    public int AssetCount { get; set; }
+    public int StockWithUser { get; set; }
 
     public override string ToString() => Name;
+}
+
+public class UnlinkedAssignmentDto
+{
+    public string Name { get; set; } = "";
+    public int AssetCount { get; set; }
 }
 
 public class SaveUserRequest

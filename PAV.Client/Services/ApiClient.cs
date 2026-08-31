@@ -261,6 +261,9 @@ public class ApiClient
     public Task<List<UserDto>> UsersAsync() =>
         Read(Permissions.View, (db, _) => new LookupService(db, _lock).UsersAsync());
 
+    public Task<List<UnlinkedAssignmentDto>> UnlinkedAssignmentsAsync() =>
+        Read(Permissions.View, (db, _) => new LookupService(db, _lock).UnlinkedAssignmentsAsync());
+
     public Task<UserDto> CreateUserAsync(SaveUserRequest req) =>
         Read(Permissions.ManageUsers, (db, _) => new LookupService(db, _lock).CreateUserAsync(req));
 
@@ -501,7 +504,8 @@ public class ApiClient
         int? categoryId = null,
         int? locationId = null,
         string? manufacturer = null,
-        bool? assigned = null)
+        bool? assigned = null,
+        int? assignedUserId = null)
     {
         var p = new List<string>();
         if (!string.IsNullOrWhiteSpace(search)) p.Add("search=" + Uri.EscapeDataString(search));
@@ -511,6 +515,7 @@ public class ApiClient
         if (!string.IsNullOrWhiteSpace(manufacturer) && manufacturer != "All")
             p.Add("manufacturer=" + Uri.EscapeDataString(manufacturer));
         if (assigned is not null) p.Add("assigned=" + (assigned.Value ? "true" : "false"));
+        if (assignedUserId is > 0) p.Add("assignedUserId=" + assignedUserId);
         return string.Join("&", p);
     }
 
@@ -534,6 +539,8 @@ public class ApiClient
                 case "locationId" when int.TryParse(val, out var l): q.LocationId = l; break;
                 case "manufacturer": q.Manufacturer = val; break;
                 case "assigned": q.Assigned = val == "true"; break;
+                case "assignedUserId" when int.TryParse(val, out var uid): q.AssignedUserId = uid; break;
+
             }
         }
         return q;

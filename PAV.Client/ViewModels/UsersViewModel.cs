@@ -10,25 +10,50 @@ namespace PAV.Client.ViewModels;
 
 public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : ObservableObject
 {
+    private readonly List<UserDto> _all = [];
+    private int _holdingsSeq;
+
     public ObservableCollection<UserDto> Users { get; } = [];
     public ObservableCollection<LocationDto> Locations { get; } = [];
+    public ObservableCollection<AssetListDto> Assets { get; } = [];
+    public ObservableCollection<StockMovementDto> Stock { get; } = [];
+    public ObservableCollection<UnlinkedAssignmentDto> Unlinked { get; } = [];
+
     [ObservableProperty] private UserDto? selected;
+    [ObservableProperty] private AssetListDto? selectedAsset;
     [ObservableProperty] private bool loading;
+    [ObservableProperty] private string search = "";
+    [ObservableProperty] private string holdingsTitle = "Select a user to see assigned assets.";
+    [ObservableProperty] private string? unlinkedSummary;
 
     public bool CanManage => shell.CanManageUsers;
+    public bool HasUnlinked => Unlinked.Count > 0;
 
     public async Task LoadAsync()
     {
         Loading = true;
+        var keepId = Selected?.Id;
         try
         {
             var users = await api.UsersAsync();
             var locs = await api.LocationsAsync();
-            Users.Clear();
-            foreach (var u in users) Users.Add(u);
+            var unlinked = await api.UnlinkedAssignmentsAsync();
+            _all.Clear();
+            _all.AddRange(users);
             Locations.Clear();
             foreach (var l in locs) Locations.Add(l);
+            Unlinked.Clear();
+            foreach (var u in unlinked) Unlinked.Add(u);
+            UnlinkedSummary = unlinked.Count == 0
+                ? null
+                : $"{unlinked.Sum(x => x.AssetCount)} assets use a name that is not a PAV user. Assign from Inventory so they link here.";
             OnPropertyChanged(nameof(CanManage));
+            OnPropertyChanged(nameof(HasUnlinked));
+            ApplyFilter();
+            if (keepId is { } id)
+                Selected = Users.FirstOrDefault(u => u.Id == id) ?? Users.FirstOrDefault();
+            else if (Selected is null)
+                Selected = Users.FirstOrDefault();
         }
         catch (Exception ex)
         {
@@ -37,6 +62,58 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         finally
         {
             Loading = false;
+        }
+    }
+
+    partial void OnSearchChanged(string value) => ApplyFilter();
+
+    partial void OnSelectedChanged(UserDto? value) => _ = LoadHoldingsAsync();
+
+    private void ApplyFilter()
+    {
+        var s = Search?.Trim() ?? "";
+        IEnumerable<UserDto> q = _all;
+        if (!string.IsNullOrWhiteSpace(s))
+        {
+            q = _all.Where(u =>
+                u.Name.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                u.Username.Contains(s, StringComparison.OrdinalIgnoreCase) ||
+                (u.EmployeeId?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.Department?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (u.Location?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        var keep = Selected?.Id;
+        Users.Clear();
+        foreach (var u in q) Users.Add(u);
+        if (keep is { } id)
+            Selected = Users.FirstOrDefault(u => u.Id == id);
+    }
+
+    private async Task LoadHoldingsAsync()
+    {
+        var seq = ++_holdingsSeq;
+        var user = Selected;
+        Assets.Clear();
+        Stock.Clear();
+        if (user is null)
+        {
+            HoldingsTitle = "Select a user to see assigned assets.";
+            return;
+        }
+        HoldingsTitle = $"{user.Name}  ·  {user.AssetCount} assets  ·  {user.StockWithUser} stock with them";
+        try
+        {
+            var query = ApiClient.Query(assignedUserId: user.Id);
+            var assets = await api.AssetsAsync(query);
+            var moves = await api.StockMovementsAsync(userId: user.Id);
+            if (seq != _holdingsSeq) return;
+            foreach (var a in assets) Assets.Add(a);
+            foreach (var m in moves) Stock.Add(m);
+        }
+        catch (Exception ex)
+        {
+            if (seq == _holdingsSeq)
+                Ui.Error(ex);
         }
     }
 
@@ -53,6 +130,9 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         if (Selected is null || !CanManage) return;
         await EditUser(Selected);
     }
+
+    [RelayCommand]
+    private async Task RefreshAsync() => await LoadAsync();
 
     private async Task EditUser(UserDto? existing)
     {

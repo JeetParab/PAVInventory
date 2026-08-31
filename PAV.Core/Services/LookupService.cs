@@ -9,9 +9,51 @@ namespace PAV.Core.Services;
 public class LookupService(AppDbContext db, IWriteLock writeLock)
 
 {
-    public async Task<List<UserDto>> UsersAsync() =>
-        (await db.Users.AsNoTracking().Include(u => u.Location).OrderBy(u => u.Name).ToListAsync())
-        .Select(Mapping.ToDto).ToList();
+    public async Task<List<UserDto>> UsersAsync()
+    {
+        var users = (await db.Users.AsNoTracking().Include(u => u.Location).OrderBy(u => u.Name).ToListAsync())
+            .Select(Mapping.ToDto).ToList();
+
+        var assetCounts = await db.Assets.AsNoTracking()
+            .Where(a => a.AssignedUserId != null)
+            .GroupBy(a => a.AssignedUserId!.Value)
+            .Select(g => new { Id = g.Key, N = g.Count() })
+            .ToListAsync();
+        var assetsByUser = assetCounts.ToDictionary(x => x.Id, x => x.N);
+
+        var stock = await db.StockMovements.AsNoTracking()
+            .Where(m => m.UserId != null &&
+                        (m.MovementType == StockMovementType.Issue || m.MovementType == StockMovementType.Return))
+            .GroupBy(m => m.UserId!.Value)
+            .Select(g => new
+            {
+                Id = g.Key,
+                Qty = g.Sum(m => m.MovementType == StockMovementType.Issue ? m.Quantity : -m.Quantity)
+            })
+            .ToListAsync();
+        var stockByUser = stock.ToDictionary(x => x.Id, x => x.Qty);
+
+        foreach (var u in users)
+        {
+            u.AssetCount = assetsByUser.GetValueOrDefault(u.Id);
+            u.StockWithUser = Math.Max(0, stockByUser.GetValueOrDefault(u.Id));
+        }
+        return users;
+    }
+
+    public async Task<List<UnlinkedAssignmentDto>> UnlinkedAssignmentsAsync()
+    {
+        var names = await db.Assets.AsNoTracking()
+            .Where(a => a.AssignedUserId == null
+                        && a.AssignedUserName != null
+                        && a.AssignedUserName != "")
+            .GroupBy(a => a.AssignedUserName!)
+            .Select(g => new UnlinkedAssignmentDto { Name = g.Key, AssetCount = g.Count() })
+            .OrderByDescending(x => x.AssetCount)
+            .ThenBy(x => x.Name)
+            .ToListAsync();
+        return names;
+    }
 
     public async Task<List<LocationDto>> LocationsAsync() =>
         (await db.Locations.AsNoTracking().OrderBy(l => l.Name).ToListAsync())
