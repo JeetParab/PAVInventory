@@ -270,7 +270,28 @@
         <ControlTemplate TargetType="TextBox">
           <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                   BorderThickness="1" CornerRadius="7" Padding="{TemplateBinding Padding}">
-            <ScrollViewer x:Name="PART_ContentHost"/>
+            <Grid>
+              <ScrollViewer x:Name="PART_ContentHost"/>
+              <TextBlock x:Name="Hint" Text="{TemplateBinding Tag}"
+                         Foreground="{DynamicResource MutedBrush}"
+                         IsHitTestVisible="False"
+                         VerticalAlignment="Center">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                      <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                          <Condition Binding="{Binding Text, RelativeSource={RelativeSource AncestorType=TextBox}}" Value=""/>
+                          <Condition Binding="{Binding IsKeyboardFocused, RelativeSource={RelativeSource AncestorType=TextBox}}" Value="False"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="Visibility" Value="Visible"/>
+                      </MultiDataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </Grid>
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsFocused" Value="True">

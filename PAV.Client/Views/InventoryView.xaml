@@ -37,27 +37,11 @@
     </Grid>
 
     <DockPanel Grid.Row="1" Margin="0,0,0,14" LastChildFill="False">
-      <Grid DockPanel.Dock="Left" Width="280" Margin="0,0,12,0">
-        <TextBox x:Name="SearchBox" Padding="10,8" VerticalContentAlignment="Center"
-                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                 ToolTip="Search tag, serial, hostname, IP, user, location, category, status, model…"/>
-        <TextBlock Text="Search…" Foreground="#9AA6B2" Margin="12,0,0,0" VerticalAlignment="Center"
-                   IsHitTestVisible="False">
-          <TextBlock.Style>
-            <Style TargetType="TextBlock">
-              <Setter Property="Visibility" Value="Collapsed"/>
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding SearchText}" Value="">
-                  <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-                <DataTrigger Binding="{Binding SearchText}" Value="{x:Null}">
-                  <Setter Property="Visibility" Value="Visible"/>
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </TextBlock.Style>
-        </TextBlock>
-      </Grid>
+      <TextBox x:Name="SearchBox" DockPanel.Dock="Left" Width="280" Margin="0,0,12,0"
+               Padding="10,8" VerticalContentAlignment="Center"
+               Tag="Search…"
+               Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+               ToolTip="Search tag, serial, hostname, IP, user, location, category, status, model…"/>
 
       <Grid DockPanel.Dock="Left" Margin="0,0,8,0">
         <Button Style="{StaticResource SecondaryButton}" Command="{Binding ToggleFiltersCommand}" Padding="12,8">
