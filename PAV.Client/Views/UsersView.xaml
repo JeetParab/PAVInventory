@@ -18,16 +18,18 @@
             <TextBlock Text="Refresh" Style="{StaticResource BtnLabel}"/>
           </StackPanel>
         </Button>
-        <Button Content="+ Add user" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}"
-                IsEnabled="{Binding CanManage}" Margin="0,0,8,0"/>
+        <Button Content="+ Add person" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}"
+                IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
         <Button Content="Edit" Style="{StaticResource SecondaryButton}" Command="{Binding EditCommand}"
-                IsEnabled="{Binding CanManage}"/>
+                IsEnabled="{Binding CanEditPeople}" Margin="0,0,8,0"/>
+        <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"
+                IsEnabled="{Binding CanDeletePeople}"/>
       </StackPanel>
     </DockPanel>
 
     <StackPanel Grid.Row="1" Margin="0,0,0,10">
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
-                 Text="PAV users are the same people used in Inventory assign and Stock issue. AssignedUserId is the link — not the display name."/>
+                 Text="Office people you assign laptops, IPs and stock to. Name, department, email and employee ID only. They cannot sign in. Engineers and admins live in Settings."/>
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="#C47B17"
                  Text="{Binding UnlinkedSummary}"
                  Visibility="{Binding HasUnlinked, Converter={StaticResource BoolToVis}}"/>
@@ -56,11 +58,11 @@
             </DataGrid.InputBindings>
             <DataGrid.Columns>
               <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140" MinWidth="100"/>
-              <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="100"/>
-              <DataGridTextColumn Header="Dept" Binding="{Binding Department}" Width="90"/>
+              <DataGridTextColumn Header="Employee ID" Binding="{Binding EmployeeId}" Width="100"/>
+              <DataGridTextColumn Header="Department" Binding="{Binding Department}" Width="110"/>
+              <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="140"/>
               <DataGridTextColumn Header="Assets" Binding="{Binding AssetCount}" Width="55"/>
               <DataGridTextColumn Header="Stock" Binding="{Binding StockWithUser}" Width="55"/>
-              <DataGridTextColumn Header="Role" Binding="{Binding RoleName}" Width="90"/>
             </DataGrid.Columns>
           </DataGrid>
         </DockPanel>

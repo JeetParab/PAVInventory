@@ -134,7 +134,8 @@ public static class Mapping
         Location = u.Location?.Name,
         Role = u.Role,
         RoleName = u.Role.Display(),
-        IsActive = u.IsActive
+        IsActive = u.IsActive,
+        CanSignIn = u.CanSignIn
     };
 
     public static LocationDto ToDto(Location l) => new()

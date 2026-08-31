@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
+using PAV.Client.Views;
 using PAV.Core.Data;
 using PAV.Shared.Dtos;
 
@@ -9,6 +10,8 @@ namespace PAV.Client.ViewModels;
 
 public partial class SettingsViewModel(ApiClient api, ClientConfig config, ShellViewModel shell) : ObservableObject
 {
+    private List<LocationDto> _locations = [];
+
     [ObservableProperty] private string databasePath = config.DatabasePath;
     [ObservableProperty] private string provider = string.IsNullOrWhiteSpace(config.Provider) ? "SQLite" : config.Provider;
     [ObservableProperty] private string sqlServerConnectionString = config.SqlServerConnectionString;
@@ -16,10 +19,12 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     public ObservableCollection<string> Providers { get; } = ["SQLite", "SqlServer"];
     public ObservableCollection<CategoryDto> Categories { get; } = [];
     public ObservableCollection<BackupInfo> Backups { get; } = [];
+    public ObservableCollection<UserDto> SignInUsers { get; } = [];
     [ObservableProperty] private CategoryDto? selectedCategory;
     [ObservableProperty] private string categoryName = "";
     [ObservableProperty] private string? categoryDescription;
     [ObservableProperty] private BackupInfo? selectedBackup;
+    [ObservableProperty] private UserDto? selectedAccount;
     [ObservableProperty] private string? categoryError;
     [ObservableProperty] private string? backupMessage;
     [ObservableProperty] private bool darkMode = config.DarkMode;
@@ -28,6 +33,7 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     public bool CanManageCategories => shell.CanManageCategories;
     public bool CanBackup => shell.CanBackup;
     public bool CanManageDatabase => shell.CanBackup;
+    public bool CanManageUsers => shell.CanManageUsers;
     public bool ShowSqliteSettings => DatabaseSettings.ParseProvider(Provider) == DatabaseProvider.Sqlite;
     public bool ShowSqlSettings => DatabaseSettings.ParseProvider(Provider) == DatabaseProvider.SqlServer;
     public string SignedInName => shell.UserLine;
@@ -41,6 +47,7 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
         OnPropertyChanged(nameof(CanManageCategories));
         OnPropertyChanged(nameof(CanBackup));
         OnPropertyChanged(nameof(CanManageDatabase));
+        OnPropertyChanged(nameof(CanManageUsers));
         OnPropertyChanged(nameof(ShowSqliteSettings));
         OnPropertyChanged(nameof(ShowSqlSettings));
         OnPropertyChanged(nameof(SignedInName));
@@ -50,6 +57,13 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
             var cats = await api.CategoriesAsync();
             Categories.Clear();
             foreach (var c in cats) Categories.Add(c);
+            if (CanManageUsers)
+            {
+                var accounts = await api.SignInUsersAsync();
+                SignInUsers.Clear();
+                foreach (var u in accounts) SignInUsers.Add(u);
+                _locations = await api.LocationsAsync();
+            }
             if (CanBackup)
             {
                 var b = await api.BackupsAsync();
@@ -71,6 +85,28 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
 
     [RelayCommand]
     private Task SignOutAsync() => shell.SignOutAsync();
+
+    [RelayCommand]
+    private async Task AddAccountAsync()
+    {
+        if (!CanManageUsers) return;
+        await EditAccount(null);
+    }
+
+    [RelayCommand]
+    private async Task EditAccountAsync()
+    {
+        if (!CanManageUsers || SelectedAccount is null) return;
+        await EditAccount(SelectedAccount);
+    }
+
+    private async Task EditAccount(UserDto? existing)
+    {
+        var vm = new UserEditViewModel(api, _locations, existing);
+        var win = new UserEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
+        if (win.ShowDialog() == true)
+            await LoadAsync();
+    }
 
     partial void OnDarkModeChanged(bool value)
     {

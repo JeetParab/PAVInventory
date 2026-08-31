@@ -182,6 +182,10 @@ public sealed class PavDatabase
         // controlled upgrade. Concurrent first-start is not guaranteed —
         // an administrator should open PAV once on the host before clients.
         sw.Restart();
+        await EnsureCanSignInColumnAsync(db);
+        Perf.Log("Database.CanSignIn", sw.ElapsedMilliseconds);
+
+        sw.Restart();
         await SeedData.EnsureSeededAsync(db);
         Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
 
@@ -238,7 +242,8 @@ public sealed class PavDatabase
 
         await EnsureTableColumnsAsync(db, "Users",
         [
-            ("MustChangePassword", "INTEGER NOT NULL DEFAULT 0")
+            ("MustChangePassword", "INTEGER NOT NULL DEFAULT 0"),
+            ("CanSignIn", "INTEGER NOT NULL DEFAULT 1")
         ]);
     }
 
@@ -264,6 +269,20 @@ public sealed class PavDatabase
             if (names.Contains(name)) continue;
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE " + table + " ADD COLUMN " + name + " " + sql);
         }
+    }
+
+    private static async Task EnsureCanSignInColumnAsync(AppDbContext db)
+    {
+        if (db.Database.IsSqlite())
+            return;
+        if (!db.Database.IsSqlServer())
+            return;
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Users', 'CanSignIn') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Users ADD CanSignIn BIT NOT NULL CONSTRAINT DF_Users_CanSignIn DEFAULT 1;
+            END
+            """);
     }
 
     private static async Task EnsureSerialNumberUniqueAsync(AppDbContext db)

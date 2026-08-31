@@ -198,6 +198,7 @@ public class UserDto
     public UserRole Role { get; set; }
     public string RoleName { get; set; } = "";
     public bool IsActive { get; set; }
+    public bool CanSignIn { get; set; }
     public int AssetCount { get; set; }
     public int StockWithUser { get; set; }
 
@@ -220,6 +221,15 @@ public class SaveUserRequest
     public string? Department { get; set; }
     public int? LocationId { get; set; }
     public UserRole Role { get; set; } = UserRole.Engineer;
+    public bool IsActive { get; set; } = true;
+}
+
+public class SavePersonRequest
+{
+    public string Name { get; set; } = "";
+    public string? EmployeeId { get; set; }
+    public string? Email { get; set; }
+    public string? Department { get; set; }
     public bool IsActive { get; set; } = true;
 }
 

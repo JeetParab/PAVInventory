@@ -9,9 +9,18 @@ namespace PAV.Core.Services;
 public class LookupService(AppDbContext db, IWriteLock writeLock)
 
 {
-    public async Task<List<UserDto>> UsersAsync()
+    public async Task<List<UserDto>> UsersAsync() => await UsersAsync(canSignIn: null);
+
+    public async Task<List<UserDto>> PeopleAsync() => await UsersAsync(canSignIn: false);
+
+    public async Task<List<UserDto>> SignInUsersAsync() => await UsersAsync(canSignIn: true);
+
+    private async Task<List<UserDto>> UsersAsync(bool? canSignIn)
     {
-        var users = (await db.Users.AsNoTracking().Include(u => u.Location).OrderBy(u => u.Name).ToListAsync())
+        var query = db.Users.AsNoTracking().Include(u => u.Location).AsQueryable();
+        if (canSignIn is { } flag)
+            query = query.Where(u => u.CanSignIn == flag);
+        var users = (await query.OrderBy(u => u.Name).ToListAsync())
             .Select(Mapping.ToDto).ToList();
 
         var assetCounts = await db.Assets.AsNoTracking()
@@ -90,12 +99,90 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 Department = Mapping.Clean(req.Department),
                 LocationId = req.LocationId,
                 Role = req.Role,
-                IsActive = req.IsActive
+                IsActive = req.IsActive,
+                CanSignIn = true
             };
             db.Users.Add(user);
             await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(await db.Users.Include(u => u.Location).FirstAsync(u => u.Id == user.Id));
         });
+
+    public Task<UserDto> CreatePersonAsync(SavePersonRequest req) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var name = Mapping.Clean(req.Name) ?? throw new AppException(400, "validation", "Name is required.");
+            if (await db.Users.AnyAsync(u => u.Name.ToLower() == name.ToLower()))
+                throw new AppException(400, "validation", $"'{name}' is already in PAV. Use that record to assign assets.");
+
+            var user = new User
+            {
+                Name = name,
+                EmployeeId = Mapping.Clean(req.EmployeeId),
+                Email = Mapping.Clean(req.Email),
+                Department = Mapping.Clean(req.Department),
+                Username = await NextPersonUsernameAsync(name),
+                PasswordHash = "!",
+                Role = UserRole.Guest,
+                IsActive = req.IsActive,
+                CanSignIn = false
+            };
+            db.Users.Add(user);
+            await SqliteGuard.SaveChangesAsync(db);
+
+            await db.Assets
+                .Where(a => a.AssignedUserId == null && a.AssignedUserName != null && a.AssignedUserName.ToLower() == name.ToLower())
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.AssignedUserId, user.Id));
+
+            return Mapping.ToDto(user);
+        });
+
+    public Task<UserDto> UpdatePersonAsync(int id, SavePersonRequest req) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var name = Mapping.Clean(req.Name) ?? throw new AppException(400, "validation", "Name is required.");
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id)
+                ?? throw new AppException(404, "not_found", "Person not found.");
+            if (user.CanSignIn)
+                throw new AppException(400, "validation", "That record is a sign-in account. Edit it in Settings.");
+            if (await db.Users.AnyAsync(u => u.Id != id && u.Name.ToLower() == name.ToLower()))
+                throw new AppException(400, "validation", $"'{name}' is already in PAV.");
+
+            user.Name = name;
+            user.EmployeeId = Mapping.Clean(req.EmployeeId);
+            user.Email = Mapping.Clean(req.Email);
+            user.Department = Mapping.Clean(req.Department);
+            user.IsActive = req.IsActive;
+            await SqliteGuard.SaveChangesAsync(db);
+            return Mapping.ToDto(user);
+        });
+
+    public Task DeletePersonAsync(int id) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id)
+                ?? throw new AppException(404, "not_found", "Person not found.");
+            if (user.CanSignIn)
+                throw new AppException(400, "validation", "Sign-in accounts are managed in Settings.");
+            if (await db.Assets.AnyAsync(a => a.AssignedUserId == id))
+                throw new AppException(400, "validation", "Unassign their assets first.");
+            db.Users.Remove(user);
+            await SqliteGuard.SaveChangesAsync(db);
+        });
+
+    private async Task<string> NextPersonUsernameAsync(string name)
+    {
+        var slug = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).Take(32).ToArray());
+        if (string.IsNullOrWhiteSpace(slug)) slug = "person";
+        var baseName = "person:" + slug;
+        var candidate = baseName;
+        var n = 2;
+        while (await db.Users.AnyAsync(u => u.Username.ToLower() == candidate))
+        {
+            candidate = baseName + "-" + n;
+            n++;
+        }
+        return candidate;
+    }
 
     public Task<UserDto> UpdateUserAsync(int id, SaveUserRequest req) =>
         writeLock.WriteAsync(async () =>
@@ -103,6 +190,8 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             ValidateUser(req);
             var user = await db.Users.FirstOrDefaultAsync(u => u.Id == id)
                 ?? throw new AppException(404, "not_found", "User not found.");
+            if (!user.CanSignIn)
+                throw new AppException(400, "validation", "That record is a directory person. Edit it on the Users tab.");
 
             var uname = req.Username.Trim();
             if (await db.Users.AnyAsync(u => u.Id != id && u.Username.ToLower() == uname.ToLower()))

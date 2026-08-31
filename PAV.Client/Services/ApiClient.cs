@@ -148,6 +148,7 @@ public class ApiClient
                 PasswordHash = PasswordHasher.Hash(password.Trim()),
                 Role = UserRole.Administrator,
                 IsActive = true,
+                CanSignIn = true,
                 MustChangePassword = false
             };
             db.Users.Add(user);
@@ -166,7 +167,7 @@ public class ApiClient
         await using var db = _pav.Create();
         var user = await db.Users
             .FirstOrDefaultAsync(u => u.Username.ToLower() == username.Trim().ToLower());
-        if (user is null || !user.IsActive || !PasswordHasher.Verify(password, user.PasswordHash))
+        if (user is null || !user.IsActive || !user.CanSignIn || !PasswordHasher.Verify(password, user.PasswordHash))
             throw new ApiException(401, "unauthenticated", "Wrong username or password.");
 
         if (AuthRules.IsKnownDefaultPassword(password) && !user.MustChangePassword)
@@ -261,6 +262,12 @@ public class ApiClient
     public Task<List<UserDto>> UsersAsync() =>
         Read(Permissions.View, (db, _) => new LookupService(db, _lock).UsersAsync());
 
+    public Task<List<UserDto>> PeopleAsync() =>
+        Read(Permissions.View, (db, _) => new LookupService(db, _lock).PeopleAsync());
+
+    public Task<List<UserDto>> SignInUsersAsync() =>
+        Read(Permissions.View, (db, _) => new LookupService(db, _lock).SignInUsersAsync());
+
     public Task<List<UnlinkedAssignmentDto>> UnlinkedAssignmentsAsync() =>
         Read(Permissions.View, (db, _) => new LookupService(db, _lock).UnlinkedAssignmentsAsync());
 
@@ -269,6 +276,19 @@ public class ApiClient
 
     public Task<UserDto> UpdateUserAsync(int id, SaveUserRequest req) =>
         Read(Permissions.ManageUsers, (db, _) => new LookupService(db, _lock).UpdateUserAsync(id, req));
+
+    public Task<UserDto> CreatePersonAsync(SavePersonRequest req) =>
+        Read(Permissions.Add, (db, _) => new LookupService(db, _lock).CreatePersonAsync(req));
+
+    public Task<UserDto> UpdatePersonAsync(int id, SavePersonRequest req) =>
+        Read(Permissions.Edit, (db, _) => new LookupService(db, _lock).UpdatePersonAsync(id, req));
+
+    public Task DeletePersonAsync(int id) =>
+        Read(Permissions.Delete, async (db, _) =>
+        {
+            await new LookupService(db, _lock).DeletePersonAsync(id);
+            return 0;
+        });
 
     public Task<List<LocationDto>> LocationsAsync() =>
         Read(Permissions.View, (db, _) => new LookupService(db, _lock).LocationsAsync());

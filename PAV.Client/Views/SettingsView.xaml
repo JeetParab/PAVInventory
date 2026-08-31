@@ -65,6 +65,39 @@
           </StackPanel>
         </Border>
 
+        <Border Style="{StaticResource Card}" Margin="0,0,0,16"
+                Visibility="{Binding CanManageUsers, Converter={StaticResource BoolToVis}}">
+          <DockPanel>
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+              <TextBlock Text="Sign-in accounts" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="+ Add engineer / admin" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding AddAccountCommand}" Margin="0,0,8,0" Padding="12,6"/>
+                <Button Content="Edit" Style="{StaticResource SecondaryButton}"
+                        Command="{Binding EditAccountCommand}" Padding="12,6"/>
+              </StackPanel>
+            </DockPanel>
+            <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
+                       Text="People who open PAV: username, password and role. Office staff you assign assets to live on the Users tab and cannot sign in."/>
+            <DataGrid ItemsSource="{Binding SignInUsers}" SelectedItem="{Binding SelectedAccount}"
+                      Height="180"
+                      EnableRowVirtualization="True"
+                      PreviewMouseWheel="OnNestedPreviewMouseWheel"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+              <DataGrid.InputBindings>
+                <MouseBinding Gesture="LeftDoubleClick" Command="{Binding EditAccountCommand}"/>
+              </DataGrid.InputBindings>
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140"/>
+                <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120"/>
+                <DataGridTextColumn Header="Role" Binding="{Binding RoleName}" Width="120"/>
+                <DataGridTextColumn Header="Active" Binding="{Binding IsActive}" Width="70"/>
+              </DataGrid.Columns>
+            </DataGrid>
+          </DockPanel>
+        </Border>
+
         <Border Style="{StaticResource Card}" Margin="0,0,0,16" Cursor="Hand">
           <Border.InputBindings>
             <MouseBinding Gesture="LeftClick" Command="{Binding ToggleDarkModeCommand}"/>

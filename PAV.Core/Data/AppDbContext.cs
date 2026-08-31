@@ -78,6 +78,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Department).HasMaxLength(128);
             e.Property(x => x.Role).HasConversion<int>();
             e.Property(x => x.MustChangePassword);
+            e.Property(x => x.CanSignIn);
+            e.HasIndex(x => x.CanSignIn);
             e.HasOne(x => x.Location).WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.SetNull);
         });
 

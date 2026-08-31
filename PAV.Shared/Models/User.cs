@@ -15,6 +15,9 @@ public class User
     public Location? Location { get; set; }
     public UserRole Role { get; set; } = UserRole.Engineer;
     public bool IsActive { get; set; } = true;
+    /// <summary>False = directory person (assign assets). True = can sign in to PAV.</summary>
+    public bool CanSignIn { get; set; } = true;
     /// <summary>Set when a known default password is detected at login (legacy installs).</summary>
     public bool MustChangePassword { get; set; }
+
 }

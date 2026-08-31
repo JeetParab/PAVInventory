@@ -14,7 +14,6 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     private int _holdingsSeq;
 
     public ObservableCollection<UserDto> Users { get; } = [];
-    public ObservableCollection<LocationDto> Locations { get; } = [];
     public ObservableCollection<AssetListDto> Assets { get; } = [];
     public ObservableCollection<StockMovementDto> Stock { get; } = [];
     public ObservableCollection<UnlinkedAssignmentDto> Unlinked { get; } = [];
@@ -23,10 +22,12 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     [ObservableProperty] private AssetListDto? selectedAsset;
     [ObservableProperty] private bool loading;
     [ObservableProperty] private string search = "";
-    [ObservableProperty] private string holdingsTitle = "Select a user to see assigned assets.";
+    [ObservableProperty] private string holdingsTitle = "Select a person to see assigned assets.";
     [ObservableProperty] private string? unlinkedSummary;
 
-    public bool CanManage => shell.CanManageUsers;
+    public bool CanAdd => shell.CanAdd;
+    public bool CanEditPeople => shell.CanEdit;
+    public bool CanDeletePeople => shell.CanDelete;
     public bool HasUnlinked => Unlinked.Count > 0;
 
     public async Task LoadAsync()
@@ -35,19 +36,18 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         var keepId = Selected?.Id;
         try
         {
-            var users = await api.UsersAsync();
-            var locs = await api.LocationsAsync();
+            var users = await api.PeopleAsync();
             var unlinked = await api.UnlinkedAssignmentsAsync();
             _all.Clear();
             _all.AddRange(users);
-            Locations.Clear();
-            foreach (var l in locs) Locations.Add(l);
             Unlinked.Clear();
             foreach (var u in unlinked) Unlinked.Add(u);
             UnlinkedSummary = unlinked.Count == 0
                 ? null
-                : $"{unlinked.Sum(x => x.AssetCount)} assets use a name that is not a PAV user. Assign from Inventory so they link here.";
-            OnPropertyChanged(nameof(CanManage));
+                : $"{unlinked.Sum(x => x.AssetCount)} assets use a name that is not in this list. Add the person here (or Assign from Inventory) to link them.";
+            OnPropertyChanged(nameof(CanAdd));
+            OnPropertyChanged(nameof(CanEditPeople));
+            OnPropertyChanged(nameof(CanDeletePeople));
             OnPropertyChanged(nameof(HasUnlinked));
             ApplyFilter();
             if (keepId is { } id)
@@ -77,10 +77,9 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         {
             q = _all.Where(u =>
                 u.Name.Contains(s, StringComparison.OrdinalIgnoreCase) ||
-                u.Username.Contains(s, StringComparison.OrdinalIgnoreCase) ||
                 (u.EmployeeId?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (u.Department?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (u.Location?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false));
+                (u.Email?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false));
         }
         var keep = Selected?.Id;
         Users.Clear();
@@ -97,7 +96,7 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         Stock.Clear();
         if (user is null)
         {
-            HoldingsTitle = "Select a user to see assigned assets.";
+            HoldingsTitle = "Select a person to see assigned assets.";
             return;
         }
         HoldingsTitle = $"{user.Name}  ·  {user.AssetCount} assets  ·  {user.StockWithUser} stock with them";
@@ -120,27 +119,111 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     [RelayCommand]
     private async Task AddAsync()
     {
-        if (!CanManage) return;
-        await EditUser(null);
+        if (!CanAdd) return;
+        await EditPerson(null);
     }
 
     [RelayCommand]
     private async Task EditAsync()
     {
-        if (Selected is null || !CanManage) return;
-        await EditUser(Selected);
+        if (Selected is null || !CanEditPeople) return;
+        await EditPerson(Selected);
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync()
+    {
+        if (Selected is null || !CanDeletePeople) return;
+        if (!Ui.Confirm($"Remove {Selected.Name} from the directory?\n\nUnassign their assets first if they still have any."))
+            return;
+        try
+        {
+            await api.DeletePersonAsync(Selected.Id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
     }
 
     [RelayCommand]
     private async Task RefreshAsync() => await LoadAsync();
 
-    private async Task EditUser(UserDto? existing)
+    private async Task EditPerson(UserDto? existing)
     {
-        var vm = new UserEditViewModel(api, Locations.ToList(), existing);
-        var win = new UserEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
+        var vm = new PersonEditViewModel(api, existing);
+        var win = new PersonEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
             await LoadAsync();
     }
+}
+
+public partial class PersonEditViewModel : ObservableObject
+{
+    private readonly ApiClient _api;
+    private readonly int? _id;
+
+    public string Title => _id is null ? "Add person" : "Edit person";
+    [ObservableProperty] private string name = "";
+    [ObservableProperty] private string? employeeId;
+    [ObservableProperty] private string? email;
+    [ObservableProperty] private string? department;
+    [ObservableProperty] private bool isActive = true;
+    [ObservableProperty] private string? error;
+    [ObservableProperty] private bool saving;
+    public event Action<bool>? CloseRequested;
+
+    public PersonEditViewModel(ApiClient api, UserDto? existing)
+    {
+        _api = api;
+        if (existing is not null)
+        {
+            _id = existing.Id;
+            Name = existing.Name;
+            EmployeeId = existing.EmployeeId;
+            Email = existing.Email;
+            Department = existing.Department;
+            IsActive = existing.IsActive;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        Error = null;
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            Error = "Name is required.";
+            return;
+        }
+        Saving = true;
+        try
+        {
+            var req = new SavePersonRequest
+            {
+                Name = Name.Trim(),
+                EmployeeId = EmployeeId,
+                Email = Email,
+                Department = Department,
+                IsActive = IsActive
+            };
+            if (_id is null) await _api.CreatePersonAsync(req);
+            else await _api.UpdatePersonAsync(_id.Value, req);
+            CloseRequested?.Invoke(true);
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Saving = false;
+        }
+    }
+
+    [RelayCommand]
+    private void Cancel() => CloseRequested?.Invoke(false);
 }
 
 public partial class UserEditViewModel : ObservableObject
@@ -148,7 +231,7 @@ public partial class UserEditViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly int? _id;
 
-    public string Title => _id is null ? "Add user" : "Edit user";
+    public string Title => _id is null ? "Add sign-in account" : "Edit sign-in account";
     public List<LocationDto> Locations { get; }
     public List<UserRole> Roles { get; } = [UserRole.Administrator, UserRole.Engineer, UserRole.Guest];
 
@@ -194,7 +277,7 @@ public partial class UserEditViewModel : ObservableObject
         }
         if (_id is null && string.IsNullOrWhiteSpace(Password))
         {
-            Error = "Password is required for a new user.";
+            Error = "Password is required for a new account.";
             return;
         }
         Saving = true;
