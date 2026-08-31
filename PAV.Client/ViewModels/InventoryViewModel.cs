@@ -45,6 +45,9 @@ public partial class InventoryViewModel : ObservableObject
     [ObservableProperty] private string undoLabel = "";
 
     private bool _suspendFilter;
+    private readonly DispatcherTimer _searchDebounce;
+    private string _searchNeedle = "";
+    private int _matchCount;
 
     public List<string> StatusChoices { get; } = ["All", .. AssetStatusNames.All.Select(s => s.Display())];
     public List<string> AssignedChoices { get; } = ["All", "Assigned", "Unassigned"];
@@ -79,9 +82,23 @@ public partial class InventoryViewModel : ObservableObject
         Loading = true;
         AssetsView = CollectionViewSource.GetDefaultView(Assets);
         AssetsView.Filter = FilterRow;
+        _searchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
+        _searchDebounce.Tick += (_, _) =>
+        {
+            _searchDebounce.Stop();
+            RefreshView();
+        };
     }
 
-    partial void OnSearchTextChanged(string value) { if (!_suspendFilter) RefreshView(); }
+    partial void OnSearchTextChanged(string value)
+    {
+        if (_suspendFilter) return;
+        _searchDebounce.Stop();
+        if (string.IsNullOrWhiteSpace(value))
+            RefreshView();
+        else
+            _searchDebounce.Start();
+    }
     partial void OnStatusFilterChanged(string value) { if (!_suspendFilter) RefreshView(); }
     partial void OnCategoryFilterChanged(int value) { if (!_suspendFilter) RefreshView(); }
     partial void OnLocationFilterChanged(int value) { if (!_suspendFilter) RefreshView(); }
@@ -91,13 +108,10 @@ public partial class InventoryViewModel : ObservableObject
 
     private void RefreshView()
     {
+        _searchNeedle = SearchText.Trim();
+        _matchCount = 0;
         AssetsView.Refresh();
-        CountVisible();
-    }
-
-    private void CountVisible()
-    {
-        VisibleCount = HasFilters ? AssetsView.Cast<object>().Count() : Assets.Count;
+        VisibleCount = _matchCount;
         EmptyText = Assets.Count == 0
             ? "No assets yet. Add an asset or import from Excel."
             : "No assets match the current search or filters.";
@@ -110,24 +124,8 @@ public partial class InventoryViewModel : ObservableObject
     private bool FilterRow(object obj)
     {
         if (obj is not AssetListDto a) return false;
-        if (!string.IsNullOrWhiteSpace(SearchText))
-        {
-            var s = SearchText.Trim();
-            var hit =
-                Contains(a.AssetTag, s) ||
-                Contains(a.SerialNumber, s) ||
-                Contains(a.Hostname, s) ||
-                Contains(a.IpAddress, s) ||
-                Contains(a.Manufacturer, s) ||
-                Contains(a.Model, s) ||
-                Contains(a.AssignedUser, s) ||
-                Contains(a.MacAddress, s) ||
-                Contains(a.Designation, s) ||
-                Contains(a.Location, s) ||
-                Contains(a.Category, s) ||
-                Contains(a.Status, s);
-            if (!hit) return false;
-        }
+        if (PurposeFilter == "Inventory" && a.IsTemporary) return false;
+        if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
         if (!IsAll(StatusFilter) && a.Status != StatusFilter) return false;
         if (CategoryFilter != 0 && a.CategoryId != CategoryFilter) return false;
         if (LocationFilter != 0 && a.LocationId != LocationFilter) return false;
@@ -136,8 +134,24 @@ public partial class InventoryViewModel : ObservableObject
             return false;
         if (AssignedFilter == "Assigned" && string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
         if (AssignedFilter == "Unassigned" && !string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
-        if (PurposeFilter == "Inventory" && a.IsTemporary) return false;
-        if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
+        if (_searchNeedle.Length > 0)
+        {
+            var s = _searchNeedle;
+            if (!(Contains(a.AssetTag, s) ||
+                  Contains(a.SerialNumber, s) ||
+                  Contains(a.Hostname, s) ||
+                  Contains(a.IpAddress, s) ||
+                  Contains(a.AssignedUser, s) ||
+                  Contains(a.Manufacturer, s) ||
+                  Contains(a.Model, s) ||
+                  Contains(a.MacAddress, s) ||
+                  Contains(a.Designation, s) ||
+                  Contains(a.Location, s) ||
+                  Contains(a.Category, s) ||
+                  Contains(a.Status, s)))
+                return false;
+        }
+        _matchCount++;
         return true;
     }
 
@@ -201,7 +215,7 @@ public partial class InventoryViewModel : ObservableObject
             if (IsAll(AssignedFilter)) AssignedFilter = "All";
             _suspendFilter = false;
 
-            CountVisible();
+            RefreshView();
             RestoreSelection(ids, last);
             PAV.Core.Services.Perf.Log("Inventory.Bind", sw.ElapsedMilliseconds);
             PAV.Core.Services.Perf.Log("Inventory.ready", PAV.Core.Services.Perf.ElapsedMs);
@@ -298,7 +312,7 @@ public partial class InventoryViewModel : ObservableObject
             var assets = await _api.AssetsAsync();
             Assets.ReplaceAll(assets);
             RebuildManufacturers();
-            CountVisible();
+            RefreshView();
             RestoreSelection(ids, last);
         }
         catch (Exception ex)
@@ -331,7 +345,7 @@ public partial class InventoryViewModel : ObservableObject
             ids.Add(dto.Id);
         Assets.ReplaceOrAdd(dto, a => a.Id == dto.Id);
         RebuildManufacturers();
-        CountVisible();
+        RefreshView();
         RestoreSelection(ids, dto.Id);
         OnPropertyChanged(nameof(ShowEmpty));
     }
@@ -342,7 +356,7 @@ public partial class InventoryViewModel : ObservableObject
         var last = ids.LastOrDefault();
         Assets.RemoveWhere(a => a.Id == id);
         RebuildManufacturers();
-        CountVisible();
+        RefreshView();
         RestoreSelection(ids, last == 0 ? null : last);
         OnPropertyChanged(nameof(ShowEmpty));
     }
@@ -369,7 +383,7 @@ public partial class InventoryViewModel : ObservableObject
             }
         }
         Assets.ReplaceAll(next);
-        CountVisible();
+        RefreshView();
         RestoreSelection(captured, last);
         OnPropertyChanged(nameof(ShowEmpty));
     }
