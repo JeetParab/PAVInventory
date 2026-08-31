@@ -444,6 +444,24 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
 
         var pending = new List<PendingDetailDto>();
         var seen = new HashSet<int>();
+
+        foreach (var (ip, linked) in byIp)
+        {
+            if (linked.Count < 2) continue;
+            var rec = ips.FirstOrDefault(x => string.Equals(x.Address, ip, StringComparison.OrdinalIgnoreCase));
+            pending.Add(new PendingDetailDto
+            {
+                Kind = "Duplicate IP",
+                AssetId = linked[0].Id,
+                IpId = rec?.Id,
+                Address = ip,
+                AssignedUser = rec?.AssignedUser ?? linked[0].User,
+                Hostname = rec?.AssignedDevice ?? linked[0].Host,
+                AssetTag = string.Join(", ", linked.Select(x => x.Tag)),
+                Missing = $"{linked.Count} inventory assets share this IP"
+            });
+        }
+
         foreach (var rec in ips)
         {
             if (!byIp.TryGetValue(rec.Address, out var linked) || linked.Count == 0)
@@ -464,11 +482,14 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             foreach (var a in linked)
             {
                 seen.Add(a.Id);
-                var missing = Gaps(a.Serial, a.Host, a.Mfr, a.Model, a.User);
-                if (missing.Count == 0) continue;
+                var issues = Gaps(a.Serial, a.Host, a.Mfr, a.Model, a.User);
+                issues.AddRange(Mismatches(rec.AssignedUser, rec.AssignedDevice, rec.MacAddress, a.User, a.Host, a.Mac));
+                if (issues.Count == 0) continue;
+                var hasGap = issues.Exists(x => x is "Serial" or "Hostname" or "Make/model" or "Assigned user");
+                var hasMis = issues.Exists(x => x.Contains('≠') || x.Contains("share", StringComparison.OrdinalIgnoreCase));
                 pending.Add(new PendingDetailDto
                 {
-                    Kind = "Incomplete asset",
+                    Kind = hasGap && hasMis ? "Incomplete / mismatch" : hasMis ? "Mismatch" : "Incomplete asset",
                     AssetId = a.Id,
                     IpId = rec.Id,
                     AssetTag = a.Tag,
@@ -476,7 +497,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                     AssignedUser = a.User ?? rec.AssignedUser,
                     Hostname = a.Host ?? rec.AssignedDevice,
                     MacAddress = a.Mac ?? rec.MacAddress,
-                    Missing = string.Join(", ", missing)
+                    Missing = string.Join(", ", issues)
                 });
             }
         }
@@ -502,7 +523,8 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         }
 
         return pending
-            .OrderBy(x => x.Address)
+            .OrderBy(x => x.Kind)
+            .ThenBy(x => x.Address)
             .ThenBy(x => x.AssetTag)
             .ToList();
     }
@@ -515,6 +537,35 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         if (string.IsNullOrWhiteSpace(mfr) && string.IsNullOrWhiteSpace(model)) missing.Add("Make/model");
         if (string.IsNullOrWhiteSpace(user)) missing.Add("Assigned user");
         return missing;
+    }
+
+    private static List<string> Mismatches(
+        string? ipUser, string? ipHost, string? ipMac,
+        string? assetUser, string? assetHost, string? assetMac)
+    {
+        var issues = new List<string>();
+        if (BothFilled(ipUser, assetUser) && !SameText(ipUser, assetUser))
+            issues.Add("IP user ≠ inventory user");
+        if (BothFilled(ipHost, assetHost) && !SameText(ipHost, assetHost))
+            issues.Add("Hostname ≠ IP device");
+        if (BothFilled(ipMac, assetMac) && !SameMac(ipMac, assetMac))
+            issues.Add("MAC ≠ IP MAC");
+        return issues;
+    }
+
+    private static bool BothFilled(string? a, string? b) =>
+        !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b);
+
+    private static bool SameText(string? a, string? b) =>
+        string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static bool SameMac(string? a, string? b)
+    {
+        static string Digits(string? s) =>
+            new(s?.Where(char.IsLetterOrDigit).Select(char.ToUpperInvariant).ToArray() ?? []);
+        var x = Digits(a);
+        var y = Digits(b);
+        return x.Length > 0 && x == y;
     }
 
     private async Task<List<string>> ValidateAsync(SaveAssetRequest req, int? excludeId)

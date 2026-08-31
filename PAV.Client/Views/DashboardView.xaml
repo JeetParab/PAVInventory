@@ -15,7 +15,7 @@
               <StackPanel>
                 <TextBlock Text="Pending details" Style="{StaticResource MutedText}" Foreground="#C47B17"/>
                 <TextBlock Text="{Binding Data.PendingCount}" FontSize="26" FontWeight="SemiBold" Foreground="#C47B17" Margin="0,4,0,0"/>
-                <TextBlock Text="IP assigned, kit details missing" FontSize="11" Foreground="#C47B17" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Missing details or IP / inventory mismatch" FontSize="11" Foreground="#C47B17" Margin="0,4,0,0" TextWrapping="Wrap"/>
               </StackPanel>
             </Border>
           </Button>

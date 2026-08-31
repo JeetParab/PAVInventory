@@ -26,8 +26,8 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
             Rows.Clear();
             foreach (var row in list) Rows.Add(row);
             Summary = list.Count == 0
-                ? "Nothing pending. Assigned floor IPs have inventory rows with serial, hostname and make/model."
-                : $"{list.Count} assignment(s) need details. Open a row to finish serial, hostname and make/model.";
+                ? "Nothing pending. Floor IPs and inventory agree on user, hostname and MAC, and kit details are filled."
+                : $"{list.Count} item(s) need attention — missing details, IP/inventory mismatch, or the same IP on two assets.";
             OnPropertyChanged(nameof(CanComplete));
         }
         catch (Exception ex)
