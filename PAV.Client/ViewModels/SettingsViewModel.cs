@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
 using PAV.Client.Views;
 using PAV.Core.Data;
+using PAV.Shared.Enums;
 using PAV.Shared.Dtos;
 
 namespace PAV.Client.ViewModels;
@@ -23,6 +24,8 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     [ObservableProperty] private CategoryDto? selectedCategory;
     [ObservableProperty] private string categoryName = "";
     [ObservableProperty] private string? categoryDescription;
+    [ObservableProperty] private string categoryFamilyLabel = "Computers";
+    public List<string> FamilyChoices { get; } = ["Computers", "Peripherals"];
     [ObservableProperty] private BackupInfo? selectedBackup;
     [ObservableProperty] private UserDto? selectedAccount;
     [ObservableProperty] private string? categoryError;
@@ -188,6 +191,7 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     {
         CategoryName = value?.Name ?? "";
         CategoryDescription = value?.Description;
+        CategoryFamilyLabel = value?.Family == CategoryFamily.Peripheral ? "Peripherals" : "Computers";
         CategoryError = null;
     }
 
@@ -197,6 +201,7 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
         SelectedCategory = null;
         CategoryName = "";
         CategoryDescription = null;
+        CategoryFamilyLabel = "Computers";
     }
 
     [RelayCommand]
@@ -210,7 +215,12 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
         }
         try
         {
-            var req = new SaveCategoryRequest { Name = CategoryName.Trim(), Description = CategoryDescription };
+            var req = new SaveCategoryRequest
+            {
+                Name = CategoryName.Trim(),
+                Description = CategoryDescription,
+                Family = CategoryFamilyLabel == "Peripherals" ? CategoryFamily.Peripheral : CategoryFamily.Computer
+            };
             if (SelectedCategory is null) await api.CreateCategoryAsync(req);
             else await api.UpdateCategoryAsync(SelectedCategory.Id, req);
             await LoadAsync();

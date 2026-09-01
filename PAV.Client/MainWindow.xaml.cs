@@ -41,6 +41,7 @@ public partial class MainWindow : Window
             {
                 "Dashboard" => new DashboardView { DataContext = _shell.Dashboard },
                 "Inventory" => new InventoryView { DataContext = _shell.Inventory },
+                "Peripherals" => new InventoryView { DataContext = _shell.Peripherals },
                 "IpInventory" => new IpInventoryView { DataContext = _shell.IpInventory },
                 "Pending" => new PendingView { DataContext = _shell.Pending },
                 "Stock" => new StockView { DataContext = _shell.Stock },

@@ -26,6 +26,7 @@ public static class Mapping
         d.AlternateUser = a.AlternateUser;
         d.Status = a.Status.Display();
         d.StatusValue = a.Status;
+        d.CategoryFamily = a.Category?.Family ?? CategoryFamilies.FromName(a.Category?.Name);
         d.Domain = a.Domain;
         d.MacAddress = a.MacAddress;
         d.Processor = a.Processor;
@@ -153,7 +154,8 @@ public static class Mapping
     {
         Id = c.Id,
         Name = c.Name,
-        Description = c.Description
+        Description = c.Description,
+        Family = c.Family
     };
 
     public static HistoryDto ToDto(AssetHistory h, string? displayName = null) => new()

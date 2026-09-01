@@ -56,6 +56,7 @@ public class AssetListDto
     public string? AlternateUser { get; set; }
     public string Status { get; set; } = "";
     public AssetStatus StatusValue { get; set; }
+    public CategoryFamily CategoryFamily { get; set; }
     public string? Domain { get; set; }
     public string? MacAddress { get; set; }
     public string? Processor { get; set; }
@@ -284,6 +285,8 @@ public class CategoryDto
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public string? Description { get; set; }
+    public CategoryFamily Family { get; set; }
+    public string FamilyName => Family.Display();
 
     public override string ToString() => Name;
 }
@@ -292,6 +295,7 @@ public class SaveCategoryRequest
 {
     public string Name { get; set; } = "";
     public string? Description { get; set; }
+    public CategoryFamily Family { get; set; }
 }
 
 public class MeDto

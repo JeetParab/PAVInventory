@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using PAV.Core.Services;
+using PAV.Shared.Enums;
 
 namespace PAV.Core.Data;
 
@@ -192,6 +193,7 @@ public sealed class PavDatabase
         await EnsureCanSignInColumnAsync(db);
         await EnsureTemporaryColumnsSqlServerAsync(db);
         await EnsureMeReviewColumnsSqlServerAsync(db);
+        await EnsureCategoryFamilySqlServerAsync(db);
         Perf.Log("Database.CanSignIn", sw.ElapsedMilliseconds);
 
         sw.Restart();
@@ -257,6 +259,12 @@ public sealed class PavDatabase
             ("MustChangePassword", "INTEGER NOT NULL DEFAULT 0"),
             ("CanSignIn", "INTEGER NOT NULL DEFAULT 1")
         ]);
+
+        await EnsureTableColumnsAsync(db, "Categories",
+        [
+            ("Family", "INTEGER NOT NULL DEFAULT 0")
+        ]);
+        await BackfillCategoryFamilyAsync(db);
     }
 
     private static async Task EnsureTableColumnsAsync(AppDbContext db, string table, (string Name, string Sql)[] extra)
@@ -327,6 +335,34 @@ public sealed class PavDatabase
                 ALTER TABLE dbo.Assets ADD MeLogon NVARCHAR(128) NULL;
             END
             """);
+    }
+
+    private static async Task EnsureCategoryFamilySqlServerAsync(AppDbContext db)
+    {
+        if (!db.Database.IsSqlServer())
+            return;
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Categories', 'Family') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Categories ADD Family INT NOT NULL CONSTRAINT DF_Categories_Family DEFAULT 0;
+            END
+            """);
+        await BackfillCategoryFamilyAsync(db);
+    }
+
+    private static async Task BackfillCategoryFamilyAsync(AppDbContext db)
+    {
+        var cats = await db.Categories.ToListAsync();
+        var dirty = false;
+        foreach (var c in cats)
+        {
+            if (c.Family != CategoryFamily.Computer) continue;
+            if (CategoryFamilies.FromName(c.Name) != CategoryFamily.Peripheral) continue;
+            c.Family = CategoryFamily.Peripheral;
+            dirty = true;
+        }
+        if (dirty)
+            await db.SaveChangesAsync();
     }
 
     private static async Task EnsureSerialNumberUniqueAsync(AppDbContext db)

@@ -135,6 +135,7 @@
                         ScrollViewer.CanContentScroll="True">
                 <DataGrid.Columns>
                   <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140"/>
+                  <DataGridTextColumn Header="Tab" Binding="{Binding FamilyName}" Width="100"/>
                   <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
                 </DataGrid.Columns>
               </DataGrid>
@@ -144,8 +145,11 @@
               <TextBox Text="{Binding CategoryName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
                        IsEnabled="{Binding CanManageCategories}"/>
               <TextBlock Text="Description" Style="{StaticResource FieldLabel}"/>
-              <TextBox Text="{Binding CategoryDescription, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,10"
+              <TextBox Text="{Binding CategoryDescription, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"
                        IsEnabled="{Binding CanManageCategories}"/>
+              <TextBlock Text="Shows on" Style="{StaticResource FieldLabel}"/>
+              <ComboBox ItemsSource="{Binding FamilyChoices}" SelectedItem="{Binding CategoryFamilyLabel}" Margin="0,0,0,10"
+                        IsEnabled="{Binding CanManageCategories}"/>
               <TextBlock Text="{Binding CategoryError}" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" Margin="0,0,0,8"/>
               <StackPanel Orientation="Horizontal">
                 <Button Content="New" Style="{StaticResource SecondaryButton}" Command="{Binding NewCategoryCommand}" Margin="0,0,6,0"/>

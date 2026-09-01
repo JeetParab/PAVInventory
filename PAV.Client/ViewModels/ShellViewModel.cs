@@ -25,6 +25,7 @@ public partial class ShellViewModel : ObservableObject
 
     public DashboardViewModel Dashboard { get; }
     public InventoryViewModel Inventory { get; }
+    public InventoryViewModel Peripherals { get; }
     public IpInventoryViewModel IpInventory { get; }
     public StockViewModel Stock { get; }
     public StockViewModel Toner { get; }
@@ -39,7 +40,8 @@ public partial class ShellViewModel : ObservableObject
         _api = api;
         _config = config;
         Dashboard = new DashboardViewModel(api, this);
-        Inventory = new InventoryViewModel(api, this, config);
+        Inventory = new InventoryViewModel(api, this, config, "computers");
+        Peripherals = new InventoryViewModel(api, this, config, "peripherals");
         IpInventory = new IpInventoryViewModel(api, this);
         Stock = new StockViewModel(api, this, "stock");
         Toner = new StockViewModel(api, this, "toner");
@@ -180,8 +182,20 @@ public partial class ShellViewModel : ObservableObject
 
     public async Task ShowInventoryAsync(string? status = null, int? categoryId = null)
     {
-        CurrentPage = "Inventory";
-        await Inventory.ApplyDashboardFilterAsync(status, categoryId);
+        var page = "Inventory";
+        var target = Inventory;
+        if (categoryId is { } id)
+        {
+            var cats = await _api.CategoriesAsync();
+            var cat = cats.FirstOrDefault(c => c.Id == id);
+            if (cat?.Family == CategoryFamily.Peripheral)
+            {
+                page = "Peripherals";
+                target = Peripherals;
+            }
+        }
+        CurrentPage = page;
+        await target.ApplyDashboardFilterAsync(status, categoryId);
     }
 
     private async Task LoadCurrentPageAsync()
@@ -197,6 +211,9 @@ public partial class ShellViewModel : ObservableObject
                     break;
                 case "Inventory":
                     await Inventory.LoadAsync();
+                    break;
+                case "Peripherals":
+                    await Peripherals.LoadAsync();
                     break;
                 case "IpInventory":
                     await IpInventory.LoadAsync();

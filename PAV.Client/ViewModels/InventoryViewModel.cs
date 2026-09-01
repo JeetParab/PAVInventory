@@ -17,6 +17,14 @@ public partial class InventoryViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly ShellViewModel _shell;
     private readonly ClientConfig _config;
+    private readonly string _space;
+
+    public bool IsComputers { get; }
+    public bool ShowComputerTools => IsComputers;
+    public string PageTitle => IsComputers ? "Inventory" : "Peripherals";
+    public string PageHint => IsComputers
+        ? "Laptops, desktops, all-in-ones and network devices"
+        : "Monitors, printers, UPS, accessories and other kit";
 
     public ResetList<AssetListDto> Assets { get; } = [];
     public ObservableCollection<CategoryDto> Categories { get; } = [];
@@ -56,7 +64,7 @@ public partial class InventoryViewModel : ObservableObject
     public bool HasFilters =>
         !IsAll(StatusFilter) || CategoryFilter != 0 || LocationFilter != 0 ||
         !IsAll(ManufacturerFilter) || AssignedFilter is "Assigned" or "Unassigned" ||
-        PurposeFilter is "Temporary" or "Pending confirm" or "All" ||
+        (IsComputers && PurposeFilter is "Temporary" or "Pending confirm" or "All") ||
         !string.IsNullOrWhiteSpace(SearchText);
 
     public List<AssetListDto> SelectedAssets { get; private set; } = [];
@@ -73,13 +81,17 @@ public partial class InventoryViewModel : ObservableObject
 
     private List<int> SelectedIds() => SelectedAssets.Select(a => a.Id).ToList();
 
-    public InventoryViewModel(ApiClient api, ShellViewModel shell, ClientConfig config)
+    public InventoryViewModel(ApiClient api, ShellViewModel shell, ClientConfig config, string space = "computers")
     {
         _api = api;
         _shell = shell;
         _config = config;
+        _space = space;
+        IsComputers = !string.Equals(space, "peripherals", StringComparison.OrdinalIgnoreCase);
         FreezeIdentityColumns = config.FreezeIdentityColumns;
         Loading = true;
+        if (!IsComputers)
+            PurposeFilter = "All";
         AssetsView = CollectionViewSource.GetDefaultView(Assets);
         AssetsView.Filter = FilterRow;
         _searchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
@@ -113,7 +125,9 @@ public partial class InventoryViewModel : ObservableObject
         AssetsView.Refresh();
         VisibleCount = _matchCount;
         EmptyText = Assets.Count == 0
-            ? "No assets yet. Add an asset or import from Excel."
+            ? (IsComputers
+                ? "No computers yet. Add an asset or import from Excel."
+                : "No peripherals yet. Add a monitor, printer or other kit.")
             : "No assets match the current search or filters.";
         OnPropertyChanged(nameof(HasFilters));
         OnPropertyChanged(nameof(ShowEmpty));
@@ -124,6 +138,11 @@ public partial class InventoryViewModel : ObservableObject
     private bool FilterRow(object obj)
     {
         if (obj is not AssetListDto a) return false;
+        if (IsComputers)
+        {
+            if (a.CategoryFamily != CategoryFamily.Computer) return false;
+        }
+        else if (a.CategoryFamily != CategoryFamily.Peripheral) return false;
         if (PurposeFilter == "Inventory" && (a.IsTemporary || a.NeedsReview)) return false;
         if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
         if (PurposeFilter == "Pending confirm" && !a.NeedsReview) return false;
@@ -189,10 +208,11 @@ public partial class InventoryViewModel : ObservableObject
 
             var ids = CaptureSelection();
             var last = Selected?.Id;
+            var family = IsComputers ? CategoryFamily.Computer : CategoryFamily.Peripheral;
 
             sw.Restart();
             _suspendFilter = true;
-            Assets.ReplaceAll(snap.Assets);
+            Assets.ReplaceAll(snap.Assets.Where(a => a.CategoryFamily == family).ToList());
 
             Users.Clear();
             foreach (var u in snap.Users.Where(u => u.IsActive))
@@ -200,7 +220,7 @@ public partial class InventoryViewModel : ObservableObject
 
             Categories.Clear();
             Categories.Add(new CategoryDto { Id = 0, Name = "All" });
-            foreach (var c in snap.Categories)
+            foreach (var c in snap.Categories.Where(c => c.Family == family))
                 Categories.Add(c);
 
             Locations.Clear();
@@ -242,7 +262,7 @@ public partial class InventoryViewModel : ObservableObject
         LocationFilter = 0;
         ManufacturerFilter = "All";
         AssignedFilter = "All";
-        PurposeFilter = "Inventory";
+        PurposeFilter = IsComputers ? "Inventory" : "All";
         FiltersOpen = false;
     }
 

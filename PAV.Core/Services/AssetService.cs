@@ -147,6 +147,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             Designation = a.Designation,
             AlternateUser = a.AlternateUser,
             StatusValue = a.Status,
+            CategoryFamily = a.Category.Family,
             Domain = a.Domain,
             MacAddress = a.MacAddress,
             Processor = a.Processor,

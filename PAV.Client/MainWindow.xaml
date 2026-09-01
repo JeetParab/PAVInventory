@@ -75,6 +75,10 @@
                          Tag="&#xE8FD;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Inventory, Mode=OneWay}"
                          Command="{Binding GoCommand}" CommandParameter="Inventory"/>
+            <RadioButton Style="{StaticResource NavButton}" Content="Peripherals"
+                         Tag="&#xE8F1;"
+                         IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Peripherals, Mode=OneWay}"
+                         Command="{Binding GoCommand}" CommandParameter="Peripherals"/>
             <RadioButton Style="{StaticResource NavButton}" Content="IP Inventory"
                          Tag="&#xE968;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=IpInventory, Mode=OneWay}"

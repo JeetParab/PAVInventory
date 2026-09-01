@@ -100,6 +100,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Name).HasMaxLength(64).IsRequired();
             e.HasIndex(x => x.Name).IsUnique();
             e.Property(x => x.Description).HasMaxLength(512);
+            e.Property(x => x.Family).HasConversion<int>();
         });
 
         modelBuilder.Entity<AssetHistory>(e =>

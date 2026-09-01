@@ -378,7 +378,12 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             var name = req.Name.Trim();
             if (await db.Categories.AnyAsync(c => c.Name.ToLower() == name.ToLower()))
                 throw new AppException(400, "validation", $"Category '{name}' already exists.");
-            var cat = new Category { Name = name, Description = Mapping.Clean(req.Description) };
+            var cat = new Category
+            {
+                Name = name,
+                Description = Mapping.Clean(req.Description),
+                Family = req.Family
+            };
             db.Categories.Add(cat);
             await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(cat);
@@ -396,6 +401,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"Category '{name}' already exists.");
             cat.Name = name;
             cat.Description = Mapping.Clean(req.Description);
+            cat.Family = req.Family;
             await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(cat);
         });
