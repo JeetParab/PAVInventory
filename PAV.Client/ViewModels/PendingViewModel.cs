@@ -76,8 +76,12 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
         await OpenAsync(Selected);
     }
 
+    private bool _opening;
+
     private async Task OpenAsync(PendingDetailDto row)
     {
+        if (_opening) return;
+        _opening = true;
         try
         {
             var load = await api.InventoryLoadAsync();
@@ -97,6 +101,10 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
         catch (Exception ex)
         {
             Ui.Error(ex);
+        }
+        finally
+        {
+            _opening = false;
         }
     }
 }

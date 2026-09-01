@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using PAV.Client.ViewModels;
@@ -10,7 +11,11 @@ public partial class PendingView : UserControl
 
     private void OnRowDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is PendingViewModel vm)
+        if (sender is not DataGrid grid) return;
+        if (e.OriginalSource is not DependencyObject src) return;
+        if (ItemsControl.ContainerFromElement(grid, src) is not DataGridRow) return;
+        e.Handled = true;
+        if (DataContext is PendingViewModel vm && vm.OpenRowCommand.CanExecute(null))
             vm.OpenRowCommand.Execute(null);
     }
 }

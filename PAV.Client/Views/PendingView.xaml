@@ -36,9 +36,6 @@
                 EnableRowVirtualization="True"
                 CanUserResizeColumns="True"
                 MouseDoubleClick="OnRowDoubleClick">
-        <DataGrid.InputBindings>
-          <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenRowCommand}"/>
-        </DataGrid.InputBindings>
         <DataGrid.Columns>
           <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="160"/>
           <DataGridTextColumn Header="IP" Binding="{Binding Address}" Width="130"/>
