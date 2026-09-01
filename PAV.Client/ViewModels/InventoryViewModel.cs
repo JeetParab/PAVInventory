@@ -191,7 +191,7 @@ public partial class InventoryViewModel : ObservableObject
         LocationFilter = 0;
         ManufacturerFilter = "All";
         AssignedFilter = "All";
-        PurposeFilter = "Inventory";
+        PurposeFilter = IsComputers ? "Inventory" : "All";
         await LoadAsync();
     }
 
@@ -275,7 +275,8 @@ public partial class InventoryViewModel : ObservableObject
     [RelayCommand]
     private void ToggleFreezeColumns() => FreezeIdentityColumns = !FreezeIdentityColumns;
 
-    public int FrozenColumnCount => FreezeIdentityColumns ? 6 : 0;
+    public int FrozenColumnCount => IsComputers && FreezeIdentityColumns ? 6 : 0;
+
     public IReadOnlyList<string> SavedColumnOrder => _config.ColumnOrder;
 
     partial void OnFreezeIdentityColumnsChanged(bool value)

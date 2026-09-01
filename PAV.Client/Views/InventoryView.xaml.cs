@@ -10,16 +10,28 @@ namespace PAV.Client.Views;
 
 public partial class InventoryView : UserControl
 {
+    private static readonly HashSet<string> ComputerOnlyHeaders = new(StringComparer.Ordinal)
+    {
+        "Hostname", "IP Address", "Purpose", "Domain", "MAC Address", "Processor", "RAM",
+        "Storage", "OS", "DC", "AV", "Office", "MFA", "Ivanti", "Admin", "USB", "Chrome",
+        "PM", "Last Connected"
+    };
+
     public InventoryView()
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        DataContextChanged += (_, _) => HookVm();
+        DataContextChanged += (_, _) =>
+        {
+            HookVm();
+            ApplyColumnVisibility();
+        };
         AssetGrid.ColumnReordered += OnColumnReordered;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ApplyColumnVisibility();
         ApplySavedOrder();
         HookVm();
     }
@@ -85,6 +97,7 @@ public partial class InventoryView : UserControl
     private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)
     {
         if (DataContext is not InventoryViewModel vm) return;
+        if (!vm.IsComputers) return;
         var headers = AssetGrid.Columns
             .OrderBy(c => c.DisplayIndex)
             .Select(c => c.Header?.ToString() ?? "")
@@ -92,17 +105,32 @@ public partial class InventoryView : UserControl
         vm.SaveColumnOrder(headers);
     }
 
-    private void ApplySavedOrder()
+    private void ApplyColumnVisibility()
     {
         if (DataContext is not InventoryViewModel vm) return;
+        var show = vm.ShowComputerTools;
+        foreach (var col in AssetGrid.Columns)
+        {
+            var header = col.Header?.ToString() ?? "";
+            if (ComputerOnlyHeaders.Contains(header))
+                col.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private void ApplySavedOrder()
+    {
+        if (DataContext is not InventoryViewModel vm || !vm.IsComputers) return;
         var order = vm.SavedColumnOrder;
-        if (order.Count == 0) return;
+        if (order is null || order.Count == 0) return;
+        var max = AssetGrid.Columns.Count - 1;
         for (var i = 0; i < order.Count; i++)
         {
             var col = AssetGrid.Columns.FirstOrDefault(c =>
                 string.Equals(c.Header?.ToString(), order[i], StringComparison.Ordinal));
-            if (col is not null)
-                col.DisplayIndex = i;
+            if (col is null) continue;
+            var index = Math.Clamp(i, 0, max);
+            try { col.DisplayIndex = index; }
+            catch (ArgumentException) { }
         }
     }
 
@@ -110,5 +138,6 @@ public partial class InventoryView : UserControl
     {
         for (var i = 0; i < AssetGrid.Columns.Count; i++)
             AssetGrid.Columns[i].DisplayIndex = i;
+        ApplyColumnVisibility();
     }
 }

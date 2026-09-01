@@ -368,14 +368,11 @@
             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="90"/>
             <DataGridTextColumn Header="Make / Model" Binding="{Binding MakeModel}" Width="200"/>
             <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="150"/>
-            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"/>
+            <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
             <DataGridTextColumn Header="User Name" Binding="{Binding AssignedUser}" Width="150"/>
             <DataGridTextColumn Header="Designation" Binding="{Binding Designation}" Width="140"/>
-            <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="90"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+            <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="90"/>
             <DataGridTemplateColumn Header="Status" Width="110">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -387,38 +384,22 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="100"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="MAC Address" Binding="{Binding MacAddress}" Width="130"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Processor" Binding="{Binding Processor}" Width="200"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="RAM" Binding="{Binding Ram}" Width="70"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Storage" Binding="{Binding Storage}" Width="110"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="OS" Binding="{Binding OperatingSystem}" Width="180"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="DC" Binding="{Binding DcInstalled}" Width="50"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="AV" Binding="{Binding AvInstalled}" Width="50"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Office" Binding="{Binding MsOfficeVersion}" Width="70"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="MFA" Binding="{Binding MfaEnabled}" Width="50"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Ivanti" Binding="{Binding IvantiInstalled}" Width="60"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Admin" Binding="{Binding AdminRights}" Width="60"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="USB" Binding="{Binding UsbAccess}" Width="50"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Chrome" Binding="{Binding ChromeUpdated}" Width="70"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="PM" Binding="{Binding PmCompleted}" Width="50"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
-            <DataGridTextColumn Header="Last Connected" Binding="{Binding LastConnected, StringFormat=yyyy-MM-dd}" Width="110"
-                                Visibility="{Binding DataContext.ShowComputerTools, ElementName=Root, Converter={StaticResource BoolToVis}}"/>
+            <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="100"/>
+            <DataGridTextColumn Header="MAC Address" Binding="{Binding MacAddress}" Width="130"/>
+            <DataGridTextColumn Header="Processor" Binding="{Binding Processor}" Width="200"/>
+            <DataGridTextColumn Header="RAM" Binding="{Binding Ram}" Width="70"/>
+            <DataGridTextColumn Header="Storage" Binding="{Binding Storage}" Width="110"/>
+            <DataGridTextColumn Header="OS" Binding="{Binding OperatingSystem}" Width="180"/>
+            <DataGridTextColumn Header="DC" Binding="{Binding DcInstalled}" Width="50"/>
+            <DataGridTextColumn Header="AV" Binding="{Binding AvInstalled}" Width="50"/>
+            <DataGridTextColumn Header="Office" Binding="{Binding MsOfficeVersion}" Width="70"/>
+            <DataGridTextColumn Header="MFA" Binding="{Binding MfaEnabled}" Width="50"/>
+            <DataGridTextColumn Header="Ivanti" Binding="{Binding IvantiInstalled}" Width="60"/>
+            <DataGridTextColumn Header="Admin" Binding="{Binding AdminRights}" Width="60"/>
+            <DataGridTextColumn Header="USB" Binding="{Binding UsbAccess}" Width="50"/>
+            <DataGridTextColumn Header="Chrome" Binding="{Binding ChromeUpdated}" Width="70"/>
+            <DataGridTextColumn Header="PM" Binding="{Binding PmCompleted}" Width="50"/>
+            <DataGridTextColumn Header="Last Connected" Binding="{Binding LastConnected, StringFormat=yyyy-MM-dd}" Width="110"/>
             <DataGridTextColumn Header="Collect By" Binding="{Binding CollectBy}" Width="120"/>
             <DataGridTextColumn Header="Alternate User" Binding="{Binding AlternateUser}" Width="140"/>
           </DataGrid.Columns>

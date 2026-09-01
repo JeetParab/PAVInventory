@@ -83,7 +83,7 @@ public partial class App : Application
     private static void ShowError(Exception ex)
     {
         MessageBox.Show(
-            ex.Message,
+            ex.GetType().Name + ": " + (string.IsNullOrWhiteSpace(ex.Message) ? "Unexpected error." : ex.Message),
             "PAV Inventory",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
