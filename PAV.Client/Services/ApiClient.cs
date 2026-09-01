@@ -372,6 +372,27 @@ public class ApiClient
             return await new ImportExportService(db, _lock).ImportAsync(fs, map, actor);
         });
 
+    public Task<MeImportPreviewDto> PreviewMeImportAsync(string filePath) =>
+        Read(Permissions.Import, async (db, _) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new ManageEngineImportService(db, _lock).PreviewAsync(fs);
+        });
+
+    public Task<MeImportResultDto> ImportMeAsync(string filePath) =>
+        Read(Permissions.Import, async (db, actor) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new ManageEngineImportService(db, _lock).ImportAsync(fs, actor);
+        });
+
+    public Task ConfirmReviewAsync(int id) =>
+        Read(Permissions.Edit, async (db, actor) =>
+        {
+            await new AssetService(db, _lock).ConfirmReviewAsync(id, actor);
+            return 0;
+        });
+
     public Task<IpOverviewDto> IpOverviewAsync() =>
         Read(Permissions.View, (db, _) => new IpAddressService(db, _lock).OverviewAsync());
 

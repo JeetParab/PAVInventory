@@ -50,6 +50,8 @@ public static class Mapping
         d.WarrantyExpiry = a.WarrantyExpiry;
         d.Version = a.Version;
         d.IsTemporary = a.IsTemporary;
+        d.NeedsReview = a.NeedsReview;
+        d.MeLogon = a.MeLogon;
     }
 
     public static AssetListDto ToListDto(Asset a)

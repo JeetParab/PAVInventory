@@ -81,7 +81,9 @@ public class AssetListDto
     public DateTime? WarrantyExpiry { get; set; }
     public int Version { get; set; }
     public bool IsTemporary { get; set; }
-    public string Purpose => IsTemporary ? "Temporary" : "Inventory";
+    public bool NeedsReview { get; set; }
+    public string? MeLogon { get; set; }
+    public string Purpose => NeedsReview ? "Pending confirm" : IsTemporary ? "Temporary" : "Inventory";
 
     public AssetListDto Clone() => (AssetListDto)MemberwiseClone();
 }
@@ -343,6 +345,39 @@ public class PendingDetailDto
     public string? Hostname { get; set; }
     public string? MacAddress { get; set; }
     public string Missing { get; set; } = "";
+}
+
+public class MeImportPreviewDto
+{
+    public string Summary { get; set; } = "";
+    public bool CanImport { get; set; }
+    public int UpdateCount { get; set; }
+    public int NewCount { get; set; }
+    public int SkipCount { get; set; }
+    public List<string> Issues { get; set; } = [];
+    public List<MeImportLineDto> Lines { get; set; } = [];
+}
+
+public class MeImportLineDto
+{
+    public string Action { get; set; } = "";
+    public string MatchBy { get; set; } = "";
+    public string? AssetTag { get; set; }
+    public string? Serial { get; set; }
+    public string? Hostname { get; set; }
+    public string? IpAddress { get; set; }
+    public string? Model { get; set; }
+    public string? MeLogon { get; set; }
+    public string Changes { get; set; } = "";
+    public string Notes { get; set; } = "";
+}
+
+public class MeImportResultDto
+{
+    public string Summary { get; set; } = "";
+    public int Updated { get; set; }
+    public int Created { get; set; }
+    public List<string> Errors { get; set; } = [];
 }
 
 public class CategoryCountDto

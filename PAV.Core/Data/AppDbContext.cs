@@ -54,6 +54,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.PmCompleted).HasMaxLength(16);
             e.Property(x => x.CollectBy).HasMaxLength(128);
             e.Property(x => x.Remarks).HasMaxLength(2000);
+            e.Property(x => x.MeLogon).HasMaxLength(128);
             e.Property(x => x.Status).HasConversion<int>();
             e.Property(x => x.Version).IsConcurrencyToken();
             e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);

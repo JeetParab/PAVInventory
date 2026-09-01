@@ -153,6 +153,12 @@
                   <TextBlock Text="Import from Excel / CSV" VerticalAlignment="Center"/>
                 </DockPanel>
               </Button>
+              <Button Style="{StaticResource ToolMenuButton}" Command="{Binding ImportManageEngineCommand}">
+                <DockPanel LastChildFill="True">
+                  <TextBlock DockPanel.Dock="Left" Text="&#xE8F1;" Style="{StaticResource MenuIcon}"/>
+                  <TextBlock Text="Import ManageEngine…" VerticalAlignment="Center"/>
+                </DockPanel>
+              </Button>
               <Button Style="{StaticResource ToolMenuButton}" Command="{Binding ExportCommand}">
                 <DockPanel LastChildFill="True">
                   <TextBlock DockPanel.Dock="Left" Text="&#xE74E;" Style="{StaticResource MenuIcon}"/>

@@ -18,6 +18,10 @@
             <TextBlock Text="Refresh" Style="{StaticResource BtnLabel}"/>
           </StackPanel>
         </Button>
+        <Button Content="Confirm ME" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                Command="{Binding ConfirmCommand}"
+                IsEnabled="{Binding CanConfirm}"
+                ToolTip="Mark this ManageEngine PC as confirmed inventory"/>
         <Button Content="Complete details" Style="{StaticResource PrimaryButton}"
                 Command="{Binding CompleteCommand}"
                 IsEnabled="{Binding CanComplete}"/>
@@ -36,7 +40,7 @@
           <MouseBinding Gesture="LeftDoubleClick" Command="{Binding OpenRowCommand}"/>
         </DataGrid.InputBindings>
         <DataGrid.Columns>
-          <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="140"/>
+          <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" Width="160"/>
           <DataGridTextColumn Header="IP" Binding="{Binding Address}" Width="130"/>
           <DataGridTextColumn Header="User" Binding="{Binding AssignedUser}" Width="160"/>
           <DataGridTextColumn Header="Asset" Binding="{Binding AssetTag}" Width="140"/>

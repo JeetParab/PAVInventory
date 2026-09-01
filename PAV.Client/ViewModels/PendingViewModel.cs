@@ -16,6 +16,9 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
     [ObservableProperty] private string summary = "";
 
     public bool CanComplete => shell.CanEdit || shell.CanAdd;
+    public bool CanConfirm => shell.CanEdit && Selected is { AssetId: not null, Kind: "Confirm ME import" };
+
+    partial void OnSelectedChanged(PendingDetailDto? value) => OnPropertyChanged(nameof(CanConfirm));
 
     public async Task LoadAsync()
     {
@@ -26,9 +29,10 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
             Rows.Clear();
             foreach (var row in list) Rows.Add(row);
             Summary = list.Count == 0
-                ? "Nothing pending. Floor IPs and inventory agree on user, hostname and MAC, and kit details are filled."
-                : $"{list.Count} item(s) need attention — missing details, IP/inventory mismatch, or the same IP on two assets.";
+                ? "Nothing pending. Floor IPs and inventory agree, kit details are filled, and ManageEngine imports are confirmed."
+                : $"{list.Count} item(s) need attention — missing details, IP mismatch, duplicate IP, or new ManageEngine PCs to confirm.";
             OnPropertyChanged(nameof(CanComplete));
+            OnPropertyChanged(nameof(CanConfirm));
         }
         catch (Exception ex)
         {
@@ -42,6 +46,21 @@ public partial class PendingViewModel(ApiClient api, ShellViewModel shell) : Obs
 
     [RelayCommand]
     private async Task RefreshAsync() => await LoadAsync();
+
+    [RelayCommand]
+    private async Task ConfirmAsync()
+    {
+        if (Selected?.AssetId is not { } id || !CanConfirm) return;
+        try
+        {
+            await api.ConfirmReviewAsync(id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
+    }
 
     [RelayCommand]
     private async Task CompleteAsync()

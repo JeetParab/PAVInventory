@@ -169,7 +169,10 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             Remarks = a.Remarks,
             PurchaseDate = a.PurchaseDate,
             WarrantyExpiry = a.WarrantyExpiry,
-            Version = a.Version
+            Version = a.Version,
+            IsTemporary = a.IsTemporary,
+            NeedsReview = a.NeedsReview,
+            MeLogon = a.MeLogon
         });
 
     public async Task<AssetDetailDto> GetAsync(int id, bool history = true)
@@ -319,6 +322,8 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
 
             asset.Version++;
             asset.UpdatedAt = now;
+            if (asset.NeedsReview)
+                asset.NeedsReview = false;
             db.AssetHistory.AddRange(changes);
             await SqliteGuard.SaveChangesAsync(db);
             await IpAssetBridge.AfterAssetSavedAsync(db, asset, oldIp, actor);
@@ -351,7 +356,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
     public async Task<DashboardDto> DashboardAsync()
     {
         var grouped = await db.Assets.AsNoTracking()
-            .Where(a => !a.IsTemporary)
+            .Where(a => !a.IsTemporary && !a.NeedsReview)
             .GroupBy(a => a.Status)
             .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
@@ -363,7 +368,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             {
                 CategoryId = c.Id,
                 Name = c.Name,
-                Count = db.Assets.Count(a => a.CategoryId == c.Id && !a.IsTemporary)
+                Count = db.Assets.Count(a => a.CategoryId == c.Id && !a.IsTemporary && !a.NeedsReview)
             })
             .OrderByDescending(x => x.Count)
             .ThenBy(x => x.Name)
@@ -379,6 +384,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                         && a.WarrantyExpiry >= today
                         && a.WarrantyExpiry <= soon
                         && !a.IsTemporary
+                        && !a.NeedsReview
                         && a.Status != AssetStatus.Retired
                         && a.Status != AssetStatus.Disposed)
             .OrderBy(a => a.WarrantyExpiry)
@@ -425,6 +431,8 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
                 a.Manufacturer,
                 a.Model,
                 a.MacAddress,
+                a.NeedsReview,
+                a.MeLogon,
                 Assigned = a.AssignedUser != null ? a.AssignedUser.Name : a.AssignedUserName
             })
             .ToListAsync();
@@ -522,12 +530,61 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             });
         }
 
+        foreach (var a in assets.Where(x => x.NeedsReview))
+        {
+            var extra = string.IsNullOrWhiteSpace(a.MeLogon)
+                ? "Confirm new ManageEngine PC"
+                : "Confirm new ManageEngine PC · ME logon " + a.MeLogon;
+            var existing = pending.FirstOrDefault(p => p.AssetId == a.Id);
+            if (existing is not null)
+            {
+                existing.Kind = "Confirm ME import";
+                existing.Missing = string.IsNullOrWhiteSpace(existing.Missing) ? extra : extra + "; " + existing.Missing;
+            }
+            else
+            {
+                pending.Add(new PendingDetailDto
+                {
+                    Kind = "Confirm ME import",
+                    AssetId = a.Id,
+                    AssetTag = a.AssetTag,
+                    Address = a.IpAddress,
+                    AssignedUser = a.Assigned,
+                    Hostname = a.Hostname,
+                    MacAddress = a.MacAddress,
+                    Missing = extra
+                });
+            }
+        }
+
         return pending
             .OrderBy(x => x.Kind)
             .ThenBy(x => x.Address)
             .ThenBy(x => x.AssetTag)
             .ToList();
     }
+
+    public Task ConfirmReviewAsync(int id, CurrentUser actor) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var asset = await db.Assets.FirstOrDefaultAsync(a => a.Id == id)
+                ?? throw new AppException(404, "not_found", "Asset not found.");
+            if (!asset.NeedsReview) return;
+            asset.NeedsReview = false;
+            asset.Version++;
+            asset.UpdatedAt = DateTime.UtcNow;
+            db.AssetHistory.Add(new AssetHistory
+            {
+                AssetId = asset.Id,
+                Username = actor.Username,
+                Action = HistoryAction.Updated,
+                FieldName = "ManageEngine",
+                OldValue = "Pending confirm",
+                NewValue = "Confirmed",
+                Timestamp = DateTime.UtcNow
+            });
+            await SqliteGuard.SaveChangesAsync(db);
+        });
 
     private static List<string> Gaps(string? serial, string? host, string? mfr, string? model, string? user)
     {

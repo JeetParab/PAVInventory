@@ -51,12 +51,12 @@ public partial class InventoryViewModel : ObservableObject
 
     public List<string> StatusChoices { get; } = ["All", .. AssetStatusNames.All.Select(s => s.Display())];
     public List<string> AssignedChoices { get; } = ["All", "Assigned", "Unassigned"];
-    public List<string> PurposeChoices { get; } = ["Inventory", "Temporary", "All"];
+    public List<string> PurposeChoices { get; } = ["Inventory", "Temporary", "Pending confirm", "All"];
 
     public bool HasFilters =>
         !IsAll(StatusFilter) || CategoryFilter != 0 || LocationFilter != 0 ||
         !IsAll(ManufacturerFilter) || AssignedFilter is "Assigned" or "Unassigned" ||
-        PurposeFilter is "Temporary" or "All" ||
+        PurposeFilter is "Temporary" or "Pending confirm" or "All" ||
         !string.IsNullOrWhiteSpace(SearchText);
 
     public List<AssetListDto> SelectedAssets { get; private set; } = [];
@@ -124,8 +124,9 @@ public partial class InventoryViewModel : ObservableObject
     private bool FilterRow(object obj)
     {
         if (obj is not AssetListDto a) return false;
-        if (PurposeFilter == "Inventory" && a.IsTemporary) return false;
+        if (PurposeFilter == "Inventory" && (a.IsTemporary || a.NeedsReview)) return false;
         if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
+        if (PurposeFilter == "Pending confirm" && !a.NeedsReview) return false;
         if (!IsAll(StatusFilter) && a.Status != StatusFilter) return false;
         if (CategoryFilter != 0 && a.CategoryId != CategoryFilter) return false;
         if (LocationFilter != 0 && a.LocationId != LocationFilter) return false;
@@ -148,7 +149,8 @@ public partial class InventoryViewModel : ObservableObject
                   Contains(a.Designation, s) ||
                   Contains(a.Location, s) ||
                   Contains(a.Category, s) ||
-                  Contains(a.Status, s)))
+                  Contains(a.Status, s) ||
+                  Contains(a.MeLogon, s)))
                 return false;
         }
         _matchCount++;
@@ -624,6 +626,31 @@ public partial class InventoryViewModel : ObservableObject
         };
         if (win.ShowDialog() == true)
             await ReloadAssetsAsync();
+    }
+
+    [RelayCommand]
+    private async Task ImportManageEngineAsync()
+    {
+        if (!_shell.CanImport) return;
+        ToolsOpen = false;
+        var path = Ui.OpenExcel();
+        if (path is null) return;
+        try
+        {
+            var preview = await _api.PreviewMeImportAsync(path);
+            var vm = new MeImportViewModel(_api, path, preview);
+            var win = new MeImportWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
+            if (win.ShowDialog() == true)
+            {
+                if (!string.IsNullOrWhiteSpace(vm.ResultSummary))
+                    Ui.Info(vm.ResultSummary);
+                await ReloadAssetsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
     }
 
     [RelayCommand]

@@ -46,6 +46,8 @@ public class Asset
     public DateTime? WarrantyExpiry { get; set; }
     public string? Remarks { get; set; }
     public bool IsTemporary { get; set; }
+    public bool NeedsReview { get; set; }
+    public string? MeLogon { get; set; }
     public int Version { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
