@@ -39,9 +39,11 @@ public partial class StockViewModel : ObservableObject
     [ObservableProperty] private int outOfStock;
     [ObservableProperty] private bool loading;
     [ObservableProperty] private string? message;
+    [ObservableProperty] private bool showDetailColumns;
 
     public bool ShowStock => Page == "Stock";
     public bool ShowMovements => Page == "Movements";
+    public string DetailColumnsLabel => ShowDetailColumns ? "Fewer columns" : "More columns";
     public bool CanMove => _shell.Can(Permissions.Assign);
     public bool CanManage => _shell.Me?.Role == UserRole.Administrator;
     public bool CanExport => _shell.CanExport;
@@ -67,6 +69,12 @@ public partial class StockViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowPage(string p) => Page = p;
+
+    [RelayCommand]
+    private void ToggleDetailColumns() => ShowDetailColumns = !ShowDetailColumns;
+
+    partial void OnShowDetailColumnsChanged(bool value) =>
+        OnPropertyChanged(nameof(DetailColumnsLabel));
 
     public async Task LoadAsync()
     {

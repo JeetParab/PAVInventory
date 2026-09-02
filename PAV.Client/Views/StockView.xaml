@@ -106,13 +106,17 @@
         </StackPanel>
         <ComboBox DockPanel.Dock="Right" Width="140" Margin="0,0,8,0"
                   ItemsSource="{Binding StatusChoices}" SelectedItem="{Binding StatusFilter}"/>
+        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                Command="{Binding ToggleDetailColumnsCommand}" Margin="0,0,8,0" Padding="10,6"
+                Content="{Binding DetailColumnsLabel}"
+                ToolTip="Opening, received, returned, make/model and status stay available here"/>
         <TextBox Margin="0,0,8,0" Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}"
                  VerticalContentAlignment="Center"
                  ToolTip="Search name, manufacturer, model, category"/>
       </DockPanel>
 
       <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0">
-        <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
+        <DataGrid x:Name="ItemGrid" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}"
                   EnableRowVirtualization="True" EnableColumnVirtualization="False"
                   CanUserResizeColumns="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
@@ -120,16 +124,16 @@
                   PreviewMouseWheel="OnGridPreviewMouseWheel"
                   MouseDoubleClick="OnItemDoubleClick">
           <DataGrid.Columns>
-            <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="220" MinWidth="140"/>
+            <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="*" MinWidth="180"/>
+            <DataGridTextColumn Header="On hand" Binding="{Binding OnHand}" Width="100"/>
+            <DataGridTextColumn Header="Issued" Binding="{Binding Issued}" Width="100"/>
             <DataGridTextColumn Header="Make" Binding="{Binding Manufacturer}" Width="110" MinWidth="80"/>
             <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="130" MinWidth="80"/>
             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="120" MinWidth="80"/>
-            <DataGridTextColumn Header="On hand" Binding="{Binding OnHand}" Width="80"/>
             <DataGridTextColumn Header="Min" Binding="{Binding MinimumQuantity}" Width="55"/>
             <DataGridTextColumn Header="Status" Binding="{Binding StockStatus}" Width="110"/>
             <DataGridTextColumn Header="Opening" Binding="{Binding Opening}" Width="80"/>
             <DataGridTextColumn Header="Received" Binding="{Binding Received}" Width="85"/>
-            <DataGridTextColumn Header="Issued" Binding="{Binding Issued}" Width="75"/>
             <DataGridTextColumn Header="Returned" Binding="{Binding Returned}" Width="85"/>
             <DataGridTextColumn Header="Adjusted" Binding="{Binding Adjusted}" Width="85"/>
           </DataGrid.Columns>
