@@ -35,25 +35,32 @@ public partial class MainWindow : Window
     private void ShowPage(string? page)
     {
         if (_shell is null || string.IsNullOrWhiteSpace(page)) return;
-        if (!_pages.TryGetValue(page, out var view))
+        try
         {
-            view = page switch
+            if (!_pages.TryGetValue(page, out var view))
             {
-                "Dashboard" => new DashboardView { DataContext = _shell.Dashboard },
-                "Inventory" => new InventoryView { DataContext = _shell.Inventory },
-                "Peripherals" => new InventoryView { DataContext = _shell.Peripherals },
-                "IpInventory" => new IpInventoryView { DataContext = _shell.IpInventory },
-                "Pending" => new PendingView { DataContext = _shell.Pending },
-                "Stock" => new StockView { DataContext = _shell.Stock },
-                "Toner" => new StockView { DataContext = _shell.Toner },
-                "Users" => new UsersView { DataContext = _shell.Users },
-                "Locations" => new LocationsView { DataContext = _shell.Locations },
-                "Settings" => new SettingsView { DataContext = _shell.Settings },
-                _ => new InventoryView { DataContext = _shell.Inventory }
-            };
-            _pages[page] = view;
+                view = page switch
+                {
+                    "Dashboard" => new DashboardView { DataContext = _shell.Dashboard },
+                    "Inventory" => new InventoryView { DataContext = _shell.Inventory },
+                    "Peripherals" => new InventoryView { DataContext = _shell.Peripherals },
+                    "IpInventory" => new IpInventoryView { DataContext = _shell.IpInventory },
+                    "Pending" => new PendingView { DataContext = _shell.Pending },
+                    "Stock" => new StockView { DataContext = _shell.Stock },
+                    "Toner" => new StockView { DataContext = _shell.Toner },
+                    "Users" => new UsersView { DataContext = _shell.Users },
+                    "Locations" => new LocationsView { DataContext = _shell.Locations },
+                    "Settings" => new SettingsView { DataContext = _shell.Settings },
+                    _ => new InventoryView { DataContext = _shell.Inventory }
+                };
+                _pages[page] = view;
+            }
+            if (!ReferenceEquals(PageHost.Content, view))
+                PageHost.Content = view;
         }
-        if (!ReferenceEquals(PageHost.Content, view))
-            PageHost.Content = view;
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.ToString(), "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 }

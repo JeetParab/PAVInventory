@@ -21,19 +21,25 @@ public partial class InventoryView : UserControl
     {
         InitializeComponent();
         Loaded += OnLoaded;
-        DataContextChanged += (_, _) =>
-        {
-            HookVm();
-            ApplyColumnVisibility();
-        };
+        DataContextChanged += (_, _) => HookVm();
         AssetGrid.ColumnReordered += OnColumnReordered;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        ApplyColumnVisibility();
-        ApplySavedOrder();
-        HookVm();
+        try
+        {
+            AssetGrid.FrozenColumnCount = 0;
+            ApplyColumnVisibility();
+            ApplySavedOrder();
+            ApplyFreeze();
+            HookVm();
+        }
+        catch (Exception ex)
+        {
+            AssetGrid.FrozenColumnCount = 0;
+            App.LogUnhandled(ex);
+        }
     }
 
     private void HookVm()
@@ -45,6 +51,8 @@ public partial class InventoryView : UserControl
         vm.FocusSearchRequested += OnFocusSearch;
         vm.RestoreSelectionRequested -= OnRestoreSelection;
         vm.RestoreSelectionRequested += OnRestoreSelection;
+        vm.GridLayoutChanged -= ApplyFreeze;
+        vm.GridLayoutChanged += ApplyFreeze;
     }
 
     private void OnFocusSearch()
@@ -55,15 +63,22 @@ public partial class InventoryView : UserControl
 
     private void OnRestoreSelection(IReadOnlyList<int> ids, int? last)
     {
-        AssetGrid.SelectedItems.Clear();
-        foreach (var item in AssetGrid.Items.OfType<AssetListDto>().Where(a => ids.Contains(a.Id)))
-            AssetGrid.SelectedItems.Add(item);
-
-        if (last is { } id)
+        try
         {
-            var row = AssetGrid.Items.OfType<AssetListDto>().FirstOrDefault(a => a.Id == id);
-            if (row is not null)
-                AssetGrid.ScrollIntoView(row);
+            AssetGrid.SelectedItems.Clear();
+            foreach (var item in AssetGrid.Items.OfType<AssetListDto>().Where(a => ids.Contains(a.Id)))
+                AssetGrid.SelectedItems.Add(item);
+
+            if (last is { } id)
+            {
+                var row = AssetGrid.Items.OfType<AssetListDto>().FirstOrDefault(a => a.Id == id);
+                if (row is not null)
+                    AssetGrid.ScrollIntoView(row);
+            }
+        }
+        catch
+        {
+            // Grid may not be ready yet.
         }
     }
 
@@ -96,8 +111,7 @@ public partial class InventoryView : UserControl
 
     private void OnColumnReordered(object? sender, DataGridColumnEventArgs e)
     {
-        if (DataContext is not InventoryViewModel vm) return;
-        if (!vm.IsComputers) return;
+        if (DataContext is not InventoryViewModel vm || !vm.IsComputers) return;
         var headers = AssetGrid.Columns
             .OrderBy(c => c.DisplayIndex)
             .Select(c => c.Header?.ToString() ?? "")
@@ -107,13 +121,40 @@ public partial class InventoryView : UserControl
 
     private void ApplyColumnVisibility()
     {
-        if (DataContext is not InventoryViewModel vm) return;
-        var show = vm.ShowComputerTools;
+        if (DataContext is not InventoryViewModel vm || vm.IsComputers) return;
+        AssetGrid.FrozenColumnCount = 0;
         foreach (var col in AssetGrid.Columns)
         {
             var header = col.Header?.ToString() ?? "";
-            if (ComputerOnlyHeaders.Contains(header))
-                col.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (ComputerOnlyHeaders.Contains(header) && col.Visibility != Visibility.Collapsed)
+                col.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ApplyFreeze()
+    {
+        if (DataContext is not InventoryViewModel vm)
+        {
+            AssetGrid.FrozenColumnCount = 0;
+            return;
+        }
+        try
+        {
+            AssetGrid.FrozenColumnCount = 0;
+            if (!vm.IsComputers || !vm.FreezeIdentityColumns) return;
+            var visible = 0;
+            foreach (var col in AssetGrid.Columns.OrderBy(c => c.DisplayIndex))
+            {
+                if (col.Visibility != Visibility.Visible) break;
+                visible++;
+                if (visible >= 6) break;
+            }
+            if (visible > 0)
+                AssetGrid.FrozenColumnCount = visible;
+        }
+        catch
+        {
+            AssetGrid.FrozenColumnCount = 0;
         }
     }
 
@@ -122,22 +163,23 @@ public partial class InventoryView : UserControl
         if (DataContext is not InventoryViewModel vm || !vm.IsComputers) return;
         var order = vm.SavedColumnOrder;
         if (order is null || order.Count == 0) return;
-        var max = AssetGrid.Columns.Count - 1;
+        var max = Math.Max(0, AssetGrid.Columns.Count - 1);
         for (var i = 0; i < order.Count; i++)
         {
             var col = AssetGrid.Columns.FirstOrDefault(c =>
                 string.Equals(c.Header?.ToString(), order[i], StringComparison.Ordinal));
             if (col is null) continue;
-            var index = Math.Clamp(i, 0, max);
-            try { col.DisplayIndex = index; }
+            try { col.DisplayIndex = Math.Clamp(i, 0, max); }
             catch (ArgumentException) { }
         }
     }
 
     private void ApplyDefaultOrder()
     {
+        AssetGrid.FrozenColumnCount = 0;
         for (var i = 0; i < AssetGrid.Columns.Count; i++)
             AssetGrid.Columns[i].DisplayIndex = i;
         ApplyColumnVisibility();
+        ApplyFreeze();
     }
 }

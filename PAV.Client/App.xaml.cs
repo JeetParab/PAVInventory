@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Threading;
 using PAV.Client.Services;
@@ -18,6 +20,11 @@ public partial class App : Application
         {
             if (args.ExceptionObject is Exception ex)
                 ShowError(ex);
+        };
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            ShowError(args.Exception);
+            args.SetObserved();
         };
 
         var config = ClientConfig.Load();
@@ -41,6 +48,10 @@ public partial class App : Application
             try
             {
                 await shell.InitializeAsync();
+            }
+            catch (Exception ex)
+            {
+                ShowError(ex);
             }
             finally
             {
@@ -80,12 +91,28 @@ public partial class App : Application
         e.Handled = true;
     }
 
+    internal static void LogUnhandled(Exception ex) => ShowError(ex);
+
     private static void ShowError(Exception ex)
     {
-        MessageBox.Show(
-            ex.GetType().Name + ": " + (string.IsNullOrWhiteSpace(ex.Message) ? "Unexpected error." : ex.Message),
-            "PAV Inventory",
-            MessageBoxButton.OK,
-            MessageBoxImage.Warning);
+        var text = new StringBuilder()
+            .AppendLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+            .AppendLine(ex.ToString())
+            .ToString();
+        var log = "";
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PAV");
+            Directory.CreateDirectory(dir);
+            log = Path.Combine(dir, "crash.log");
+            File.WriteAllText(log, text);
+        }
+        catch { /* keep the dialog even if logging fails */ }
+
+        var shown = text.Length > 1800 ? text[..1800] + "\n…" : text;
+        if (!string.IsNullOrEmpty(log))
+            shown += "\n\nSaved to:\n" + log;
+        MessageBox.Show(shown, "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 }

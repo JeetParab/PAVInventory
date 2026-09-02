@@ -120,9 +120,10 @@ public partial class InventoryViewModel : ObservableObject
 
     private void RefreshView()
     {
-        _searchNeedle = SearchText.Trim();
+        _searchNeedle = SearchText?.Trim() ?? "";
         _matchCount = 0;
-        AssetsView.Refresh();
+        try { AssetsView.Refresh(); }
+        catch { /* filter must not crash the grid */ }
         VisibleCount = _matchCount;
         EmptyText = Assets.Count == 0
             ? (IsComputers
@@ -137,43 +138,50 @@ public partial class InventoryViewModel : ObservableObject
 
     private bool FilterRow(object obj)
     {
-        if (obj is not AssetListDto a) return false;
-        if (IsComputers)
+        try
         {
-            if (a.CategoryFamily != CategoryFamily.Computer) return false;
-        }
-        else if (a.CategoryFamily != CategoryFamily.Peripheral) return false;
-        if (PurposeFilter == "Inventory" && (a.IsTemporary || a.NeedsReview)) return false;
-        if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
-        if (PurposeFilter == "Pending confirm" && !a.NeedsReview) return false;
-        if (!IsAll(StatusFilter) && a.Status != StatusFilter) return false;
-        if (CategoryFilter != 0 && a.CategoryId != CategoryFilter) return false;
-        if (LocationFilter != 0 && a.LocationId != LocationFilter) return false;
-        if (!IsAll(ManufacturerFilter) &&
-            !string.Equals(a.Manufacturer, ManufacturerFilter, StringComparison.OrdinalIgnoreCase))
-            return false;
-        if (AssignedFilter == "Assigned" && string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
-        if (AssignedFilter == "Unassigned" && !string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
-        if (_searchNeedle.Length > 0)
-        {
-            var s = _searchNeedle;
-            if (!(Contains(a.AssetTag, s) ||
-                  Contains(a.SerialNumber, s) ||
-                  Contains(a.Hostname, s) ||
-                  Contains(a.IpAddress, s) ||
-                  Contains(a.AssignedUser, s) ||
-                  Contains(a.Manufacturer, s) ||
-                  Contains(a.Model, s) ||
-                  Contains(a.MacAddress, s) ||
-                  Contains(a.Designation, s) ||
-                  Contains(a.Location, s) ||
-                  Contains(a.Category, s) ||
-                  Contains(a.Status, s) ||
-                  Contains(a.MeLogon, s)))
+            if (obj is not AssetListDto a) return false;
+            if (IsComputers)
+            {
+                if (a.CategoryFamily != CategoryFamily.Computer) return false;
+            }
+            else if (a.CategoryFamily != CategoryFamily.Peripheral) return false;
+            if (PurposeFilter == "Inventory" && (a.IsTemporary || a.NeedsReview)) return false;
+            if (PurposeFilter == "Temporary" && !a.IsTemporary) return false;
+            if (PurposeFilter == "Pending confirm" && !a.NeedsReview) return false;
+            if (!IsAll(StatusFilter) && a.Status != StatusFilter) return false;
+            if (CategoryFilter != 0 && a.CategoryId != CategoryFilter) return false;
+            if (LocationFilter != 0 && a.LocationId != LocationFilter) return false;
+            if (!IsAll(ManufacturerFilter) &&
+                !string.Equals(a.Manufacturer, ManufacturerFilter, StringComparison.OrdinalIgnoreCase))
                 return false;
+            if (AssignedFilter == "Assigned" && string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
+            if (AssignedFilter == "Unassigned" && !string.IsNullOrWhiteSpace(a.AssignedUser)) return false;
+            var s = _searchNeedle ?? "";
+            if (s.Length > 0)
+            {
+                if (!(Contains(a.AssetTag, s) ||
+                      Contains(a.SerialNumber, s) ||
+                      Contains(a.Hostname, s) ||
+                      Contains(a.IpAddress, s) ||
+                      Contains(a.AssignedUser, s) ||
+                      Contains(a.Manufacturer, s) ||
+                      Contains(a.Model, s) ||
+                      Contains(a.MacAddress, s) ||
+                      Contains(a.Designation, s) ||
+                      Contains(a.Location, s) ||
+                      Contains(a.Category, s) ||
+                      Contains(a.Status, s) ||
+                      Contains(a.MeLogon, s)))
+                    return false;
+            }
+            _matchCount++;
+            return true;
         }
-        _matchCount++;
-        return true;
+        catch
+        {
+            return false;
+        }
     }
 
     private static bool IsAll(string? value) =>
@@ -212,20 +220,20 @@ public partial class InventoryViewModel : ObservableObject
 
             sw.Restart();
             _suspendFilter = true;
-            Assets.ReplaceAll(snap.Assets.Where(a => a.CategoryFamily == family).ToList());
+            Assets.ReplaceAll((snap.Assets ?? []).Where(a => a.CategoryFamily == family).ToList());
 
             Users.Clear();
-            foreach (var u in snap.Users.Where(u => u.IsActive))
+            foreach (var u in (snap.Users ?? []).Where(u => u.IsActive))
                 Users.Add(u);
 
             Categories.Clear();
             Categories.Add(new CategoryDto { Id = 0, Name = "All" });
-            foreach (var c in snap.Categories.Where(c => c.Family == family))
+            foreach (var c in (snap.Categories ?? []).Where(c => c.Family == family))
                 Categories.Add(c);
 
             Locations.Clear();
             Locations.Add(new LocationDto { Id = 0, Name = "All" });
-            foreach (var l in snap.Locations)
+            foreach (var l in snap.Locations ?? [])
                 Locations.Add(l);
 
             RebuildManufacturers();
@@ -284,6 +292,7 @@ public partial class InventoryViewModel : ObservableObject
         _config.FreezeIdentityColumns = value;
         _config.SaveUi();
         OnPropertyChanged(nameof(FrozenColumnCount));
+        GridLayoutChanged?.Invoke();
     }
 
     public void SaveColumnOrder(IEnumerable<string> headers)
@@ -295,6 +304,7 @@ public partial class InventoryViewModel : ObservableObject
     public event Action? ColumnOrderReset;
     public event Action? FocusSearchRequested;
     public event Action<IReadOnlyList<int>, int?>? RestoreSelectionRequested;
+    public event Action? GridLayoutChanged;
 
     public void RequestFocusSearch() => FocusSearchRequested?.Invoke();
 

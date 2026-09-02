@@ -265,7 +265,7 @@
     </DockPanel>
 
     <Grid Grid.Row="2">
-      <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
+      <Border Style="{StaticResource Card}" Padding="0">
         <DataGrid x:Name="AssetGrid"
                   ItemsSource="{Binding AssetsView}"
                   SelectedItem="{Binding Selected}"
@@ -275,11 +275,11 @@
                   SelectionChanged="OnSelectionChanged"
                   PreviewMouseRightButtonDown="OnRightDown"
                   BorderThickness="0"
-                  FrozenColumnCount="{Binding FrozenColumnCount}"
+                  FrozenColumnCount="0"
                   CanUserReorderColumns="True"
                   CanUserResizeColumns="True"
                   EnableRowVirtualization="True"
-                  EnableColumnVirtualization="{Binding FreezeIdentityColumns, Converter={StaticResource InvertBool}}">
+                  EnableColumnVirtualization="False">
           <DataGrid.ContextMenu>
             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
               <MenuItem Header="Open" Command="{Binding OpenCommand}" InputGestureText="Enter">

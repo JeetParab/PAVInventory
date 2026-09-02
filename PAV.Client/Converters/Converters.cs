@@ -85,9 +85,21 @@ public class StatusBrushConverter : IValueConverter
 
     private static SolidColorBrush Brush(string hex)
     {
-        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
-        b.Freeze();
-        return b;
+        try
+        {
+            var parsed = ColorConverter.ConvertFromString(hex);
+            if (parsed is Color c)
+            {
+                var b = new SolidColorBrush(c);
+                b.Freeze();
+                return b;
+            }
+        }
+        catch
+        {
+            // fall through
+        }
+        return Brushes.Gray;
     }
 }
 
