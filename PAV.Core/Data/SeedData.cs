@@ -17,7 +17,7 @@ public static class SeedData
                     new Category { Name = "Laptop", Description = "Notebook computers", Family = CategoryFamily.Computer },
                     new Category { Name = "Desktop", Description = "Desktop PCs", Family = CategoryFamily.Computer },
                     new Category { Name = "All-in-One", Description = "All-in-one PCs", Family = CategoryFamily.Computer },
-                    new Category { Name = "Network", Description = "Switches, APs, routers", Family = CategoryFamily.Computer },
+                    new Category { Name = "Network", Description = "Switches, APs, routers", Family = CategoryFamily.Peripheral },
                     new Category { Name = "Monitor", Description = "Displays", Family = CategoryFamily.Peripheral },
                     new Category { Name = "Printer", Description = "Printers and MFDs", Family = CategoryFamily.Peripheral },
                     new Category { Name = "UPS", Description = "Uninterruptible power supplies", Family = CategoryFamily.Peripheral },

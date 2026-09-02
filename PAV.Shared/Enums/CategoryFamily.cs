@@ -17,8 +17,8 @@ public static class CategoryFamilies
             case "all-in-one":
             case "all in one":
             case "aio":
-            case "network":
                 return CategoryFamily.Computer;
+            case "network":
             case "monitor":
             case "printer":
             case "ups":

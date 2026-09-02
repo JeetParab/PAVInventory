@@ -12,9 +12,9 @@ public partial class InventoryView : UserControl
 {
     private static readonly HashSet<string> ComputerOnlyHeaders = new(StringComparer.Ordinal)
     {
-        "Hostname", "IP Address", "Purpose", "Domain", "MAC Address", "Processor", "RAM",
+        "Hostname", "Purpose", "Domain", "Processor", "RAM",
         "Storage", "OS", "DC", "AV", "Office", "MFA", "Ivanti", "Admin", "USB", "Chrome",
-        "PM", "Last Connected"
+        "PM", "Last Connected", "Collect By"
     };
 
     public InventoryView()

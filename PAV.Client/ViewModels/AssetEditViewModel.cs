@@ -70,6 +70,7 @@ public partial class AssetEditViewModel : ObservableObject
 
     public bool Saved { get; private set; }
     public AssetDetailDto? SavedAsset { get; private set; }
+    public bool ShowComputerFields { get; }
 
     public AssetEditViewModel(
         ApiClient api,
@@ -79,10 +80,12 @@ public partial class AssetEditViewModel : ObservableObject
         List<string> assigneeNames,
         AssetListDto? existing,
         bool copy = false,
-        PendingDetailDto? seed = null)
+        PendingDetailDto? seed = null,
+        bool computerFields = true)
     {
         _api = api;
         _users = users;
+        ShowComputerFields = computerFields;
         Categories = categories;
         Locations = [new LocationDto { Id = 0, Name = "(None)" }, .. locations];
         Title = copy ? "Copy asset" : existing is null ? (seed is null ? "Add asset" : "Complete asset details") : "Edit asset";
@@ -164,7 +167,7 @@ public partial class AssetEditViewModel : ObservableObject
         else
         {
             CategoryId = categories.FirstOrDefault()?.Id ?? 0;
-            MsOfficeVersion = "O365";
+            MsOfficeVersion = ShowComputerFields ? "O365" : "";
             DcInstalled = "";
             AvInstalled = "";
             MfaEnabled = "";
@@ -191,9 +194,13 @@ public partial class AssetEditViewModel : ObservableObject
     private async Task SaveAsync()
     {
         Error = null;
-        if (string.IsNullOrWhiteSpace(AssetTag) && string.IsNullOrWhiteSpace(SerialNumber) && string.IsNullOrWhiteSpace(Hostname))
+        if (string.IsNullOrWhiteSpace(AssetTag)
+            && string.IsNullOrWhiteSpace(SerialNumber)
+            && (ShowComputerFields ? string.IsNullOrWhiteSpace(Hostname) : string.IsNullOrWhiteSpace(IpAddress)))
         {
-            Error = "Enter an Asset ID, serial number, or hostname.";
+            Error = ShowComputerFields
+                ? "Enter an Asset ID, serial number, or hostname."
+                : "Enter an Asset ID, serial number, or IP address.";
             return;
         }
         if (CategoryId == 0)

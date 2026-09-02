@@ -23,8 +23,8 @@ public partial class InventoryViewModel : ObservableObject
     public bool ShowComputerTools => IsComputers;
     public string PageTitle => IsComputers ? "Inventory" : "Peripherals";
     public string PageHint => IsComputers
-        ? "Laptops, desktops, all-in-ones and network devices"
-        : "Monitors, printers, UPS, accessories and other kit";
+        ? "Laptops, desktops and all-in-ones"
+        : "Monitors, printers, UPS, network devices and other kit";
 
     public ResetList<AssetListDto> Assets { get; } = [];
     public ObservableCollection<CategoryDto> Categories { get; } = [];
@@ -435,7 +435,8 @@ public partial class InventoryViewModel : ObservableObject
     {
         if (!_shell.CanAdd) return;
         var vm = new AssetEditViewModel(_api, Categories.Where(c => c.Id != 0).ToList(),
-            Locations.Where(l => l.Id != 0).ToList(), Users.ToList(), AssigneeNames(), null);
+            Locations.Where(l => l.Id != 0).ToList(), Users.ToList(), AssigneeNames(), null,
+            computerFields: IsComputers);
         var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
         {
@@ -484,7 +485,8 @@ public partial class InventoryViewModel : ObservableObject
                 Locations.Where(l => l.Id != 0).ToList(),
                 Users.ToList(),
                 AssigneeNames(),
-                detail);
+                detail,
+                computerFields: IsComputers);
             var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
             if (win.ShowDialog() == true)
             {
@@ -510,7 +512,8 @@ public partial class InventoryViewModel : ObservableObject
             Users.ToList(),
             AssigneeNames(),
             Selected,
-            copy: true);
+            copy: true,
+            computerFields: IsComputers);
         var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
         {
