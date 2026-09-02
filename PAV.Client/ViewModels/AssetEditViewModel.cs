@@ -71,6 +71,7 @@ public partial class AssetEditViewModel : ObservableObject
     public bool Saved { get; private set; }
     public AssetDetailDto? SavedAsset { get; private set; }
     public bool ShowComputerFields { get; }
+    public bool ShowPeripheralFields => !ShowComputerFields;
 
     public AssetEditViewModel(
         ApiClient api,

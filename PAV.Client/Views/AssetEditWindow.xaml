@@ -86,15 +86,34 @@
             <TextBlock Text="Serial Number" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <StackPanel Grid.Row="3" Margin="0,0,0,14"
-                      Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
-            <TextBlock Text="Hostname" Style="{StaticResource FieldLabel}"/>
-            <TextBox Text="{Binding Hostname, UpdateSourceTrigger=PropertyChanged}"/>
-          </StackPanel>
-          <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,0,0,14">
-            <TextBlock Text="IP Address" Style="{StaticResource FieldLabel}"/>
-            <TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"/>
-          </StackPanel>
+          <Grid Grid.Row="3" Margin="0,0,0,14"
+                Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Hostname" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding Hostname, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="IP Address" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+          </Grid>
+          <Grid Grid.Row="3" Margin="0,0,0,14"
+                Visibility="{Binding ShowPeripheralFields, Converter={StaticResource BoolToVis}}">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="IP Address" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="MAC Address" Style="{StaticResource FieldLabel}"/>
+              <TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+          </Grid>
           <StackPanel Grid.Row="4" Margin="0,0,0,14">
             <TextBlock Text="Manufacturer" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding Manufacturer, UpdateSourceTrigger=PropertyChanged}"/>
@@ -125,7 +144,7 @@
             <TextBox Text="{Binding Designation, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
         </Grid>
-        <Grid>
+        <Grid Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
@@ -133,12 +152,16 @@
             <TextBlock Text="Alternate User" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding AlternateUser, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <StackPanel Grid.Column="2" Margin="0,0,0,14"
-                      Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
             <TextBlock Text="Domain" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
         </Grid>
+        <StackPanel Margin="0,0,0,14"
+                    Visibility="{Binding ShowPeripheralFields, Converter={StaticResource BoolToVis}}">
+          <TextBlock Text="Alternate User" Style="{StaticResource FieldLabel}"/>
+          <TextBox Text="{Binding AlternateUser, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
         <Grid Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
@@ -189,6 +212,7 @@
           </StackPanel>
         </Grid>
 
+        <StackPanel Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
         <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
           <TextBlock Text="&#xE7F4;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
           <TextBlock Text="Hardware" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
@@ -204,26 +228,23 @@
             <TextBlock Text="MAC Address" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding MacAddress, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <StackPanel Grid.Column="2" Margin="0,0,0,14"
-                      Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+          <StackPanel Grid.Column="2" Margin="0,0,0,14">
             <TextBlock Text="Processor" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding Processor, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <StackPanel Grid.Row="1" Margin="0,0,0,14"
-                      Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+          <StackPanel Grid.Row="1" Margin="0,0,0,14">
             <TextBlock Text="RAM" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding Ram, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14"
-                      Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+          <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,14">
             <TextBlock Text="Storage" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding Storage, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
         </Grid>
-        <StackPanel Margin="0,0,0,14"
-                    Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
+        <StackPanel Margin="0,0,0,14">
           <TextBlock Text="OS" Style="{StaticResource FieldLabel}"/>
           <TextBox Text="{Binding OperatingSystem, UpdateSourceTrigger=PropertyChanged}"/>
+        </StackPanel>
         </StackPanel>
 
         <StackPanel Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
