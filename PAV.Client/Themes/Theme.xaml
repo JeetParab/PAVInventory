@@ -1,6 +1,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:c="clr-namespace:PAV.Client.Converters">
+                    xmlns:c="clr-namespace:PAV.Client.Converters"
+                    xmlns:svc="clr-namespace:PAV.Client.Services">
 
   <c:EqualsConverter x:Key="Eq"/>
   <c:InvertBoolConverter x:Key="InvertBool"/>
@@ -562,6 +563,7 @@
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
     <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
     <Setter Property="CanUserResizeColumns" Value="True"/>
+    <Setter Property="svc:PageScroll.Grid" Value="True"/>
 
     <Style.Resources>
       <Style TargetType="TextBlock">
