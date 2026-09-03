@@ -1,16 +1,18 @@
 <UserControl x:Class="PAV.Client.Views.SettingsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:svc="clr-namespace:PAV.Client.Services"
              UseLayoutRounding="True"
              SnapsToDevicePixels="True">
   <DockPanel>
     <TextBlock DockPanel.Dock="Top" Text="Settings" Style="{StaticResource PageTitle}" Margin="0,0,0,16"/>
     <ScrollViewer x:Name="RootScroll"
+                  svc:PageScroll.Smooth="True"
                   VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
                   CanContentScroll="False"
                   PanningMode="VerticalOnly"
-                  IsDeferredScrollingEnabled="True">
+                  IsDeferredScrollingEnabled="False">
       <!-- Bitmap cache: scrolling moves a cached visual instead of re-layouting every card/DataGrid -->
       <StackPanel>
         <StackPanel.CacheMode>

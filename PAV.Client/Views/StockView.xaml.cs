@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using PAV.Client.Services;
 using PAV.Client.ViewModels;
 
 namespace PAV.Client.Views;
@@ -71,17 +72,7 @@ public partial class StockView : UserControl
         if (sv is null) return;
 
         if (Keyboard.Modifiers == ModifierKeys.Shift)
-        {
-            sv.ScrollToHorizontalOffset(sv.HorizontalOffset - e.Delta);
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Delta < 0 && sv.VerticalOffset >= sv.ScrollableHeight && sv.ScrollableWidth > 0)
-        {
-            sv.ScrollToHorizontalOffset(sv.HorizontalOffset + 48);
-            e.Handled = sv.HorizontalOffset > 0 || sv.ScrollableWidth > 0;
-        }
+            PageScroll.ApplyHorizontal(sv, e);
     }
 
     private static ScrollViewer? FindScrollViewer(DependencyObject root)
