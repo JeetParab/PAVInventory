@@ -121,7 +121,6 @@
                   CanUserResizeColumns="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
-                  PreviewMouseWheel="OnGridPreviewMouseWheel"
                   MouseDoubleClick="OnItemDoubleClick">
           <DataGrid.Columns>
             <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="*" MinWidth="180"/>
@@ -151,8 +150,7 @@
                     EnableColumnVirtualization="False"
                     CanUserResizeColumns="True"
                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                    PreviewMouseWheel="OnGridPreviewMouseWheel">
+                    ScrollViewer.VerticalScrollBarVisibility="Auto">
             <DataGrid.Columns>
               <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="140"/>
               <DataGridTextColumn Header="Type" Binding="{Binding MovementType}" Width="90"/>
@@ -182,8 +180,7 @@
                   EnableRowVirtualization="True" EnableColumnVirtualization="False"
                   CanUserResizeColumns="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                  ScrollViewer.VerticalScrollBarVisibility="Auto"
-                  PreviewMouseWheel="OnGridPreviewMouseWheel">
+                  ScrollViewer.VerticalScrollBarVisibility="Auto">
           <DataGrid.Columns>
             <DataGridTextColumn Header="When" Binding="{Binding CreatedAt, StringFormat=yyyy-MM-dd HH:mm}" Width="140"/>
             <DataGridTextColumn Header="Item" Binding="{Binding ItemName}" Width="220"/>

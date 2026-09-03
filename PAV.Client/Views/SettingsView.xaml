@@ -84,7 +84,6 @@
             <DataGrid ItemsSource="{Binding SignInUsers}" SelectedItem="{Binding SelectedAccount}"
                       Height="180"
                       EnableRowVirtualization="True"
-                      PreviewMouseWheel="OnNestedPreviewMouseWheel"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
               <DataGrid.InputBindings>
@@ -131,7 +130,6 @@
                         EnableColumnVirtualization="True"
                         VirtualizingPanel.IsVirtualizing="True"
                         VirtualizingPanel.VirtualizationMode="Recycling"
-                        PreviewMouseWheel="OnNestedPreviewMouseWheel"
                         ScrollViewer.VerticalScrollBarVisibility="Auto"
                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                         ScrollViewer.CanContentScroll="True">
@@ -183,7 +181,6 @@
                       EnableColumnVirtualization="True"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
-                      PreviewMouseWheel="OnNestedPreviewMouseWheel"
                       ScrollViewer.VerticalScrollBarVisibility="Auto"
                       ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                       ScrollViewer.CanContentScroll="True">
