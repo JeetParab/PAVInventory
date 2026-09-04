@@ -49,6 +49,7 @@ public partial class MainWindow : Window
                     "Stock" => new StockView { DataContext = _shell.Stock },
                     "Toner" => new StockView { DataContext = _shell.Toner },
                     "Users" => new UsersView { DataContext = _shell.Users },
+                    "AdUsers" => new DirectoryView { DataContext = _shell.Directory },
                     "Locations" => new LocationsView { DataContext = _shell.Locations },
                     "Settings" => new SettingsView { DataContext = _shell.Settings },
                     _ => new InventoryView { DataContext = _shell.Inventory }

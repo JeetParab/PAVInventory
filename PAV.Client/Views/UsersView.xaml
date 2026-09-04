@@ -23,9 +23,6 @@
         <Button Content="Add from inventory" Style="{StaticResource SecondaryButton}"
                 Command="{Binding ImportFromInventoryCommand}"
                 IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
-        <Button Content="Import AD users" Style="{StaticResource SecondaryButton}"
-                Command="{Binding ImportAdCommand}"
-                IsEnabled="{Binding CanImportAd}" Margin="0,0,8,0"/>
         <Button Content="Edit" Style="{StaticResource SecondaryButton}" Command="{Binding EditCommand}"
                 IsEnabled="{Binding CanEditPeople}" Margin="0,0,8,0"/>
         <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"
@@ -35,7 +32,7 @@
 
     <StackPanel Grid.Row="1" Margin="0,0,0,10">
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
-                 Text="Office people you assign laptops, IPs and stock to. Name, user id, department, email and employee ID. They cannot sign in. Engineers and admins live in Settings. Import AD users once to store user ids, then ManageEngine last logon fills the rest. Add from inventory still pulls names already on assets."/>
+                 Text="PAV people you assign laptops, IPs and stock to. They cannot sign in. The full AD list (user id, name, email, department) is on the AD users tab. Add from inventory still pulls names already on assets."/>
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="#C47B17"
                  Text="{Binding UnlinkedSummary}"
                  Visibility="{Binding HasUnlinked, Converter={StaticResource BoolToVis}}"/>

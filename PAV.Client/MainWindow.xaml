@@ -99,6 +99,10 @@
                          Tag="&#xE716;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Users, Mode=OneWay}"
                          Command="{Binding GoCommand}" CommandParameter="Users"/>
+            <RadioButton Style="{StaticResource NavButton}" Content="AD users"
+                         Tag="&#xE77B;"
+                         IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=AdUsers, Mode=OneWay}"
+                         Command="{Binding GoCommand}" CommandParameter="AdUsers"/>
             <RadioButton Style="{StaticResource NavButton}" Content="Locations"
                          Tag="&#xE707;"
                          IsChecked="{Binding CurrentPage, Converter={StaticResource Eq}, ConverterParameter=Locations, Mode=OneWay}"

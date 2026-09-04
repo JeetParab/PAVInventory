@@ -7,7 +7,7 @@
   <DockPanel Margin="20">
     <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,8"/>
     <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12"
-               Text="Pick a person or type name / user id (aishwaryav). Unique matches are linked."/>
+               Text="{Binding Hint}"/>
     <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
                TextWrapping="Wrap" Margin="0,0,0,8"/>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
@@ -20,8 +20,9 @@
       <ComboBox x:Name="UserBox" ItemsSource="{Binding AssigneeChoices}"
                 Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
                 IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                IsDropDownOpen="{Binding SuggestOpen, Mode=TwoWay}"
                 MaxDropDownHeight="360"
-                ToolTip="Type a name or user id. Unique matches are selected."/>
+                ToolTip="Type a name or user id. The list filters as you type."/>
     </StackPanel>
   </DockPanel>
 </Window>

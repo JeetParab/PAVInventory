@@ -139,8 +139,9 @@
             <ComboBox ItemsSource="{Binding AssigneeChoices}"
                       Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
                       IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                      IsDropDownOpen="{Binding SuggestOpen, Mode=TwoWay}"
                       MaxDropDownHeight="360"
-                      ToolTip="Pick or type a name or user id. Leave blank to unassign."/>
+                      ToolTip="Type a name or user id. The list filters as you type."/>
           </StackPanel>
           <StackPanel Grid.Column="2" Margin="0,0,0,14">
             <TextBlock Text="Designation" Style="{StaticResource FieldLabel}"/>

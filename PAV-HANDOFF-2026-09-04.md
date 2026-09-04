@@ -41,7 +41,8 @@ Engineers run `PAV.Client.exe`. Database is a shared `inventory.db` (or SQL Serv
 | **Peripherals** | Monitors, printers, UPS, accessories, **network devices**, other (`CategoryFamily.Peripheral`) |
 | **Pending** | IP assigned but asset details missing; ME import awaiting confirm; mismatch warnings |
 | **IP Inventory** | Static office IPs. Assign next/random/custom. Allocation list. Bidirectional sync with assets |
-| **Users** | Office people (name, department, email, employee ID). No password. Asset + stock holdings |
+| **Users** | Office people (name, department, email, employee ID, user id). No password. Asset + stock holdings |
+| **AD users** | One-time ADMP snapshot (user id / name / email / dept). Browse and check details. Not the assignable Users list |
 | **Stock** | Consumables. Default columns: Item, On hand, Issued. **More columns** shows the rest |
 | **Toner** | Same Stock UI, toner category scope |
 | **Locations** | Location master |

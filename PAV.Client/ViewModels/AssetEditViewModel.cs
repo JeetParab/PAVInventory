@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -13,12 +14,13 @@ public partial class AssetEditViewModel : ObservableObject
     private readonly int? _id;
     private readonly int _version;
     private readonly List<UserDto> _users;
+    private readonly List<string> _catalog = [];
     private bool _lockName;
 
     public string Title { get; }
     public List<CategoryDto> Categories { get; }
     public List<LocationDto> Locations { get; }
-    public List<string> AssigneeChoices { get; }
+    public ObservableCollection<string> AssigneeChoices { get; } = [];
     public List<string> Statuses { get; } = AssetStatusNames.All.Select(s => s.Display()).ToList();
     public List<string> YesNo { get; } = ["", "Yes", "No"];
     public List<string> OfficeChoices { get; }
@@ -36,6 +38,7 @@ public partial class AssetEditViewModel : ObservableObject
     [ObservableProperty] private string status = AssetStatus.InStock.Display();
     [ObservableProperty] private int? assignedUserId;
     [ObservableProperty] private string? assignedUserName;
+    [ObservableProperty] private bool suggestOpen;
     [ObservableProperty] private bool isTemporary;
     public bool IsInventoryPurpose
     {
@@ -92,17 +95,16 @@ public partial class AssetEditViewModel : ObservableObject
         Locations = [new LocationDto { Id = 0, Name = "(None)" }, .. locations];
         Title = copy ? "Copy asset" : existing is null ? (seed is null ? "Add asset" : "Complete asset details") : "Edit asset";
 
-        AssigneeChoices =
-        [
-            "",
-            .. users
-                .Where(u => !string.IsNullOrWhiteSpace(u.Name))
-                .Select(u => u.AssignLabel)
-                .Concat(assigneeNames)
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(n => n)
-        ];
+        foreach (var n in users
+                     .Where(u => !string.IsNullOrWhiteSpace(u.Name))
+                     .Select(u => u.AssignLabel)
+                     .Concat(assigneeNames)
+                     .Where(n => !string.IsNullOrWhiteSpace(n))
+                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                     .OrderBy(n => n))
+            _catalog.Add(n);
+        ApplySuggest("");
+        _ = LoadAdAsync();
 
         CollectByChoices =
         [
@@ -159,9 +161,8 @@ public partial class AssetEditViewModel : ObservableObject
             PurchaseDate = existing.PurchaseDate;
             WarrantyExpiry = existing.WarrantyExpiry;
             Remarks = existing.Remarks;
-            if (!string.IsNullOrWhiteSpace(AssignedUserName) &&
-                !AssigneeChoices.Contains(AssignedUserName, StringComparer.OrdinalIgnoreCase))
-                AssigneeChoices.Insert(1, AssignedUserName);
+            if (!string.IsNullOrWhiteSpace(AssignedUserName))
+                AddToCatalog(AssignedUserName);
             if (!string.IsNullOrWhiteSpace(CollectBy) &&
                 !CollectByChoices.Contains(CollectBy, StringComparer.OrdinalIgnoreCase))
                 CollectByChoices.Insert(1, CollectBy);
@@ -190,9 +191,8 @@ public partial class AssetEditViewModel : ObservableObject
                 Hostname = seed.Hostname;
                 AssignedUserName = seed.AssignedUser;
                 MacAddress = seed.MacAddress;
-                if (!string.IsNullOrWhiteSpace(AssignedUserName) &&
-                    !AssigneeChoices.Contains(AssignedUserName, StringComparer.OrdinalIgnoreCase))
-                    AssigneeChoices.Insert(1, AssignedUserName);
+                if (!string.IsNullOrWhiteSpace(AssignedUserName))
+                    AddToCatalog(AssignedUserName);
             }
         }
     }
@@ -248,7 +248,7 @@ public partial class AssetEditViewModel : ObservableObject
             IpAddress = IpAddress,
             LocationId = LocationId == 0 ? null : LocationId,
             Status = status,
-            AssignedUserId = ResolveAssignedUserId(),
+            AssignedUserId = await ResolveAssignedUserIdAsync(),
             AssignedUserName = AssignedUserName,
             Designation = Designation,
             AlternateUser = AlternateUser,
@@ -302,7 +302,7 @@ public partial class AssetEditViewModel : ObservableObject
         }
     }
 
-    private int? ResolveAssignedUserId()
+    private async Task<int?> ResolveAssignedUserIdAsync()
     {
         if (string.IsNullOrWhiteSpace(AssignedUserName))
             return null;
@@ -310,6 +310,19 @@ public partial class AssetEditViewModel : ObservableObject
         var unique = UserNameResolver.ResolveUniqueId(tuples, AssignedUserName.Trim());
         if (unique is not null)
             return unique;
+        try
+        {
+            var person = await _api.EnsurePersonFromAdAsync(AssignedUserName.Trim());
+            if (person is not null)
+            {
+                _users.Add(person);
+                return person.Id;
+            }
+        }
+        catch
+        {
+            /* leave unlinked text if AD cannot create */
+        }
         if (AssignedUserId is { } id && _users.Any(u => u.Id == id))
             return id;
         return null;
@@ -317,18 +330,48 @@ public partial class AssetEditViewModel : ObservableObject
 
     partial void OnAssignedUserNameChanged(string? value)
     {
-        if (_lockName || string.IsNullOrWhiteSpace(value) || value.Trim().Length < 2) return;
-        var key = value.Trim();
-        var hits = AssigneeChoices
-            .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (hits.Count == 1 && !hits[0].Equals(key, StringComparison.OrdinalIgnoreCase))
+        if (_lockName) return;
+        ApplySuggest(value);
+        SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
+    }
+
+    private async Task LoadAdAsync()
+    {
+        try
         {
-            _lockName = true;
-            AssignedUserName = hits[0];
-            _lockName = false;
+            var ad = await _api.AdDirectoryAsync();
+            var extra = false;
+            foreach (var n in ad.Select(a => a.AssignLabel))
+            {
+                if (_catalog.Contains(n, StringComparer.OrdinalIgnoreCase)) continue;
+                _catalog.Add(n);
+                extra = true;
+            }
+            if (extra)
+            {
+                _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+                ApplySuggest(AssignedUserName);
+            }
         }
+        catch
+        {
+            /* PAV people only */
+        }
+    }
+
+    private void AddToCatalog(string name)
+    {
+        if (_catalog.Contains(name, StringComparer.OrdinalIgnoreCase)) return;
+        _catalog.Add(name);
+        _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+        ApplySuggest(AssignedUserName);
+    }
+
+    private void ApplySuggest(string? value)
+    {
+        _lockName = true;
+        AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
+        _lockName = false;
     }
 
     public string LastConnectedText

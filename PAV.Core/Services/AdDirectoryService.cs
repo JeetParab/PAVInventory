@@ -45,7 +45,6 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
             }
 
             await SqliteGuard.SaveChangesAsync(db);
-
             var link = await new AdPersonLinker(db).LinkUnassignedFromMeLogonAsync();
             return new AdImportResultDto
             {
@@ -56,6 +55,42 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
                 AssetsLinked = link.AssetsLinked,
                 Summary = Summary(added, updated, plan.SkipCount, link.PeopleCreated, link.AssetsLinked)
             };
+        });
+
+    public async Task<List<AdUserDto>> ListAsync()
+    {
+        var rows = await db.AdDirectory.AsNoTracking()
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.Sam)
+            .ToListAsync();
+        var pav = new HashSet<string>(
+            await db.Users.AsNoTracking()
+                .Where(u => u.SamAccount != null && u.SamAccount != "")
+                .Select(u => u.SamAccount!)
+                .ToListAsync(),
+            StringComparer.OrdinalIgnoreCase);
+        return rows.Select(x => new AdUserDto
+        {
+            Id = x.Id,
+            Sam = x.Sam,
+            Name = x.Name,
+            Email = x.Email,
+            Department = x.Department,
+            EmployeeId = x.EmployeeId,
+            IsActive = x.IsActive,
+            InPav = pav.Contains(x.Sam)
+        }).ToList();
+    }
+
+    public Task<UserDto?> EnsurePersonFromTypedAsync(string raw) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var linker = new AdPersonLinker(db);
+            var ad = linker.Find(raw);
+            if (ad is null) return null;
+            var cache = await linker.LoadPeopleCacheAsync();
+            var (user, _) = await linker.EnsurePersonAsync(ad, cache);
+            return Mapping.ToDto(user);
         });
 
     private async Task<AdImportPreviewDto> BuildPlanAsync(Stream excel)
@@ -345,6 +380,36 @@ public sealed class AdPersonLinker(AppDbContext db)
             .GroupBy(x => x.Sam, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
+    public AdDirectoryEntry? Find(string? raw)
+    {
+        var dir = LoadDirectory();
+        if (dir.Count == 0) return null;
+        var sam = AdLogon.Normalize(raw);
+        if (sam is not null && dir.TryGetValue(sam, out var bySam))
+            return bySam;
+
+        var key = Mapping.Clean(raw);
+        if (key is null) return null;
+        if (key.EndsWith(')'))
+        {
+            var open = key.LastIndexOf('(');
+            if (open > 0)
+            {
+                var id = AdLogon.Normalize(key[(open + 1)..^1]);
+                if (id is not null && dir.TryGetValue(id, out var byParen))
+                    return byParen;
+                key = Mapping.Clean(key[..open]) ?? key;
+            }
+        }
+
+        var nameHits = dir.Values
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name)
+                        && string.Equals(x.Name.Trim(), key, StringComparison.OrdinalIgnoreCase))
+            .Take(2)
+            .ToList();
+        return nameHits.Count == 1 ? nameHits[0] : null;
+    }
+
     public string? Describe(string? meLogon, IReadOnlyDictionary<string, AdDirectoryEntry> directory)
     {
         var sam = AdLogon.Normalize(meLogon);
@@ -421,7 +486,7 @@ public sealed class AdPersonLinker(AppDbContext db)
         return cache;
     }
 
-    private async Task<(User User, bool Created)> EnsurePersonAsync(AdDirectoryEntry ad, PeopleCache cache)
+    public async Task<(User User, bool Created)> EnsurePersonAsync(AdDirectoryEntry ad, PeopleCache cache)
     {
         if (cache.BySam.TryGetValue(ad.Sam, out var hit) && !hit.CanSignIn)
         {

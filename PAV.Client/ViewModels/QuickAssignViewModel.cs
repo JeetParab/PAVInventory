@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -11,14 +12,17 @@ public partial class QuickAssignViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly List<int> _ids;
     private readonly List<UserDto> _users;
+    private readonly List<string> _catalog = [];
+    private bool _lockName;
 
     public string Title => $"Assign {_ids.Count} asset(s)";
-    public List<string> AssigneeChoices { get; }
+    public ObservableCollection<string> AssigneeChoices { get; } = [];
 
     [ObservableProperty] private string? assignedUserName;
     [ObservableProperty] private string? error;
     [ObservableProperty] private bool saving;
-    private bool _lockName;
+    [ObservableProperty] private bool suggestOpen;
+    [ObservableProperty] private string hint = "Type a name or user id. Suggestions appear as you type.";
 
     public string? AppliedName { get; private set; }
     public int? AppliedUserId { get; private set; }
@@ -31,30 +35,60 @@ public partial class QuickAssignViewModel : ObservableObject
         _api = api;
         _ids = ids;
         _users = users;
-        AssigneeChoices = users
-            .Where(u => !string.IsNullOrWhiteSpace(u.Name))
-            .Select(u => u.AssignLabel)
-            .Concat(assigneeNames)
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n)
-            .ToList();
+        foreach (var n in users.Select(u => u.AssignLabel)
+                     .Concat(assigneeNames)
+                     .Where(n => !string.IsNullOrWhiteSpace(n))
+                     .Distinct(StringComparer.OrdinalIgnoreCase)
+                     .OrderBy(n => n))
+            _catalog.Add(n);
+        ApplySuggest("");
+        _ = LoadAdAsync();
+    }
+
+    private async Task LoadAdAsync()
+    {
+        try
+        {
+            var ad = await _api.AdDirectoryAsync();
+            var extra = false;
+            foreach (var n in ad.Select(a => a.AssignLabel))
+            {
+                if (_catalog.Contains(n, StringComparer.OrdinalIgnoreCase)) continue;
+                _catalog.Add(n);
+                extra = true;
+            }
+            if (extra)
+            {
+                _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+                ApplySuggest(AssignedUserName);
+            }
+        }
+        catch
+        {
+            /* type from PAV people if AD list cannot load */
+        }
     }
 
     partial void OnAssignedUserNameChanged(string? value)
     {
-        if (_lockName || string.IsNullOrWhiteSpace(value) || value.Trim().Length < 2) return;
-        var key = value.Trim();
-        var hits = AssigneeChoices
-            .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (hits.Count == 1 && !hits[0].Equals(key, StringComparison.OrdinalIgnoreCase))
-        {
-            _lockName = true;
-            AssignedUserName = hits[0];
-            _lockName = false;
-        }
+        if (_lockName) return;
+        ApplySuggest(value);
+        SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
+        var n = AssigneeChoices.Count;
+        Hint = string.IsNullOrWhiteSpace(value)
+            ? "Type a name or user id. Suggestions appear as you type."
+            : n == 0
+                ? "No match in PAV Users or AD users."
+                : n == 1
+                    ? "1 match — pick it or press Assign."
+                    : $"{n} matches. Keep typing or pick from the list.";
+    }
+
+    private void ApplySuggest(string? value)
+    {
+        _lockName = true;
+        AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
+        _lockName = false;
     }
 
     [RelayCommand]
@@ -82,9 +116,19 @@ public partial class QuickAssignViewModel : ObservableObject
             {
                 var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
                 id = UserNameResolver.ResolveUniqueId(tuples, name);
-                if (id is { } uid)
+                if (id is null)
                 {
-                    var u = _users.First(x => x.Id == uid);
+                    var person = await _api.EnsurePersonFromAdAsync(name);
+                    if (person is not null)
+                    {
+                        _users.Add(person);
+                        id = person.Id;
+                        name = person.Name;
+                    }
+                }
+                else
+                {
+                    var u = _users.First(x => x.Id == id);
                     name = u.Name;
                 }
             }

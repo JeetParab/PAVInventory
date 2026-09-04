@@ -11,7 +11,6 @@ public partial class QuickAssignWindow : Window
         Loaded += (_, _) =>
         {
             UserBox.Focus();
-            UserBox.IsDropDownOpen = AssigneeHasItems();
         };
         DataContextChanged += (_, _) =>
         {
@@ -19,7 +18,4 @@ public partial class QuickAssignWindow : Window
                 vm.CloseRequested += r => { try { DialogResult = r; } catch { Close(); } };
         };
     }
-
-    private bool AssigneeHasItems() =>
-        DataContext is QuickAssignViewModel vm && vm.AssigneeChoices.Count > 0;
 }

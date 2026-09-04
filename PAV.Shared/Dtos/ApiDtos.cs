@@ -404,6 +404,30 @@ public class MeImportResultDto
     public List<string> Errors { get; set; } = [];
 }
 
+public class AdUserDto
+{
+    public int Id { get; set; }
+    public string Sam { get; set; } = "";
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Department { get; set; }
+    public string? EmployeeId { get; set; }
+    public bool IsActive { get; set; }
+    public bool InPav { get; set; }
+
+    public string Status => IsActive ? "Enabled" : "Disabled";
+    public string AssignLabel
+    {
+        get
+        {
+            var n = string.IsNullOrWhiteSpace(Name) ? Sam : Name.Trim();
+            return string.IsNullOrWhiteSpace(Sam) ? n : n + "  (" + Sam + ")";
+        }
+    }
+
+    public override string ToString() => AssignLabel;
+}
+
 public class AdImportPreviewDto
 {
     public string Summary { get; set; } = "";

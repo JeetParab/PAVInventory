@@ -400,6 +400,12 @@ public class ApiClient
             return await new AdDirectoryService(db, _lock).ImportAsync(fs, actor);
         });
 
+    public Task<List<AdUserDto>> AdDirectoryAsync() =>
+        Read(Permissions.View, (db, _) => new AdDirectoryService(db, _lock).ListAsync());
+
+    public Task<UserDto?> EnsurePersonFromAdAsync(string raw) =>
+        Read(Permissions.Add, (db, _) => new AdDirectoryService(db, _lock).EnsurePersonFromTypedAsync(raw));
+
     public Task ConfirmReviewAsync(int id) =>
         Read(Permissions.Edit, async (db, actor) =>
         {
