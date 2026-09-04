@@ -951,9 +951,9 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         return v;
     }
 
-    private async Task<List<(int Id, string Name, string Username)>> LoadUserKeysAsync() =>
-        (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username }).ToListAsync())
-        .Select(u => (u.Id, u.Name, u.Username))
+    private async Task<List<(int Id, string Name, string Username, string? Sam)>> LoadUserKeysAsync() =>
+        (await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username, u.SamAccount }).ToListAsync())
+        .Select(u => (u.Id, u.Name, u.Username, u.SamAccount))
         .ToList();
 
     private static string? FmtDate(DateTime? d) => d?.ToString("dd MMM yyyy");

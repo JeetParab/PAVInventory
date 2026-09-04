@@ -21,5 +21,5 @@ public partial class QuickAssignWindow : Window
     }
 
     private bool AssigneeHasItems() =>
-        DataContext is QuickAssignViewModel vm && vm.AssigneeChoices.Count > 0 && vm.AssigneeChoices.Count <= 30;
+        DataContext is QuickAssignViewModel vm && vm.AssigneeChoices.Count > 0;
 }

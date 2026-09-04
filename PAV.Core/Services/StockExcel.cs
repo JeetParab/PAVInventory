@@ -64,7 +64,7 @@ public static class StockExcel
         Stream stream,
         string fileName,
         IReadOnlyList<ExistingStock> existingStock,
-        IReadOnlyList<(int Id, string Name, string Username)> users)
+        IReadOnlyList<(int Id, string Name, string Username, string? Sam)> users)
     {
         using var wb = new XLWorkbook(stream);
         var preview = new StockImportPreviewDto { SourceName = fileName };
@@ -127,7 +127,7 @@ public static class StockExcel
         Stream stream,
         string fileName,
         IReadOnlyList<ExistingStock> existingStock,
-        IReadOnlyList<(int Id, string Name, string Username)> users) =>
+        IReadOnlyList<(int Id, string Name, string Username, string? Sam)> users) =>
         BuildPlan(stream, fileName, existingStock, users).Preview;
 
     public sealed record StockImportPlan(StockImportPreviewDto Preview, List<ParsedStockGroup> Groups);

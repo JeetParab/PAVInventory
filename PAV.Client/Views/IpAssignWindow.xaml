@@ -27,6 +27,7 @@
       <ComboBox ItemsSource="{Binding People}"
                 Text="{Binding AssignedUser, UpdateSourceTrigger=PropertyChanged}"
                 IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                MaxDropDownHeight="360"
                 Margin="0,0,0,4"/>
       <TextBlock Text="{Binding UserHint}" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
       <TextBlock Text="Assigned device / hostname" Style="{StaticResource FieldLabel}"/>

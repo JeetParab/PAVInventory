@@ -423,9 +423,9 @@ public sealed class PavDatabase
         }
 
         var users = (await db.Users.AsNoTracking()
-                .Select(u => new { u.Id, u.Name, u.Username })
+                .Select(u => new { u.Id, u.Name, u.Username, u.SamAccount })
                 .ToListAsync())
-            .Select(u => (u.Id, u.Name, u.Username))
+            .Select(u => (u.Id, u.Name, u.Username, u.SamAccount))
             .ToList();
         if (users.Count == 0)
         {

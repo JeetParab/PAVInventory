@@ -22,7 +22,8 @@
       <StackPanel Visibility="{Binding NeedsUser, Converter={StaticResource BoolToVis}}">
         <TextBlock Text="User" Style="{StaticResource FieldLabel}"/>
         <ComboBox ItemsSource="{Binding Users}" Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
-                  IsEditable="True" IsTextSearchEnabled="False" DisplayMemberPath="Name" Margin="0,0,0,4"/>
+                  IsEditable="True" IsTextSearchEnabled="False" DisplayMemberPath="AssignLabel"
+                  MaxDropDownHeight="360" StaysOpenOnEdit="True" Margin="0,0,0,4"/>
         <TextBlock Text="{Binding UserHint}" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
       </StackPanel>
       <TextBlock Text="Reference" Style="{StaticResource FieldLabel}"/>

@@ -151,9 +151,9 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", $"{item.Name} is inactive.");
 
             var users = await db.Users.AsNoTracking()
-                .Select(u => new { u.Id, u.Name, u.Username })
+                .Select(u => new { u.Id, u.Name, u.Username, u.SamAccount })
                 .ToListAsync();
-            var userTuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+            var userTuples = users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
             var resolved = UserNameResolver.ResolveMovement(req.UserId, req.AssignedUserName, userTuples);
             var userId = resolved.UserId;
             var userName = resolved.UserName;
@@ -355,10 +355,10 @@ public class StockService(AppDbContext db, IWriteLock writeLock)
         return rows.Select(x => new StockExcel.ExistingStock(x.Id, x.Name, x.NormalizedKey, x.Manufacturer, x.Model)).ToList();
     }
 
-    private async Task<List<(int Id, string Name, string Username)>> LoadUserTuplesAsync()
+    private async Task<List<(int Id, string Name, string Username, string? Sam)>> LoadUserTuplesAsync()
     {
-        var users = await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username }).ToListAsync();
-        return users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+        var users = await db.Users.AsNoTracking().Select(u => new { u.Id, u.Name, u.Username, u.SamAccount }).ToListAsync();
+        return users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
     }
 
     public async Task<byte[]> ExportAsync()

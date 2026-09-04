@@ -56,6 +56,8 @@ public static class PageScroll
 
     private static void OnSmoothWheel(object sender, MouseWheelEventArgs e)
     {
+        if (InComboPopup(e.OriginalSource as DependencyObject))
+            return;
         if (sender is ScrollViewer sv)
             Apply(sv, e);
     }
@@ -63,6 +65,8 @@ public static class PageScroll
     private static void OnGridWheel(object sender, MouseWheelEventArgs e)
     {
         if (e.Handled || sender is not DataGrid grid) return;
+        if (InComboPopup(e.OriginalSource as DependencyObject))
+            return;
         var sv = ScrollerFor(grid);
         if (sv is null) return;
 
@@ -142,6 +146,25 @@ public static class PageScroll
             if (found is not null) return found;
         }
         return null;
+    }
+
+    private static bool InComboPopup(DependencyObject? d)
+    {
+        while (d is not null)
+        {
+            if (d is System.Windows.Controls.Primitives.Popup)
+                return true;
+            if (d is ComboBox cb && cb.IsDropDownOpen)
+                return true;
+            var name = d.GetType().Name;
+            if (name is "PopupRoot" or "Popup")
+                return true;
+            var parent = VisualTreeHelper.GetParent(d);
+            if (parent is null && d is FrameworkElement fe)
+                parent = fe.Parent;
+            d = parent;
+        }
+        return false;
     }
 
     private static double Clamp(double v, double min, double max) =>

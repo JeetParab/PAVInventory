@@ -61,7 +61,7 @@ public partial class StockMoveViewModel : ObservableObject
         {
             var key = value.Trim();
             var hits = Users
-                .Select(u => u.Name)
+                .Select(u => u.AssignLabel)
                 .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -100,7 +100,7 @@ public partial class StockMoveViewModel : ObservableObject
             UserHint = "";
             return;
         }
-        var tuples = Users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+        var tuples = Users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
         UserHint = UserNameResolver.Describe(tuples, AssignedUserName);
     }
 
@@ -131,7 +131,7 @@ public partial class StockMoveViewModel : ObservableObject
         }
         try
         {
-            var tuples = Users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+            var tuples = Users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
             if (NeedsUser && UserNameResolver.MatchCount(tuples, AssignedUserName) > 1)
             {
                 // keep free text — do not send a UserId

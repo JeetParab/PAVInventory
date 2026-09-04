@@ -35,7 +35,7 @@
 
     <StackPanel Grid.Row="1" Margin="0,0,0,10">
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
-                 Text="Office people you assign laptops, IPs and stock to. Name, department, email and employee ID only. They cannot sign in. Engineers and admins live in Settings. Import AD users once to store user ids, then ManageEngine last logon fills the rest. Add from inventory still pulls names already on assets."/>
+                 Text="Office people you assign laptops, IPs and stock to. Name, user id, department, email and employee ID. They cannot sign in. Engineers and admins live in Settings. Import AD users once to store user ids, then ManageEngine last logon fills the rest. Add from inventory still pulls names already on assets."/>
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="#C47B17"
                  Text="{Binding UnlinkedSummary}"
                  Visibility="{Binding HasUnlinked, Converter={StaticResource BoolToVis}}"/>
@@ -64,6 +64,7 @@
             </DataGrid.InputBindings>
             <DataGrid.Columns>
               <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="140" MinWidth="100"/>
+              <DataGridTextColumn Header="User ID" Binding="{Binding SamAccount}" Width="120"/>
               <DataGridTextColumn Header="Employee ID" Binding="{Binding EmployeeId}" Width="100"/>
               <DataGridTextColumn Header="Department" Binding="{Binding Department}" Width="110"/>
               <DataGridTextColumn Header="Email" Binding="{Binding Email}" Width="140"/>

@@ -7,7 +7,7 @@
   <DockPanel Margin="20">
     <TextBlock DockPanel.Dock="Top" Text="{Binding Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,8"/>
     <TextBlock DockPanel.Dock="Top" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12"
-               Text="Pick a known name or type one. Unique matches are linked to a PAV user."/>
+               Text="Pick a person or type name / user id (aishwaryav). Unique matches are linked."/>
     <TextBlock DockPanel.Dock="Top" Text="{Binding Error}" Foreground="{DynamicResource DangerBrush}"
                TextWrapping="Wrap" Margin="0,0,0,8"/>
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
@@ -16,11 +16,12 @@
       <Button Content="Assign" Style="{StaticResource PrimaryButton}" Command="{Binding AssignCommand}" IsDefault="True"/>
     </StackPanel>
     <StackPanel>
-      <TextBlock Text="User Name" Style="{StaticResource FieldLabel}"/>
+      <TextBlock Text="User" Style="{StaticResource FieldLabel}"/>
       <ComboBox x:Name="UserBox" ItemsSource="{Binding AssigneeChoices}"
                 Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
-                IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
-                ToolTip="Type part of the name — unique matches are selected."/>
+                IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                MaxDropDownHeight="360"
+                ToolTip="Type a name or user id. Unique matches are selected."/>
     </StackPanel>
   </DockPanel>
 </Window>

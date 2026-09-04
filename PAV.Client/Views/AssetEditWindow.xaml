@@ -135,11 +135,12 @@
             <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
           </Grid.ColumnDefinitions>
           <StackPanel Margin="0,0,0,14">
-            <TextBlock Text="User Name" Style="{StaticResource FieldLabel}"/>
+            <TextBlock Text="User" Style="{StaticResource FieldLabel}"/>
             <ComboBox ItemsSource="{Binding AssigneeChoices}"
                       Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
-                      IsEditable="True" IsTextSearchEnabled="True" StaysOpenOnEdit="True"
-                      ToolTip="Pick a known name or type one. Leave blank to unassign."/>
+                      IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                      MaxDropDownHeight="360"
+                      ToolTip="Pick or type a name or user id. Leave blank to unassign."/>
           </StackPanel>
           <StackPanel Grid.Column="2" Margin="0,0,0,14">
             <TextBlock Text="Designation" Style="{StaticResource FieldLabel}"/>

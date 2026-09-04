@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
+using PAV.Core.Services;
 using PAV.Shared.Dtos;
 using PAV.Shared.Enums;
 
@@ -49,7 +50,10 @@ public partial class BulkEditViewModel : ObservableObject
         [
             Unchanged,
             Unassigned,
-            .. assigneeNames
+            .. users
+                .Where(u => !string.IsNullOrWhiteSpace(u.Name))
+                .Select(u => u.AssignLabel)
+                .Concat(assigneeNames)
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(n => n)
@@ -81,14 +85,10 @@ public partial class BulkEditViewModel : ObservableObject
             else
             {
                 req.AssignedUserName = assign;
-                var matches = _users
-                    .Where(u =>
-                        string.Equals(u.Name, assign, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(u.Username, assign, StringComparison.OrdinalIgnoreCase))
-                    .Select(u => u.Id)
-                    .Distinct()
-                    .ToList();
-                req.AssignedUserId = matches.Count == 1 ? matches[0] : null;
+                var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
+                req.AssignedUserId = UserNameResolver.ResolveUniqueId(tuples, assign);
+                if (req.AssignedUserId is { } uid)
+                    req.AssignedUserName = _users.First(u => u.Id == uid).Name;
             }
         }
 

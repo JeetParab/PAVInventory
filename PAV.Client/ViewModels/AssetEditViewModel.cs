@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
+using PAV.Core.Services;
 using PAV.Shared.Dtos;
 using PAV.Shared.Enums;
 
@@ -94,7 +95,10 @@ public partial class AssetEditViewModel : ObservableObject
         AssigneeChoices =
         [
             "",
-            .. assigneeNames
+            .. users
+                .Where(u => !string.IsNullOrWhiteSpace(u.Name))
+                .Select(u => u.AssignLabel)
+                .Concat(assigneeNames)
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(n => n)
@@ -129,7 +133,9 @@ public partial class AssetEditViewModel : ObservableObject
             LocationId = existing.LocationId ?? 0;
             Status = existing.Status;
             AssignedUserId = existing.AssignedUserId;
-            AssignedUserName = existing.AssignedUser;
+            AssignedUserName = existing.AssignedUserId is { } aid
+                ? users.FirstOrDefault(u => u.Id == aid)?.AssignLabel ?? existing.AssignedUser
+                : existing.AssignedUser;
             IsTemporary = !copy && existing.IsTemporary;
             Designation = existing.Designation;
             AlternateUser = existing.AlternateUser;
@@ -300,16 +306,10 @@ public partial class AssetEditViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(AssignedUserName))
             return null;
-        var key = AssignedUserName.Trim();
-        var matches = _users
-            .Where(u =>
-                string.Equals(u.Name, key, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(u.Username, key, StringComparison.OrdinalIgnoreCase))
-            .Select(u => u.Id)
-            .Distinct()
-            .ToList();
-        if (matches.Count == 1)
-            return matches[0];
+        var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
+        var unique = UserNameResolver.ResolveUniqueId(tuples, AssignedUserName.Trim());
+        if (unique is not null)
+            return unique;
         if (AssignedUserId is { } id && _users.Any(u => u.Id == id))
             return id;
         return null;

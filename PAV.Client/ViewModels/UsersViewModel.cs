@@ -222,6 +222,7 @@ public partial class PersonEditViewModel : ObservableObject
     [ObservableProperty] private string? employeeId;
     [ObservableProperty] private string? email;
     [ObservableProperty] private string? department;
+    [ObservableProperty] private string? samAccount;
     [ObservableProperty] private bool isActive = true;
     [ObservableProperty] private string? error;
     [ObservableProperty] private bool saving;
@@ -237,6 +238,7 @@ public partial class PersonEditViewModel : ObservableObject
             EmployeeId = existing.EmployeeId;
             Email = existing.Email;
             Department = existing.Department;
+            SamAccount = existing.SamAccount;
             IsActive = existing.IsActive;
         }
     }
@@ -259,6 +261,7 @@ public partial class PersonEditViewModel : ObservableObject
                 EmployeeId = EmployeeId,
                 Email = Email,
                 Department = Department,
+                SamAccount = SamAccount,
                 IsActive = IsActive
             };
             if (_id is null) await _api.CreatePersonAsync(req);

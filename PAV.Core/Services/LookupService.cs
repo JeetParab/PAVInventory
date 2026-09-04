@@ -114,18 +114,28 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             if (await db.Users.AnyAsync(u => u.Name.ToLower() == name.ToLower()))
                 throw new AppException(400, "validation", $"'{name}' is already in PAV. Use that record to assign assets.");
 
+            var sam = AdLogon.Normalize(req.SamAccount);
+            if (sam is not null)
+            {
+                if (await db.Users.AnyAsync(u => u.SamAccount != null && u.SamAccount.ToLower() == sam))
+                    throw new AppException(400, "validation", $"User id '{sam}' is already in PAV.");
+            }
+
             var user = new User
             {
                 Name = name,
                 EmployeeId = Mapping.Clean(req.EmployeeId),
                 Email = Mapping.Clean(req.Email),
                 Department = Mapping.Clean(req.Department),
-                Username = await NextPersonUsernameAsync(name),
+                SamAccount = sam,
+                Username = sam ?? await NextPersonUsernameAsync(name),
                 PasswordHash = "!",
                 Role = UserRole.Guest,
                 IsActive = req.IsActive,
                 CanSignIn = false
             };
+            if (sam is not null && await db.Users.AnyAsync(u => u.Username.ToLower() == sam))
+                user.Username = await NextPersonUsernameAsync(name);
             db.Users.Add(user);
             await SqliteGuard.SaveChangesAsync(db);
 
@@ -152,6 +162,15 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
             user.Email = Mapping.Clean(req.Email);
             user.Department = Mapping.Clean(req.Department);
             user.IsActive = req.IsActive;
+            var sam = AdLogon.Normalize(req.SamAccount);
+            if (sam is not null)
+            {
+                if (await db.Users.AnyAsync(u => u.Id != id && u.SamAccount != null && u.SamAccount.ToLower() == sam))
+                    throw new AppException(400, "validation", $"User id '{sam}' is already in PAV.");
+                user.SamAccount = sam;
+            }
+            else
+                user.SamAccount = null;
             await SqliteGuard.SaveChangesAsync(db);
             return Mapping.ToDto(user);
         });
@@ -173,8 +192,8 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
         writeLock.WriteAsync(async () =>
         {
             var result = new ImportPeopleResult();
-            var users = await db.Users.Select(u => new { u.Id, u.Name, u.Username }).ToListAsync();
-            var tuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+            var users = await db.Users.Select(u => new { u.Id, u.Name, u.Username, u.SamAccount }).ToListAsync();
+            var tuples = users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
             var takenUsernames = new HashSet<string>(users.Select(u => u.Username), StringComparer.OrdinalIgnoreCase);
 
             var assetNames = await db.Assets.AsNoTracking()
@@ -227,7 +246,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
                     db.Users.Add(person);
                     await SqliteGuard.SaveChangesAsync(db);
                     id = person.Id;
-                    tuples.Add((person.Id, person.Name, person.Username));
+                    tuples.Add((person.Id, person.Name, person.Username, person.SamAccount));
                     result.Created++;
                 }
 

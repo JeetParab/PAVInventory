@@ -188,9 +188,9 @@ public class ImportExportService(AppDbContext db, IWriteLock writeLock)
             var cats = await db.Categories.ToListAsync();
             var locs = await db.Locations.ToListAsync();
             var users = (await db.Users.AsNoTracking()
-                    .Select(u => new { u.Id, u.Name, u.Username })
+                    .Select(u => new { u.Id, u.Name, u.Username, u.SamAccount })
                     .ToListAsync())
-                .Select(u => (u.Id, u.Name, u.Username))
+                .Select(u => (u.Id, u.Name, u.Username, u.SamAccount))
                 .ToList();
             var now = DateTime.UtcNow;
 

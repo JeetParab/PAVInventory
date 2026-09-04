@@ -17,6 +17,10 @@
     <StackPanel>
       <TextBlock Text="Name *" Style="{StaticResource FieldLabel}"/>
       <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+      <TextBlock Text="User ID" Style="{StaticResource FieldLabel}"/>
+      <TextBox Text="{Binding SamAccount, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+      <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
+                 Text="AD / ManageEngine logon (aishwaryav, msinha). Unique. Used when assigning assets."/>
       <TextBlock Text="Employee ID" Style="{StaticResource FieldLabel}"/>
       <TextBox Text="{Binding EmployeeId, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
       <TextBlock Text="Email" Style="{StaticResource FieldLabel}"/>

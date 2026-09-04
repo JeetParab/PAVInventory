@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
+using PAV.Core.Services;
 using PAV.Shared.Dtos;
 
 namespace PAV.Client.ViewModels;
@@ -30,7 +31,10 @@ public partial class QuickAssignViewModel : ObservableObject
         _api = api;
         _ids = ids;
         _users = users;
-        AssigneeChoices = assigneeNames
+        AssigneeChoices = users
+            .Where(u => !string.IsNullOrWhiteSpace(u.Name))
+            .Select(u => u.AssignLabel)
+            .Concat(assigneeNames)
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n)
@@ -76,15 +80,13 @@ public partial class QuickAssignViewModel : ObservableObject
             int? id = null;
             if (name is not null)
             {
-                var matches = _users
-                    .Where(u =>
-                        string.Equals(u.Name, name, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(u.Username, name, StringComparison.OrdinalIgnoreCase))
-                    .Select(u => u.Id)
-                    .Distinct()
-                    .ToList();
-                if (matches.Count == 1)
-                    id = matches[0];
+                var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
+                id = UserNameResolver.ResolveUniqueId(tuples, name);
+                if (id is { } uid)
+                {
+                    var u = _users.First(x => x.Id == uid);
+                    name = u.Name;
+                }
             }
 
             var n = await _api.BulkPatchAsync(new BulkEditRequest

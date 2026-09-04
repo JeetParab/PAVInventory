@@ -19,9 +19,9 @@ public static class IpAssetBridge
 
         var ip = rec.Address;
         var users = await db.Users.AsNoTracking()
-            .Select(u => new { u.Id, u.Name, u.Username })
+            .Select(u => new { u.Id, u.Name, u.Username, u.SamAccount })
             .ToListAsync();
-        var tuples = users.Select(u => (u.Id, u.Name, u.Username)).ToList();
+        var tuples = users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
         var userId = UserNameResolver.ResolveUniqueId(tuples, rec.AssignedUser);
         var userName = Mapping.Clean(rec.AssignedUser);
 

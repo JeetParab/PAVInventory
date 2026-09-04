@@ -37,11 +37,12 @@
         </ComboBox>
       </StackPanel>
       <StackPanel Grid.Row="1" Margin="0,0,0,10">
-        <TextBlock Text="User Name" Style="{StaticResource FieldLabel}"/>
+        <TextBlock Text="User" Style="{StaticResource FieldLabel}"/>
         <ComboBox ItemsSource="{Binding AssigneeChoices}"
                   Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
-                  IsEditable="True" IsTextSearchEnabled="True"
-                  ToolTip="Unchanged keeps current assignment. Pick Unassigned to clear."/>
+                  IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                  MaxDropDownHeight="360"
+                  ToolTip="Unchanged keeps current assignment. Pick Unassigned to clear. Type a name or user id."/>
       </StackPanel>
       <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
         <TextBlock Text="Designation" Style="{StaticResource FieldLabel}"/>

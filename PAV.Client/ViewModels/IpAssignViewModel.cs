@@ -67,7 +67,7 @@ public partial class IpAssignViewModel : ObservableObject
         {
             var users = await _api.UsersAsync();
             _people.Clear();
-            foreach (var n in users.Where(u => u.IsActive).Select(u => u.Name)
+            foreach (var n in users.Where(u => u.IsActive).Select(u => u.AssignLabel)
                          .Where(n => !string.IsNullOrWhiteSpace(n))
                          .Distinct(StringComparer.OrdinalIgnoreCase)
                          .OrderBy(n => n))

@@ -165,6 +165,7 @@ public partial class InventoryViewModel : ObservableObject
                       Contains(a.Hostname, s) ||
                       Contains(a.IpAddress, s) ||
                       Contains(a.AssignedUser, s) ||
+                      (a.AssignedUserId is { } uid && Users.Any(u => u.Id == uid && Contains(u.SamAccount, s))) ||
                       Contains(a.Manufacturer, s) ||
                       Contains(a.Model, s) ||
                       Contains(a.MacAddress, s) ||
@@ -313,7 +314,7 @@ public partial class InventoryViewModel : ObservableObject
 
     public List<string> AssigneeNames()
     {
-        return Users.Select(u => u.Name)
+        return Users.Select(u => u.AssignLabel)
             .Concat(Assets.Select(a => a.AssignedUser))
             .Where(n => !string.IsNullOrWhiteSpace(n))
             .Distinct(StringComparer.OrdinalIgnoreCase)

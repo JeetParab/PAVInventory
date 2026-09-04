@@ -209,6 +209,21 @@ public class UserDto
     public int AssetCount { get; set; }
     public int StockWithUser { get; set; }
 
+    public string AssignLabel
+    {
+        get
+        {
+            var id = string.IsNullOrWhiteSpace(SamAccount) ? null : SamAccount.Trim();
+            if (id is null
+                && !CanSignIn
+                && !string.IsNullOrWhiteSpace(Username)
+                && !Username.StartsWith("person:", StringComparison.OrdinalIgnoreCase))
+                id = Username.Trim();
+            if (string.IsNullOrWhiteSpace(id)) return Name;
+            return Name + "  (" + id + ")";
+        }
+    }
+
     public override string ToString() => Name;
 }
 
@@ -238,6 +253,7 @@ public class SavePersonRequest
     public string? Email { get; set; }
     public string? Department { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? SamAccount { get; set; }
 }
 
 public class ImportPeopleResult
