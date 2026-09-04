@@ -161,13 +161,13 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
     private static List<AdRow> Parse(Stream excel)
     {
         using var wb = new XLWorkbook(excel);
-        IXLRow? header = null;
+        IXLRangeRow? header = null;
         IXLWorksheet? sheet = null;
         foreach (var ws in wb.Worksheets)
         {
-            var used = ws.RangeUsed();
-            if (used is null) continue;
-            foreach (var row in used.RowsUsed())
+            var scan = ws.RangeUsed();
+            if (scan is null) continue;
+            foreach (var row in scan.RowsUsed())
             {
                 foreach (var cell in row.CellsUsed())
                 {
@@ -230,9 +230,9 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
             return Blank(s);
         }
 
-        var used = sheet.RangeUsed()!;
+        var data = sheet.RangeUsed()!;
         var rows = new List<AdRow>();
-        foreach (var row in used.RowsUsed())
+        foreach (var row in data.RowsUsed())
         {
             if (row.RowNumber() == header.RowNumber()) continue;
             var samRaw = Cell(row, cSam);
