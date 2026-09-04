@@ -30,6 +30,11 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
 
             var updated = 0;
             var created = 0;
+            var peopleCreated = 0;
+            var peopleLinked = 0;
+            var linker = new AdPersonLinker(db);
+            var directory = linker.LoadDirectory();
+            var cache = directory.Count == 0 ? null : await linker.LoadPeopleCacheAsync();
             foreach (var work in plan.Work)
             {
                 if (work.Action == "Skip") continue;
@@ -39,6 +44,12 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
                     if (asset is null) continue;
                     var oldIp = asset.IpAddress;
                     ApplyLive(asset, work, fillSerial: string.IsNullOrWhiteSpace(asset.SerialNumber));
+                    if (cache is not null)
+                    {
+                        var link = await linker.AssignAsync(asset, work.MeLogon, directory, cache, onlyIfUnassigned: true);
+                        if (link.Created) peopleCreated++;
+                        if (link.Linked) peopleLinked++;
+                    }
                     asset.Version++;
                     asset.UpdatedAt = DateTime.UtcNow;
                     if (work.History.Count > 0)
@@ -78,6 +89,14 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
                     ApplyLive(asset, work, fillSerial: true);
                     db.Assets.Add(asset);
                     await SqliteGuard.SaveChangesAsync(db);
+                    if (cache is not null)
+                    {
+                        var link = await linker.AssignAsync(asset, work.MeLogon, directory, cache, onlyIfUnassigned: true);
+                        if (link.Created) peopleCreated++;
+                        if (link.Linked) peopleLinked++;
+                        if (link.Linked)
+                            await SqliteGuard.SaveChangesAsync(db);
+                    }
                     db.AssetHistory.Add(new AssetHistory
                     {
                         AssetId = asset.Id,
@@ -97,7 +116,9 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
             {
                 Updated = updated,
                 Created = created,
-                Summary = $"{updated} updated, {created} new (Pending confirm)."
+                PeopleCreated = peopleCreated,
+                PeopleLinked = peopleLinked,
+                Summary = MeSummary(updated, created, peopleCreated, peopleLinked)
             };
         });
 
@@ -119,6 +140,7 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
         public string? Ram { get; set; }
         public DateTime? LastConnected { get; set; }
         public string? MeLogon { get; set; }
+        public string? AssignedPerson { get; set; }
         public string ComputerType { get; set; } = "";
         public string Changes { get; set; } = "";
         public string Notes { get; set; } = "";
@@ -141,6 +163,9 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
             return preview;
         }
 
+        var linker = new AdPersonLinker(db);
+        var directory = linker.LoadDirectory();
+
         var assets = await db.Assets.AsNoTracking()
             .Select(a => new
             {
@@ -156,7 +181,9 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
                 a.Domain,
                 a.Ram,
                 a.LastConnected,
-                a.MeLogon
+                a.MeLogon,
+                a.AssignedUserId,
+                a.AssignedUserName
             })
             .ToListAsync();
 
@@ -261,6 +288,11 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
                     changes.Add("Last connected");
                 if (!string.Equals(pav.MeLogon, w.MeLogon, StringComparison.OrdinalIgnoreCase) && w.MeLogon is not null)
                     changes.Add("ME logon");
+                w.AssignedPerson = linker.Describe(w.MeLogon, directory);
+                if (w.AssignedPerson is not null && pav.AssignedUserId is null)
+                    changes.Add("Assign " + w.AssignedPerson);
+                else if (w.AssignedPerson is not null && pav.AssignedUserId is not null)
+                    notes.Add("Already assigned — last logon will not replace the user");
                 w.Changes = changes.Count == 0 ? "(no field changes)" : string.Join(", ", changes);
             }
             else if (row.Hostname is null && row.Serial is null && row.Mac is null)
@@ -274,7 +306,11 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
                 w.MatchBy = "";
                 w.Changes = "Create — confirm in Pending";
                 notes.Add("Not in PAV");
+                w.AssignedPerson = linker.Describe(w.MeLogon, directory);
             }
+
+            if (w.AssignedPerson is null && AdLogon.Normalize(w.MeLogon) is not null && directory.Count > 0)
+                notes.Add("Last logon is not in the AD directory");
 
             w.Notes = string.Join("; ", notes);
             work.Add(w);
@@ -285,9 +321,17 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
         preview.NewCount = work.Count(x => x.Action == "New");
         preview.SkipCount = work.Count(x => x.Action == "Skip");
         preview.CanImport = work.Exists(x => x.Action is "Update" or "New");
+        var assigned = work.Count(x => x.AssignedPerson is not null);
         preview.Summary =
             $"{parsed.Count} ME computers: {preview.UpdateCount} update, {preview.NewCount} new (Pending confirm), {preview.SkipCount} skip. " +
-            "Serial is the match key. Hostname/IP/MAC follow ME. New PCs wait on Pending. Users are not assigned.";
+            "Serial is the match key. Hostname/IP/MAC follow ME. New PCs wait on Pending.";
+        if (directory.Count == 0)
+        {
+            preview.Summary += " Users are not assigned (import AD users on the Users tab first).";
+            preview.Issues.Add("No AD user ids stored yet. Users → Import AD users, then last logon can fill name, email, department.");
+        }
+        else
+            preview.Summary += $" Last logon matched {assigned} people.";
         if (work.Exists(x => x.Notes.Contains("IP ", StringComparison.Ordinal)))
             preview.Issues.Add("Some IPs appear on more than one ME row. The newest Last Contact keeps the address.");
         if (work.Exists(x => x.Notes.Contains("Hostname already", StringComparison.Ordinal)))
@@ -303,10 +347,19 @@ public class ManageEngineImportService(AppDbContext db, IWriteLock writeLock)
             IpAddress = x.ApplyIp ? x.Ip : "",
             Model = x.Model,
             MeLogon = x.MeLogon,
+            AssignedPerson = x.AssignedPerson,
             Changes = x.Changes,
             Notes = x.Notes
         }).ToList();
         return preview;
+    }
+
+    private static string MeSummary(int updated, int created, int peopleCreated, int peopleLinked)
+    {
+        var s = $"{updated} updated, {created} new (Pending confirm).";
+        if (peopleCreated + peopleLinked > 0)
+            s += $" Last logon: {peopleLinked} PCs linked, {peopleCreated} people added.";
+        return s;
     }
 
     private static void Track(WorkRow w, List<string> changes, string field, string? oldVal, string? newVal)

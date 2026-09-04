@@ -29,7 +29,7 @@ public sealed class SqliteToSqlServerMigrator
     private static readonly HashSet<string> IdentityTables =
     [
         "Locations", "Categories", "Users", "Assets", "AssetHistory",
-        "IpRanges", "IpRecords", "StockItems", "StockMovements"
+        "IpRanges", "IpRecords", "StockItems", "StockMovements", "AdDirectory"
     ];
 
     public async Task<MigrationReport> CopyAsync(PavDatabase source, PavDatabase destination, bool replaceDestination)
@@ -50,6 +50,7 @@ public sealed class SqliteToSqlServerMigrator
         var ips = await src.IpRecords.AsNoTracking().ToListAsync();
         var stock = await src.StockItems.AsNoTracking().ToListAsync();
         var moves = await src.StockMovements.AsNoTracking().ToListAsync();
+        var ad = await src.AdDirectory.AsNoTracking().ToListAsync();
 
         if (!replaceDestination &&
             (await dst.Users.AsNoTracking().AnyAsync() ||
@@ -76,6 +77,7 @@ public sealed class SqliteToSqlServerMigrator
             await InsertAsync(dst, "IpRecords", ips);
             await InsertAsync(dst, "StockItems", stock);
             await InsertAsync(dst, "StockMovements", moves);
+            await InsertAsync(dst, "AdDirectory", ad);
 
             await tx.CommitAsync();
         }
@@ -98,7 +100,8 @@ public sealed class SqliteToSqlServerMigrator
             await CountAsync(src, dst, "IpRanges", db => db.IpRanges.CountAsync()),
             await CountAsync(src, dst, "IpRecords", db => db.IpRecords.CountAsync()),
             await CountAsync(src, dst, "StockItems", db => db.StockItems.CountAsync()),
-            await CountAsync(src, dst, "StockMovements", db => db.StockMovements.CountAsync())
+            await CountAsync(src, dst, "StockMovements", db => db.StockMovements.CountAsync()),
+            await CountAsync(src, dst, "AdDirectory", db => db.AdDirectory.CountAsync())
         ];
 
         var mismatch = report.Tables.Where(t => !t.Match).ToList();
@@ -175,6 +178,7 @@ public sealed class SqliteToSqlServerMigrator
     {
         await dst.StockMovements.ExecuteDeleteAsync();
         await dst.StockItems.ExecuteDeleteAsync();
+        await dst.AdDirectory.ExecuteDeleteAsync();
         await dst.IpRecords.ExecuteDeleteAsync();
         await dst.IpRanges.ExecuteDeleteAsync();
         await dst.AssetHistory.ExecuteDeleteAsync();

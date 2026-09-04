@@ -19,5 +19,6 @@ public class User
     public bool CanSignIn { get; set; } = true;
     /// <summary>Set when a known default password is detected at login (legacy installs).</summary>
     public bool MustChangePassword { get; set; }
-
+    /// <summary>AD user id (SAM). Directory people only. Used to match ME last logon.</summary>
+    public string? SamAccount { get; set; }
 }

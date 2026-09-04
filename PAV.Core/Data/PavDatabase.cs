@@ -155,6 +155,10 @@ public sealed class PavDatabase
         Perf.Log("Database.StockTables", sw.ElapsedMilliseconds);
 
         sw.Restart();
+        await EnsureAdDirectoryAsync(db);
+        Perf.Log("Database.AdDirectory", sw.ElapsedMilliseconds);
+
+        sw.Restart();
         await EnsureSerialNumberUniqueAsync(db);
         Perf.Log("Database.SerialIndex", sw.ElapsedMilliseconds);
 
@@ -194,6 +198,7 @@ public sealed class PavDatabase
         await EnsureTemporaryColumnsSqlServerAsync(db);
         await EnsureMeReviewColumnsSqlServerAsync(db);
         await EnsureCategoryFamilySqlServerAsync(db);
+        await EnsureAdDirectorySqlServerAsync(db);
         Perf.Log("Database.CanSignIn", sw.ElapsedMilliseconds);
 
         sw.Restart();
@@ -257,7 +262,8 @@ public sealed class PavDatabase
         await EnsureTableColumnsAsync(db, "Users",
         [
             ("MustChangePassword", "INTEGER NOT NULL DEFAULT 0"),
-            ("CanSignIn", "INTEGER NOT NULL DEFAULT 1")
+            ("CanSignIn", "INTEGER NOT NULL DEFAULT 1"),
+            ("SamAccount", "TEXT")
         ]);
 
         await EnsureTableColumnsAsync(db, "Categories",
@@ -551,5 +557,55 @@ public sealed class PavDatabase
             "CREATE INDEX IF NOT EXISTS IX_StockMovements_CreatedAt ON StockMovements(CreatedAt);");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS IX_StockMovements_MovementType ON StockMovements(MovementType);");
+    }
+
+    private static async Task EnsureAdDirectoryAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS AdDirectory (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Sam TEXT NOT NULL,
+                Name TEXT,
+                Email TEXT,
+                Department TEXT,
+                EmployeeId TEXT,
+                IsActive INTEGER NOT NULL DEFAULT 1
+            );
+            """);
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_AdDirectory_Sam ON AdDirectory(Sam);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_SamAccount ON Users(SamAccount) " +
+            "WHERE SamAccount IS NOT NULL AND SamAccount != ''");
+    }
+
+    private static async Task EnsureAdDirectorySqlServerAsync(AppDbContext db)
+    {
+        if (!db.Database.IsSqlServer())
+            return;
+        await db.Database.ExecuteSqlRawAsync("""
+            IF COL_LENGTH('dbo.Users', 'SamAccount') IS NULL
+            BEGIN
+                ALTER TABLE dbo.Users ADD SamAccount NVARCHAR(64) NULL;
+            END
+            IF OBJECT_ID('dbo.AdDirectory', 'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.AdDirectory (
+                    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    Sam NVARCHAR(64) NOT NULL,
+                    Name NVARCHAR(128) NULL,
+                    Email NVARCHAR(256) NULL,
+                    Department NVARCHAR(128) NULL,
+                    EmployeeId NVARCHAR(64) NULL,
+                    IsActive BIT NOT NULL CONSTRAINT DF_AdDirectory_IsActive DEFAULT 1
+                );
+                CREATE UNIQUE INDEX IX_AdDirectory_Sam ON dbo.AdDirectory(Sam);
+            END
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Users_SamAccount' AND object_id = OBJECT_ID('dbo.Users'))
+            BEGIN
+                CREATE UNIQUE INDEX IX_Users_SamAccount ON dbo.Users(SamAccount)
+                WHERE SamAccount IS NOT NULL AND SamAccount <> N'';
+            END
+            """);
     }
 }

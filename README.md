@@ -137,6 +137,12 @@ The whole file is applied together. If any row is invalid, nothing is written. T
 
 Export writes the same column layout back out.
 
+### AD user ids (one-time)
+
+Users → **Import AD users** with the ADMP All Users workbook. PAV stores user id (SAM Account Name), name, email, department, employee ID and enabled/disabled. Service accounts are skipped. This is a lookup, not 6,000 rows on the Users tab.
+
+After that, **Import ManageEngine** matches **Last Logon User** / **Logged On Users** (`aishwaryav`, `msinha`, …) to that user id and fills the person + assigns the PC when it is unique and not already assigned. Import AD first or ME first — either order works.
+
 ---
 
 ## Notes

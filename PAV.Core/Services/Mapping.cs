@@ -140,7 +140,8 @@ public static class Mapping
         Role = u.Role,
         RoleName = u.Role.Display(),
         IsActive = u.IsActive,
-        CanSignIn = u.CanSignIn
+        CanSignIn = u.CanSignIn,
+        SamAccount = u.SamAccount
     };
 
     public static LocationDto ToDto(Location l) => new()

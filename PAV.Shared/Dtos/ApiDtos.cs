@@ -205,6 +205,7 @@ public class UserDto
     public string RoleName { get; set; } = "";
     public bool IsActive { get; set; }
     public bool CanSignIn { get; set; }
+    public string? SamAccount { get; set; }
     public int AssetCount { get; set; }
     public int StockWithUser { get; set; }
 
@@ -372,6 +373,7 @@ public class MeImportLineDto
     public string? IpAddress { get; set; }
     public string? Model { get; set; }
     public string? MeLogon { get; set; }
+    public string? AssignedPerson { get; set; }
     public string Changes { get; set; } = "";
     public string Notes { get; set; } = "";
 }
@@ -381,6 +383,43 @@ public class MeImportResultDto
     public string Summary { get; set; } = "";
     public int Updated { get; set; }
     public int Created { get; set; }
+    public int PeopleCreated { get; set; }
+    public int PeopleLinked { get; set; }
+    public List<string> Errors { get; set; } = [];
+}
+
+public class AdImportPreviewDto
+{
+    public string Summary { get; set; } = "";
+    public bool CanImport { get; set; }
+    public int AddCount { get; set; }
+    public int UpdateCount { get; set; }
+    public int SkipCount { get; set; }
+    public int LinkAssetCount { get; set; }
+    public List<string> Issues { get; set; } = [];
+    public List<AdImportLineDto> Lines { get; set; } = [];
+}
+
+public class AdImportLineDto
+{
+    public string Action { get; set; } = "";
+    public string Sam { get; set; } = "";
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Department { get; set; }
+    public string? EmployeeId { get; set; }
+    public string Status { get; set; } = "";
+    public string Notes { get; set; } = "";
+}
+
+public class AdImportResultDto
+{
+    public string Summary { get; set; } = "";
+    public int Added { get; set; }
+    public int Updated { get; set; }
+    public int Skipped { get; set; }
+    public int PeopleCreated { get; set; }
+    public int AssetsLinked { get; set; }
     public List<string> Errors { get; set; } = [];
 }
 

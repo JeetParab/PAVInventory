@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<IpRecord> IpRecords => Set<IpRecord>();
     public DbSet<StockItem> StockItems => Set<StockItem>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<AdDirectoryEntry> AdDirectory => Set<AdDirectoryEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,7 +81,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Role).HasConversion<int>();
             e.Property(x => x.MustChangePassword);
             e.Property(x => x.CanSignIn);
+            e.Property(x => x.SamAccount).HasMaxLength(64);
             e.HasIndex(x => x.CanSignIn);
+            e.HasIndex(x => x.SamAccount)
+                .IsUnique()
+                .HasFilter(SamFilter());
             e.HasOne(x => x.Location).WithMany().HasForeignKey(x => x.LocationId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -181,6 +186,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.CreatedAt);
             e.HasIndex(x => x.MovementType);
         });
+
+        modelBuilder.Entity<AdDirectoryEntry>(e =>
+        {
+            e.ToTable("AdDirectory");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Sam).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => x.Sam).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(128);
+            e.Property(x => x.Email).HasMaxLength(256);
+            e.Property(x => x.Department).HasMaxLength(128);
+            e.Property(x => x.EmployeeId).HasMaxLength(64);
+        });
     }
 
     private string SerialFilter()
@@ -188,6 +205,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         if (Database.IsSqlServer())
             return "SerialNumber IS NOT NULL AND SerialNumber <> N''";
         return "SerialNumber IS NOT NULL AND SerialNumber != ''";
+    }
+
+    private string SamFilter()
+    {
+        if (Database.IsSqlServer())
+            return "SamAccount IS NOT NULL AND SamAccount <> N''";
+        return "SamAccount IS NOT NULL AND SamAccount != ''";
     }
 }
 

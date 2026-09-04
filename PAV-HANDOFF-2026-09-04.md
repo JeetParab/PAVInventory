@@ -101,7 +101,7 @@ Office people ≠ sign-in accounts. `CanSignIn` flag. Asset assignment uses `Use
 
 ## Earlier work still in the app (do not rip out)
 
-- **ManageEngine import** (`916e327`): serial-first match, trust ME for hostname/IP/MAC/model/OS/RAM/last connected. Duplicate IP winner = newest Last Contact Time. New machines → Pending (`NeedsReview`) until engineer confirms. ME logon stored as text (`MeLogon`), not auto-mapped to a PAV user.
+- **ManageEngine import** (`916e327`): serial-first match, trust ME for hostname/IP/MAC/model/OS/RAM/last connected. Duplicate IP winner = newest Last Contact Time. New machines → Pending (`NeedsReview`) until engineer confirms. ME logon is matched to a one-time **AdDirectory** (SAM / user id from ADMP All Users). Unique last-logon match creates/updates a Users person (`CanSignIn = false`) and assigns only if the PC has no assigned user yet.
 - **Pending** (`b496ff4`, `50a5ed2`, `79af554`): missing details + mismatch warnings (user / hostname / MAC / duplicate IP). Cancel must not reopen the dialog (reentrancy guard).
 - **IP ↔ Inventory bridge** (`48f2191`, `56af3e3`): assign IP can create/update asset; delete asset frees IP. Purpose: Inventory vs Temporary. Temporary hidden from main inventory list.
 - **Random free IP** (`dce686f`).
@@ -147,7 +147,6 @@ Crash log if Inventory/Peripherals dies: `%LocalAppData%\PAV\crash.log`.
 ## Known gaps / next (user has not asked to start these)
 
 - Live Windows validation of `8e2f2f4` scroll feel.
-- AD / ME logon → PAV user mapping (explicitly deferred).
 - Other-office ManageEngine files (only MUM-ReM was designed against).
 - SQL Server Express live pilot (docs exist; not proven on the LAN).
 - Code signing if SmartScreen/DLP flags the exe (user was going to check at office first).

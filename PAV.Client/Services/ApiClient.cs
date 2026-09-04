@@ -386,6 +386,20 @@ public class ApiClient
             return await new ManageEngineImportService(db, _lock).ImportAsync(fs, actor);
         });
 
+    public Task<AdImportPreviewDto> PreviewAdImportAsync(string filePath) =>
+        Read(Permissions.Import, async (db, _) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new AdDirectoryService(db, _lock).PreviewAsync(fs);
+        });
+
+    public Task<AdImportResultDto> ImportAdAsync(string filePath) =>
+        Read(Permissions.Import, async (db, actor) =>
+        {
+            await using var fs = File.OpenRead(filePath);
+            return await new AdDirectoryService(db, _lock).ImportAsync(fs, actor);
+        });
+
     public Task ConfirmReviewAsync(int id) =>
         Read(Permissions.Edit, async (db, actor) =>
         {
