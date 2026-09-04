@@ -135,7 +135,7 @@ public static class StockExcel
     private static void AssignActions(
         List<ParsedStockGroup> grouped,
         IReadOnlyList<ExistingStock> existingStock,
-        IReadOnlyList<(int Id, string Name, string Username)> users,
+        IReadOnlyList<(int Id, string Name, string Username, string? Sam)> users,
         string kind)
     {
         foreach (var g in grouped)
