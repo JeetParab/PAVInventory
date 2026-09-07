@@ -16,15 +16,12 @@ public static class AssigneeSuggest
         IEnumerable<string> q = all.Where(n => n.Length > 0);
         if (key.Length == 0)
             return q.Take(MaxShown).ToList();
-        var hits = q
+        return q
             .Where(n => n.Contains(key, StringComparison.OrdinalIgnoreCase))
             .OrderBy(n => n.StartsWith(key, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(n => n, StringComparer.OrdinalIgnoreCase)
             .Take(MaxShown)
             .ToList();
-        if (key.Length > 0 && !hits.Contains(key, StringComparer.OrdinalIgnoreCase))
-            hits.Insert(0, key);
-        return hits;
     }
 
     public static void Replace(System.Collections.ObjectModel.ObservableCollection<string> target, IEnumerable<string> items)

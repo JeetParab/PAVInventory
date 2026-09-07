@@ -331,30 +331,18 @@ public partial class AssetEditViewModel : ObservableObject
     partial void OnAssignedUserNameChanged(string? value)
     {
         if (_lockName) return;
-        if (AssigneeSuggest.IsExact(_catalog, value))
-        {
-            SuggestOpen = false;
-            return;
-        }
         ApplySuggest(value);
-        SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
+        var typed = value?.Trim() ?? "";
+        SuggestOpen = typed.Length > 0
+                      && AssigneeChoices.Count > 0
+                      && !AssigneeSuggest.IsExact(_catalog, typed);
     }
 
     private void ApplySuggest(string? value)
     {
-        var keep = value;
         _lockName = true;
         AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
-        AssignedUserName = keep;
         _lockName = false;
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        dispatcher?.BeginInvoke(() =>
-        {
-            if (string.Equals(AssignedUserName, keep, StringComparison.Ordinal)) return;
-            _lockName = true;
-            AssignedUserName = keep;
-            _lockName = false;
-        });
     }
 
     private async Task LoadAdAsync()

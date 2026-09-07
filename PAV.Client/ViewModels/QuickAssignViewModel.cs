@@ -22,7 +22,7 @@ public partial class QuickAssignViewModel : ObservableObject
     [ObservableProperty] private string? error;
     [ObservableProperty] private bool saving;
     [ObservableProperty] private bool suggestOpen;
-    [ObservableProperty] private string hint = "Type a name or user id. Suggestions appear as you type.";
+    [ObservableProperty] private string hint = "Type a name or user id. Suggestions appear below — they do not overwrite what you type.";
 
     public string? AppliedName { get; private set; }
     public int? AppliedUserId { get; private set; }
@@ -73,38 +73,25 @@ public partial class QuickAssignViewModel : ObservableObject
     partial void OnAssignedUserNameChanged(string? value)
     {
         if (_lockName) return;
-        if (AssigneeSuggest.IsExact(_catalog, value))
-        {
-            SuggestOpen = false;
-            Hint = "Selected. Press Assign.";
-            return;
-        }
         ApplySuggest(value);
-        SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
-        Hint = string.IsNullOrWhiteSpace(value)
-            ? "Type a name or user id. Suggestions appear as you type."
-            : AssigneeChoices.Count == 0
-                ? "No match in PAV Users or AD users."
-                : AssigneeChoices.Count == 1
-                    ? "1 match — pick it or press Assign."
-                    : $"{AssigneeChoices.Count} matches. Keep typing or pick from the list.";
+        var typed = value?.Trim() ?? "";
+        SuggestOpen = typed.Length > 0
+                      && AssigneeChoices.Count > 0
+                      && !AssigneeSuggest.IsExact(_catalog, typed);
+        Hint = typed.Length == 0
+            ? "Type a name or user id. Suggestions appear as you type — they do not overwrite what you type."
+            : AssigneeSuggest.IsExact(_catalog, typed)
+                ? "Selected. Press Assign."
+                : AssigneeChoices.Count == 0
+                    ? "No match in PAV Users or AD users."
+                    : $"{AssigneeChoices.Count} match(es). Click one, or keep typing.";
     }
 
     private void ApplySuggest(string? value)
     {
-        var keep = value;
         _lockName = true;
         AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
-        AssignedUserName = keep;
         _lockName = false;
-        var dispatcher = System.Windows.Application.Current?.Dispatcher;
-        dispatcher?.BeginInvoke(() =>
-        {
-            if (string.Equals(AssignedUserName, keep, StringComparison.Ordinal)) return;
-            _lockName = true;
-            AssignedUserName = keep;
-            _lockName = false;
-        });
     }
 
     [RelayCommand]

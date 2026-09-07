@@ -10,7 +10,7 @@ public partial class QuickAssignWindow : Window
         InitializeComponent();
         Loaded += (_, _) =>
         {
-            UserBox.Focus();
+            UserBox.FocusBox();
         };
         DataContextChanged += (_, _) =>
         {

@@ -1,6 +1,7 @@
 <Window x:Class="PAV.Client.Views.QuickAssignWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PAV.Client.Views"
         Title="{Binding Title}" Width="420" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
         ResizeMode="NoResize" Background="{DynamicResource BgBrush}">
@@ -17,12 +18,11 @@
     </StackPanel>
     <StackPanel>
       <TextBlock Text="User" Style="{StaticResource FieldLabel}"/>
-      <ComboBox x:Name="UserBox" ItemsSource="{Binding AssigneeChoices}"
-                Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
-                IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
-                IsDropDownOpen="{Binding SuggestOpen, Mode=TwoWay}"
-                MaxDropDownHeight="360"
-                ToolTip="Type a name or user id. The list filters as you type."/>
+      <local:AssigneeBox x:Name="UserBox"
+                         Text="{Binding AssignedUserName, UpdateSourceTrigger=PropertyChanged}"
+                         Items="{Binding AssigneeChoices}"
+                         IsOpen="{Binding SuggestOpen, Mode=TwoWay}"
+                         ToolTip="Type freely. Click a suggestion to fill the name."/>
     </StackPanel>
   </DockPanel>
 </Window>
