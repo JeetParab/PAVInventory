@@ -60,7 +60,8 @@ public partial class QuickAssignViewModel : ObservableObject
             if (extra)
             {
                 _catalog.Sort(StringComparer.OrdinalIgnoreCase);
-                ApplySuggest(AssignedUserName);
+                if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+                    ApplySuggest(AssignedUserName);
             }
         }
         catch
@@ -72,23 +73,38 @@ public partial class QuickAssignViewModel : ObservableObject
     partial void OnAssignedUserNameChanged(string? value)
     {
         if (_lockName) return;
+        if (AssigneeSuggest.IsExact(_catalog, value))
+        {
+            SuggestOpen = false;
+            Hint = "Selected. Press Assign.";
+            return;
+        }
         ApplySuggest(value);
         SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
-        var n = AssigneeChoices.Count;
         Hint = string.IsNullOrWhiteSpace(value)
             ? "Type a name or user id. Suggestions appear as you type."
-            : n == 0
+            : AssigneeChoices.Count == 0
                 ? "No match in PAV Users or AD users."
-                : n == 1
+                : AssigneeChoices.Count == 1
                     ? "1 match — pick it or press Assign."
-                    : $"{n} matches. Keep typing or pick from the list.";
+                    : $"{AssigneeChoices.Count} matches. Keep typing or pick from the list.";
     }
 
     private void ApplySuggest(string? value)
     {
+        var keep = value;
         _lockName = true;
         AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
+        AssignedUserName = keep;
         _lockName = false;
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        dispatcher?.BeginInvoke(() =>
+        {
+            if (string.Equals(AssignedUserName, keep, StringComparison.Ordinal)) return;
+            _lockName = true;
+            AssignedUserName = keep;
+            _lockName = false;
+        });
     }
 
     [RelayCommand]

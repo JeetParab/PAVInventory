@@ -331,8 +331,30 @@ public partial class AssetEditViewModel : ObservableObject
     partial void OnAssignedUserNameChanged(string? value)
     {
         if (_lockName) return;
+        if (AssigneeSuggest.IsExact(_catalog, value))
+        {
+            SuggestOpen = false;
+            return;
+        }
         ApplySuggest(value);
         SuggestOpen = !string.IsNullOrWhiteSpace(value) && AssigneeChoices.Count > 0;
+    }
+
+    private void ApplySuggest(string? value)
+    {
+        var keep = value;
+        _lockName = true;
+        AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
+        AssignedUserName = keep;
+        _lockName = false;
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        dispatcher?.BeginInvoke(() =>
+        {
+            if (string.Equals(AssignedUserName, keep, StringComparison.Ordinal)) return;
+            _lockName = true;
+            AssignedUserName = keep;
+            _lockName = false;
+        });
     }
 
     private async Task LoadAdAsync()
@@ -347,11 +369,10 @@ public partial class AssetEditViewModel : ObservableObject
                 _catalog.Add(n);
                 extra = true;
             }
-            if (extra)
-            {
-                _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+            if (!extra) return;
+            _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+            if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
                 ApplySuggest(AssignedUserName);
-            }
         }
         catch
         {
@@ -364,14 +385,8 @@ public partial class AssetEditViewModel : ObservableObject
         if (_catalog.Contains(name, StringComparer.OrdinalIgnoreCase)) return;
         _catalog.Add(name);
         _catalog.Sort(StringComparer.OrdinalIgnoreCase);
-        ApplySuggest(AssignedUserName);
-    }
-
-    private void ApplySuggest(string? value)
-    {
-        _lockName = true;
-        AssigneeSuggest.Replace(AssigneeChoices, AssigneeSuggest.Filter(_catalog, value));
-        _lockName = false;
+        if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+            ApplySuggest(AssignedUserName);
     }
 
     public string LastConnectedText
