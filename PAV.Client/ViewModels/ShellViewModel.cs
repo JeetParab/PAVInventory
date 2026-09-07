@@ -30,7 +30,6 @@ public partial class ShellViewModel : ObservableObject
     public StockViewModel Stock { get; }
     public StockViewModel Toner { get; }
     public UsersViewModel Users { get; }
-    public DirectoryViewModel Directory { get; }
 
     public PendingViewModel Pending { get; }
     public LocationsViewModel Locations { get; }
@@ -47,7 +46,6 @@ public partial class ShellViewModel : ObservableObject
         Stock = new StockViewModel(api, this, "stock");
         Toner = new StockViewModel(api, this, "toner");
         Users = new UsersViewModel(api, this);
-        Directory = new DirectoryViewModel(api, this);
         Pending = new PendingViewModel(api, this);
 
         Locations = new LocationsViewModel(api, this);
@@ -228,9 +226,6 @@ public partial class ShellViewModel : ObservableObject
                     break;
                 case "Users":
                     await Users.LoadAsync();
-                    break;
-                case "AdUsers":
-                    await Directory.LoadAsync();
                     break;
                 case "Pending":
                     await Pending.LoadAsync();

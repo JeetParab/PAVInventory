@@ -93,6 +93,83 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
             return Mapping.ToDto(user);
         });
 
+    public Task<AdUserDto> SaveAsync(int? id, SaveAdUserRequest req) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var sam = AdLogon.Normalize(req.Sam);
+            if (sam is null)
+                throw new AppException(400, "validation", "User ID is required.");
+            var name = Mapping.Clean(req.Name);
+            if (name is null)
+                throw new AppException(400, "validation", "Name is required.");
+
+            AdDirectoryEntry row;
+            string? oldSam = null;
+            if (id is { } eid)
+            {
+                row = await db.AdDirectory.FirstOrDefaultAsync(x => x.Id == eid)
+                    ?? throw new AppException(404, "not_found", "AD user not found.");
+                oldSam = row.Sam;
+            }
+            else
+            {
+                row = new AdDirectoryEntry();
+                db.AdDirectory.Add(row);
+            }
+
+            var taken = await db.AdDirectory.AnyAsync(x => x.Id != row.Id && x.Sam.ToLower() == sam);
+            if (taken)
+                throw new AppException(400, "validation", "That user ID is already in AD users.");
+
+            row.Sam = sam;
+            row.Name = name;
+            row.Email = Mapping.Clean(req.Email);
+            row.Department = Mapping.Clean(req.Department);
+            row.EmployeeId = Mapping.Clean(req.EmployeeId);
+            row.IsActive = req.IsActive;
+
+            var people = await db.Users.Where(u => !u.CanSignIn).ToListAsync();
+            var linked = people.Where(u =>
+                    (!string.IsNullOrWhiteSpace(u.SamAccount)
+                     && (u.SamAccount.Equals(sam, StringComparison.OrdinalIgnoreCase)
+                         || (oldSam is not null && u.SamAccount.Equals(oldSam, StringComparison.OrdinalIgnoreCase))))
+                    || (string.IsNullOrWhiteSpace(u.SamAccount)
+                        && u.Username.Equals(oldSam ?? sam, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            foreach (var person in linked)
+            {
+                person.SamAccount = sam;
+                person.Name = name;
+                if (row.Email is not null) person.Email = row.Email;
+                if (row.Department is not null) person.Department = row.Department;
+                if (row.EmployeeId is not null) person.EmployeeId = row.EmployeeId;
+                person.IsActive = row.IsActive;
+            }
+
+            await SqliteGuard.SaveChangesAsync(db);
+            return new AdUserDto
+            {
+                Id = row.Id,
+                Sam = row.Sam,
+                Name = row.Name,
+                Email = row.Email,
+                Department = row.Department,
+                EmployeeId = row.EmployeeId,
+                IsActive = row.IsActive,
+                InPav = linked.Count > 0
+            };
+        });
+
+    public Task DeleteAsync(int id) =>
+        writeLock.WriteAsync(async () =>
+        {
+            var row = await db.AdDirectory.FirstOrDefaultAsync(x => x.Id == id)
+                ?? throw new AppException(404, "not_found", "AD user not found.");
+            db.AdDirectory.Remove(row);
+            await SqliteGuard.SaveChangesAsync(db);
+            return 0;
+        });
+
     private async Task<AdImportPreviewDto> BuildPlanAsync(Stream excel)
     {
         var parsed = Parse(excel);

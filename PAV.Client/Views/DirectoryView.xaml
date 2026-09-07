@@ -4,33 +4,13 @@
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto"/>
-      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
     </Grid.RowDefinitions>
 
-    <DockPanel Grid.Row="0" Margin="0,0,0,10">
-      <TextBlock Text="AD users" Style="{StaticResource PageTitle}"/>
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Style="{StaticResource SecondaryButton}" Command="{Binding RefreshCommand}" Margin="0,0,8,0" Padding="12,8">
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="&#xE72C;" Style="{StaticResource BtnIcon}"
-                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-            <TextBlock Text="Refresh" Style="{StaticResource BtnLabel}"/>
-          </StackPanel>
-        </Button>
-        <Button Content="Import AD users" Style="{StaticResource PrimaryButton}"
-                Command="{Binding ImportAdCommand}"
-                IsEnabled="{Binding CanImportAd}" Margin="0,0,8,0"/>
-        <Button Content="Add to PAV users" Style="{StaticResource SecondaryButton}"
-                Command="{Binding AddToPavCommand}"
-                IsEnabled="{Binding CanAddToPav}"/>
-      </StackPanel>
-    </DockPanel>
-
-    <TextBlock Grid.Row="1" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
+    <TextBlock Grid.Row="0" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
                Text="{Binding Summary}"/>
 
-    <Grid Grid.Row="2">
+    <Grid Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*" MinWidth="420"/>
         <ColumnDefinition Width="12"/>
@@ -48,6 +28,9 @@
                     CanUserResizeColumns="True"
                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <DataGrid.InputBindings>
+              <MouseBinding Gesture="LeftDoubleClick" Command="{Binding EditCommand}"/>
+            </DataGrid.InputBindings>
             <DataGrid.Columns>
               <DataGridTextColumn Header="User ID" Binding="{Binding Sam}" Width="130" MinWidth="90"/>
               <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180" MinWidth="120"/>
@@ -80,7 +63,7 @@
           <TextBlock Text="Account" Style="{StaticResource FieldLabel}"/>
           <TextBlock Text="{Binding Selected.Status}" Style="{StaticResource FieldValue}" Margin="0,0,0,10"/>
           <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,8,0,0"
-                     Text="Read-only snapshot from the AD workbook. Add to PAV users if you need them on the Users tab for assignment."/>
+                     Text="Edit or Remove from the toolbar. Saving updates a PAV user with the same user id, if one exists. Remove deletes this AD snapshot only."/>
         </StackPanel>
       </Border>
     </Grid>

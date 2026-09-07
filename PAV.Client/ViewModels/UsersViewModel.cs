@@ -17,6 +17,7 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     public ObservableCollection<AssetListDto> Assets { get; } = [];
     public ObservableCollection<StockMovementDto> Stock { get; } = [];
     public ObservableCollection<UnlinkedAssignmentDto> Unlinked { get; } = [];
+    public DirectoryViewModel Directory { get; } = new(api, shell);
 
     [ObservableProperty] private UserDto? selected;
     [ObservableProperty] private AssetListDto? selectedAsset;
@@ -24,6 +25,9 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     [ObservableProperty] private string search = "";
     [ObservableProperty] private string holdingsTitle = "Select a person to see assigned assets.";
     [ObservableProperty] private string? unlinkedSummary;
+    [ObservableProperty] private bool showAdUsers;
+
+    public bool ShowPavUsers => !ShowAdUsers;
 
     public bool CanAdd => shell.CanAdd;
     public bool CanEditPeople => shell.CanEdit;
@@ -56,6 +60,7 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
                 Selected = Users.FirstOrDefault(u => u.Id == id) ?? Users.FirstOrDefault();
             else if (Selected is null)
                 Selected = Users.FirstOrDefault();
+            await Directory.LoadAsync();
         }
         catch (Exception ex)
         {
@@ -68,6 +73,12 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     }
 
     partial void OnSearchChanged(string value) => ApplyFilter();
+    partial void OnShowAdUsersChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowPavUsers));
+        if (value)
+            _ = Directory.LoadAsync();
+    }
 
     partial void OnSelectedChanged(UserDto? value) => _ = LoadHoldingsAsync();
 

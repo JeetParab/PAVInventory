@@ -1,8 +1,10 @@
 <UserControl x:Class="PAV.Client.Views.UsersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PAV.Client.Views">
   <Grid>
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
@@ -18,27 +20,54 @@
             <TextBlock Text="Refresh" Style="{StaticResource BtnLabel}"/>
           </StackPanel>
         </Button>
-        <Button Content="+ Add person" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}"
-                IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
-        <Button Content="Add from inventory" Style="{StaticResource SecondaryButton}"
-                Command="{Binding ImportFromInventoryCommand}"
-                IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
-        <Button Content="Edit" Style="{StaticResource SecondaryButton}" Command="{Binding EditCommand}"
-                IsEnabled="{Binding CanEditPeople}" Margin="0,0,8,0"/>
-        <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"
-                IsEnabled="{Binding CanDeletePeople}"/>
+        <StackPanel Orientation="Horizontal" Visibility="{Binding ShowPavUsers, Converter={StaticResource BoolToVis}}">
+          <Button Content="+ Add person" Style="{StaticResource PrimaryButton}" Command="{Binding AddCommand}"
+                  IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
+          <Button Content="Add from inventory" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding ImportFromInventoryCommand}"
+                  IsEnabled="{Binding CanAdd}" Margin="0,0,8,0"/>
+          <Button Content="Edit" Style="{StaticResource SecondaryButton}" Command="{Binding EditCommand}"
+                  IsEnabled="{Binding CanEditPeople}" Margin="0,0,8,0"/>
+          <Button Content="Remove" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"
+                  IsEnabled="{Binding CanDeletePeople}"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Visibility="{Binding ShowAdUsers, Converter={StaticResource BoolToVis}}">
+          <Button Content="Import AD users" Style="{StaticResource PrimaryButton}"
+                  Command="{Binding Directory.ImportAdCommand}"
+                  IsEnabled="{Binding Directory.CanImportAd}" Margin="0,0,8,0"/>
+          <Button Content="+ Add AD user" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding Directory.AddCommand}"
+                  IsEnabled="{Binding Directory.CanAdd}" Margin="0,0,8,0"/>
+          <Button Content="Add to PAV users" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding Directory.AddToPavCommand}"
+                  IsEnabled="{Binding Directory.CanAddToPav}" Margin="0,0,8,0"/>
+          <Button Content="Edit" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding Directory.EditCommand}"
+                  IsEnabled="{Binding Directory.CanEditAd}" Margin="0,0,8,0"/>
+          <Button Content="Remove" Style="{StaticResource DangerButton}"
+                  Command="{Binding Directory.DeleteCommand}"
+                  IsEnabled="{Binding Directory.CanDeleteAd}"/>
+        </StackPanel>
       </StackPanel>
     </DockPanel>
 
-    <StackPanel Grid.Row="1" Margin="0,0,0,10">
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+      <RadioButton Content="PAV users" GroupName="UserListTab" Margin="0,0,16,0"
+                   IsChecked="{Binding ShowAdUsers, Converter={StaticResource InvertBool}, Mode=TwoWay}"/>
+      <RadioButton Content="AD users" GroupName="UserListTab"
+                   IsChecked="{Binding ShowAdUsers, Mode=TwoWay}"/>
+    </StackPanel>
+
+    <StackPanel Grid.Row="2" Margin="0,0,0,10"
+                Visibility="{Binding ShowPavUsers, Converter={StaticResource BoolToVis}}">
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"
-                 Text="PAV people you assign laptops, IPs and stock to. They cannot sign in. The full AD list (user id, name, email, department) is on the AD users tab. Add from inventory still pulls names already on assets."/>
+                 Text="People you assign laptops, IPs and stock to. They cannot sign in. AD users is the other tab."/>
       <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="#C47B17"
                  Text="{Binding UnlinkedSummary}"
                  Visibility="{Binding HasUnlinked, Converter={StaticResource BoolToVis}}"/>
     </StackPanel>
 
-    <Grid Grid.Row="2">
+    <Grid Grid.Row="3" Visibility="{Binding ShowPavUsers, Converter={StaticResource BoolToVis}}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="420" MinWidth="280"/>
         <ColumnDefinition Width="12"/>
@@ -124,6 +153,10 @@
           </DockPanel>
         </Border>
       </Grid>
+    </Grid>
+
+    <Grid Grid.Row="3" Visibility="{Binding ShowAdUsers, Converter={StaticResource BoolToVis}}">
+      <local:DirectoryView DataContext="{Binding Directory}"/>
     </Grid>
   </Grid>
 </UserControl>

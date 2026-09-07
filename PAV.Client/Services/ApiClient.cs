@@ -406,6 +406,17 @@ public class ApiClient
     public Task<UserDto?> EnsurePersonFromAdAsync(string raw) =>
         Read(Permissions.Add, (db, _) => new AdDirectoryService(db, _lock).EnsurePersonFromTypedAsync(raw));
 
+    public Task<AdUserDto> SaveAdUserAsync(int? id, SaveAdUserRequest req) =>
+        Read(id is null ? Permissions.Add : Permissions.Edit,
+            (db, _) => new AdDirectoryService(db, _lock).SaveAsync(id, req));
+
+    public Task DeleteAdUserAsync(int id) =>
+        Read(Permissions.Delete, async (db, _) =>
+        {
+            await new AdDirectoryService(db, _lock).DeleteAsync(id);
+            return 0;
+        });
+
     public Task ConfirmReviewAsync(int id) =>
         Read(Permissions.Edit, async (db, actor) =>
         {

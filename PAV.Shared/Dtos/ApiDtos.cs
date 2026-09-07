@@ -428,6 +428,16 @@ public class AdUserDto
     public override string ToString() => AssignLabel;
 }
 
+public class SaveAdUserRequest
+{
+    public string Sam { get; set; } = "";
+    public string? Name { get; set; }
+    public string? Email { get; set; }
+    public string? Department { get; set; }
+    public string? EmployeeId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
 public class AdImportPreviewDto
 {
     public string Summary { get; set; } = "";

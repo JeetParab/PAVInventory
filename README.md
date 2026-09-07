@@ -139,8 +139,10 @@ Export writes the same column layout back out.
 
 ### Users vs AD users
 
-- **Users** — people you assign laptops, IPs and stock to.
-- **AD users** — one-time snapshot from the ADMP All Users workbook (user id, name, email, department). Import lives here. Add to PAV users if you need them on the Users tab.
+On **Users** there are two tabs:
+
+- **PAV users** — people you assign laptops, IPs and stock to.
+- **AD users** — AD snapshot (user id, name, email, department). Import, add, edit, remove. Edit also updates a PAV user with the same user id. Remove deletes the snapshot only.
 
 Assign in Inventory suggests names and user ids from both lists as you type. A unique AD match creates the PAV person when you assign.
 

@@ -16,10 +16,12 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
     [ObservableProperty] private AdUserDto? selected;
     [ObservableProperty] private bool loading;
     [ObservableProperty] private string search = "";
-    [ObservableProperty] private string summary = "Import the AD All Users workbook once. This list is for checking details — it is not the PAV Users tab.";
+    [ObservableProperty] private string summary = "AD snapshot used to match ManageEngine last logon. Edit or remove rows here — this is not the PAV users list.";
 
     public bool CanImportAd => shell.CanImport;
     public bool CanAdd => shell.CanAdd;
+    public bool CanEditAd => shell.CanEdit && Selected is not null;
+    public bool CanDeleteAd => shell.CanDelete && Selected is not null;
     public bool CanAddToPav => CanAdd && Selected is not null && !Selected.InPav;
 
     public async Task LoadAsync()
@@ -31,8 +33,7 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
             var rows = await api.AdDirectoryAsync();
             _all.Clear();
             _all.AddRange(rows);
-            OnPropertyChanged(nameof(CanImportAd));
-            OnPropertyChanged(nameof(CanAdd));
+            RaiseCan();
             ApplyFilter();
             if (keep is { } sam)
                 Selected = Users.FirstOrDefault(u => string.Equals(u.Sam, sam, StringComparison.OrdinalIgnoreCase))
@@ -40,8 +41,8 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
             else
                 Selected = Users.FirstOrDefault();
             Summary = _all.Count == 0
-                ? "No AD user ids stored yet. Import AD users (the ADMP All Users workbook) — one time."
-                : $"{_all.Count:N0} AD user ids. Search by user id, name, email, department or employee ID. PAV Users is a separate list of people you assign kit to.";
+                ? "No AD user ids stored yet. Import AD users, or add one."
+                : $"{_all.Count:N0} AD user ids. Search, edit or remove. PAV users is the other tab — people you assign kit to.";
         }
         catch (Exception ex)
         {
@@ -54,7 +55,16 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
     }
 
     partial void OnSearchChanged(string value) => ApplyFilter();
-    partial void OnSelectedChanged(AdUserDto? value) => OnPropertyChanged(nameof(CanAddToPav));
+    partial void OnSelectedChanged(AdUserDto? value) => RaiseCan();
+
+    private void RaiseCan()
+    {
+        OnPropertyChanged(nameof(CanImportAd));
+        OnPropertyChanged(nameof(CanAdd));
+        OnPropertyChanged(nameof(CanEditAd));
+        OnPropertyChanged(nameof(CanDeleteAd));
+        OnPropertyChanged(nameof(CanAddToPav));
+    }
 
     private void ApplyFilter()
     {
@@ -109,6 +119,38 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
     }
 
     [RelayCommand]
+    private async Task AddAsync()
+    {
+        if (!CanAdd) return;
+        await EditRow(null);
+    }
+
+    [RelayCommand]
+    private async Task EditAsync()
+    {
+        if (!CanEditAd || Selected is null) return;
+        await EditRow(Selected);
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync()
+    {
+        if (!CanDeleteAd || Selected is null) return;
+        var label = string.IsNullOrWhiteSpace(Selected.Name) ? Selected.Sam : $"{Selected.Name} ({Selected.Sam})";
+        if (!Ui.Confirm($"Remove {label} from AD users?\n\nThis only deletes the AD snapshot. A PAV user with the same id is left as-is."))
+            return;
+        try
+        {
+            await api.DeleteAdUserAsync(Selected.Id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Ui.Error(ex);
+        }
+    }
+
+    [RelayCommand]
     private async Task AddToPavAsync()
     {
         if (!CanAddToPav || Selected is null) return;
@@ -117,10 +159,10 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
             var person = await api.EnsurePersonFromAdAsync(Selected.Sam);
             if (person is null)
             {
-                Ui.Info("Could not add that user id to PAV Users.");
+                Ui.Info("Could not add that user id to PAV users.");
                 return;
             }
-            Ui.Info($"{person.Name} is now on the Users tab.");
+            Ui.Info($"{person.Name} is now on the PAV users tab.");
             await LoadAsync();
         }
         catch (Exception ex)
@@ -128,4 +170,85 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
             Ui.Error(ex);
         }
     }
+
+    private async Task EditRow(AdUserDto? existing)
+    {
+        var vm = new AdUserEditViewModel(api, existing);
+        var win = new AdUserEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
+        if (win.ShowDialog() == true)
+            await LoadAsync();
+    }
+}
+
+public partial class AdUserEditViewModel : ObservableObject
+{
+    private readonly ApiClient _api;
+    private readonly int? _id;
+
+    public string Title => _id is null ? "Add AD user" : "Edit AD user";
+    [ObservableProperty] private string sam = "";
+    [ObservableProperty] private string name = "";
+    [ObservableProperty] private string? employeeId;
+    [ObservableProperty] private string? email;
+    [ObservableProperty] private string? department;
+    [ObservableProperty] private bool isActive = true;
+    [ObservableProperty] private string? error;
+    [ObservableProperty] private bool saving;
+    public event Action<bool>? CloseRequested;
+
+    public AdUserEditViewModel(ApiClient api, AdUserDto? existing)
+    {
+        _api = api;
+        if (existing is not null)
+        {
+            _id = existing.Id;
+            Sam = existing.Sam;
+            Name = existing.Name ?? "";
+            EmployeeId = existing.EmployeeId;
+            Email = existing.Email;
+            Department = existing.Department;
+            IsActive = existing.IsActive;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        Error = null;
+        if (string.IsNullOrWhiteSpace(Sam))
+        {
+            Error = "User ID is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(Name))
+        {
+            Error = "Name is required.";
+            return;
+        }
+        Saving = true;
+        try
+        {
+            await _api.SaveAdUserAsync(_id, new SaveAdUserRequest
+            {
+                Sam = Sam.Trim(),
+                Name = Name.Trim(),
+                EmployeeId = EmployeeId,
+                Email = Email,
+                Department = Department,
+                IsActive = IsActive
+            });
+            CloseRequested?.Invoke(true);
+        }
+        catch (Exception ex)
+        {
+            Error = ex.Message;
+        }
+        finally
+        {
+            Saving = false;
+        }
+    }
+
+    [RelayCommand]
+    private void Cancel() => CloseRequested?.Invoke(false);
 }
