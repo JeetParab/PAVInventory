@@ -305,7 +305,7 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             if (asset.LocationId != oldLocId)
                 asset.Location = null;
             if (asset.CategoryId != oldCatId)
-                asset.Category = null;
+                asset.Category = null!;
             if (asset.AssignedUserId != oldUserId)
                 asset.AssignedUser = null;
 

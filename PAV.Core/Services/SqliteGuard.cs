@@ -50,7 +50,7 @@ public static class SqliteGuard
             return "This save conflicts with an existing record (duplicate Asset ID, serial, user id, or similar).";
         }
 
-        if (Mentions(text, "FOREIGN KEY", "constraint failed"))
+        if (Mentions(text, "FOREIGN KEY constraint"))
             return "This save refers to a user, location or category that no longer exists. Refresh and try again.";
 
         var inner = Innermost(ex);
