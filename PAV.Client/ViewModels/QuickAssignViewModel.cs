@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
-using PAV.Core.Services;
 using PAV.Shared.Dtos;
 
 namespace PAV.Client.ViewModels;
@@ -116,25 +115,7 @@ public partial class QuickAssignViewModel : ObservableObject
         {
             int? id = null;
             if (name is not null)
-            {
-                var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
-                id = UserNameResolver.ResolveUniqueId(tuples, name);
-                if (id is null)
-                {
-                    var person = await _api.EnsurePersonFromAdAsync(name);
-                    if (person is not null)
-                    {
-                        _users.Add(person);
-                        id = person.Id;
-                        name = person.Name;
-                    }
-                }
-                else
-                {
-                    var u = _users.First(x => x.Id == id);
-                    name = u.Name;
-                }
-            }
+                (id, name) = await AssigneeResolver.ResolveAsync(_api, _users, name);
 
             var n = await _api.BulkPatchAsync(new BulkEditRequest
             {

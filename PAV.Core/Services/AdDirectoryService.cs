@@ -121,13 +121,6 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
             if (taken)
                 throw new AppException(400, "validation", "That user ID is already in AD users.");
 
-            row.Sam = sam;
-            row.Name = name;
-            row.Email = Mapping.Clean(req.Email);
-            row.Department = Mapping.Clean(req.Department);
-            row.EmployeeId = Mapping.Clean(req.EmployeeId);
-            row.IsActive = req.IsActive;
-
             var people = await db.Users.Where(u => !u.CanSignIn).ToListAsync();
             var linked = people.Where(u =>
                     (!string.IsNullOrWhiteSpace(u.SamAccount)
@@ -136,6 +129,20 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
                     || (string.IsNullOrWhiteSpace(u.SamAccount)
                         && u.Username.Equals(oldSam ?? sam, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
+
+            var linkedIds = linked.Select(u => u.Id).ToHashSet();
+            var conflict = await db.Users.AnyAsync(u =>
+                !linkedIds.Contains(u.Id) && u.SamAccount != null && u.SamAccount != "" && u.SamAccount.ToLower() == sam);
+            if (conflict)
+                throw new AppException(400, "validation", $"User id '{sam}' is already assigned to a different PAV user.");
+
+            row.Sam = sam;
+            row.Name = name;
+            row.Email = Mapping.Clean(req.Email);
+            row.Department = Mapping.Clean(req.Department);
+            row.EmployeeId = Mapping.Clean(req.EmployeeId);
+            row.IsActive = req.IsActive;
+
             foreach (var person in linked)
             {
                 person.SamAccount = sam;

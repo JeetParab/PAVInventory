@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
-using PAV.Core.Services;
 using PAV.Shared.Dtos;
 using PAV.Shared.Enums;
 
@@ -306,26 +305,8 @@ public partial class AssetEditViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(AssignedUserName))
             return null;
-        var tuples = _users.Select(u => (u.Id, u.Name, u.Username, u.SamAccount)).ToList();
-        var unique = UserNameResolver.ResolveUniqueId(tuples, AssignedUserName.Trim());
-        if (unique is not null)
-            return unique;
-        try
-        {
-            var person = await _api.EnsurePersonFromAdAsync(AssignedUserName.Trim());
-            if (person is not null)
-            {
-                _users.Add(person);
-                return person.Id;
-            }
-        }
-        catch
-        {
-            /* leave unlinked text if AD cannot create */
-        }
-        if (AssignedUserId is { } id && _users.Any(u => u.Id == id))
-            return id;
-        return null;
+        var (id, _) = await AssigneeResolver.ResolveAsync(_api, _users, AssignedUserName.Trim(), AssignedUserId);
+        return id;
     }
 
     partial void OnAssignedUserNameChanged(string? value)
