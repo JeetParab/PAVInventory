@@ -27,7 +27,6 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
     public async Task LoadAsync()
     {
         Loading = true;
-        var keep = Selected?.Sam;
         try
         {
             var rows = await api.AdDirectoryAsync();
@@ -35,11 +34,6 @@ public partial class DirectoryViewModel(ApiClient api, ShellViewModel shell) : O
             _all.AddRange(rows);
             RaiseCan();
             ApplyFilter();
-            if (keep is { } sam)
-                Selected = Users.FirstOrDefault(u => string.Equals(u.Sam, sam, StringComparison.OrdinalIgnoreCase))
-                           ?? Users.FirstOrDefault();
-            else
-                Selected = Users.FirstOrDefault();
             Summary = _all.Count == 0
                 ? "No AD user ids stored yet. Import AD users, or add one."
                 : $"{_all.Count:N0} AD user ids. Search, edit or remove. PAV users is the other tab — people you assign kit to.";

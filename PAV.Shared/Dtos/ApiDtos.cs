@@ -420,7 +420,9 @@ public class AdUserDto
     {
         get
         {
-            var n = string.IsNullOrWhiteSpace(Name) ? Sam : Name.Trim();
+            var n = Name?.Trim();
+            if (string.IsNullOrWhiteSpace(n))
+                return Sam;
             return string.IsNullOrWhiteSpace(Sam) ? n : n + "  (" + Sam + ")";
         }
     }

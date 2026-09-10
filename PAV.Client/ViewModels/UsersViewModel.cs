@@ -32,7 +32,6 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     public bool CanAdd => shell.CanAdd;
     public bool CanEditPeople => shell.CanEdit;
     public bool CanDeletePeople => shell.CanDelete;
-    public bool CanImportAd => shell.CanImport;
     public bool HasUnlinked => Unlinked.Count > 0;
 
     public async Task LoadAsync()
@@ -53,7 +52,6 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
             OnPropertyChanged(nameof(CanAdd));
             OnPropertyChanged(nameof(CanEditPeople));
             OnPropertyChanged(nameof(CanDeletePeople));
-            OnPropertyChanged(nameof(CanImportAd));
             OnPropertyChanged(nameof(HasUnlinked));
             ApplyFilter();
             if (keepId is { } id)
@@ -76,7 +74,7 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
     partial void OnShowAdUsersChanged(bool value)
     {
         OnPropertyChanged(nameof(ShowPavUsers));
-        if (value)
+        if (value && Directory.Users.Count == 0)
             _ = Directory.LoadAsync();
     }
 
@@ -159,30 +157,6 @@ public partial class UsersViewModel(ApiClient api, ShellViewModel shell) : Obser
         {
             await api.DeletePersonAsync(Selected.Id);
             await LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            Ui.Error(ex);
-        }
-    }
-
-    [RelayCommand]
-    private async Task ImportAdAsync()
-    {
-        if (!CanImportAd) return;
-        var path = Ui.OpenExcel();
-        if (path is null) return;
-        try
-        {
-            var preview = await api.PreviewAdImportAsync(path);
-            var vm = new AdImportViewModel(api, path, preview);
-            var win = new AdImportWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
-            if (win.ShowDialog() == true)
-            {
-                if (!string.IsNullOrWhiteSpace(vm.ResultSummary))
-                    Ui.Info(vm.ResultSummary);
-                await LoadAsync();
-            }
         }
         catch (Exception ex)
         {
