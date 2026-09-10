@@ -351,10 +351,14 @@ public partial class AssetEditViewModel : ObservableObject
 
     private void AddToCatalog(string name)
     {
-        if (_catalog.Contains(name, StringComparer.OrdinalIgnoreCase)) return;
-        _catalog.Add(name);
-        _catalog.Sort(StringComparer.OrdinalIgnoreCase);
-        if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+        if (!_catalog.Contains(name, StringComparer.OrdinalIgnoreCase))
+        {
+            _catalog.Add(name);
+            _catalog.Sort(StringComparer.OrdinalIgnoreCase);
+        }
+        if (AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+            SuggestOpen = false;
+        else
             ApplySuggest(AssignedUserName);
     }
 

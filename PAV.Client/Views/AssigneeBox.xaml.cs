@@ -106,7 +106,7 @@ public partial class AssigneeBox : UserControl
 
     private void OnBoxLostFocus(object sender, KeyboardFocusChangedEventArgs e)
     {
-        if (IsKeyboardFocusWithin || List.IsMouseOver || Pop.IsMouseOver)
+        if (IsKeyboardFocusWithin || List.IsKeyboardFocusWithin || List.IsMouseOver || Pop.IsMouseOver)
             return;
         IsOpen = false;
     }
