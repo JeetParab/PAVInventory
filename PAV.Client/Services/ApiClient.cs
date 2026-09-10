@@ -530,6 +530,10 @@ public class ApiClient
             SetConnected(false);
             throw new ApiException(0, "disconnected", FriendlyDisconnect(ex));
         }
+        catch (Exception ex)
+        {
+            throw new ApiException(400, "error", SqliteGuard.Describe(ex));
+        }
     }
 
     private static bool IsDisconnect(Exception ex)

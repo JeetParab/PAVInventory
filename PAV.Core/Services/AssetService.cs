@@ -295,10 +295,19 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
             var oldLoc = asset.Location?.Name;
             var oldAssigned = asset.AssignedUser?.Name ?? asset.AssignedUserName ?? "Unassigned";
             var oldWasAssigned = !string.IsNullOrWhiteSpace(asset.AssignedUserName) || asset.AssignedUserId != null;
+            var oldLocId = asset.LocationId;
+            var oldCatId = asset.CategoryId;
+            var oldUserId = asset.AssignedUserId;
 
             var users = await LoadUserKeysAsync();
             Mapping.Apply(asset, req);
             UserNameResolver.ApplyTo(asset, req.AssignedUserId, req.AssignedUserName, users);
+            if (asset.LocationId != oldLocId)
+                asset.Location = null;
+            if (asset.CategoryId != oldCatId)
+                asset.Category = null;
+            if (asset.AssignedUserId != oldUserId)
+                asset.AssignedUser = null;
 
             Track("Asset ID", oldTag, asset.AssetTag);
             Track("Serial Number", oldSerial, asset.SerialNumber);

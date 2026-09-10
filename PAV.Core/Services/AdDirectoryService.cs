@@ -572,9 +572,10 @@ public sealed class AdPersonLinker(AppDbContext db)
 
     public async Task<(User User, bool Created)> EnsurePersonAsync(AdDirectoryEntry ad, PeopleCache cache)
     {
-        if (cache.BySam.TryGetValue(ad.Sam, out var hit) && !hit.CanSignIn)
+        if (cache.BySam.TryGetValue(ad.Sam, out var hit))
         {
-            ApplyDirectory(hit, ad);
+            if (!hit.CanSignIn)
+                ApplyDirectory(hit, ad);
             return (hit, false);
         }
 
