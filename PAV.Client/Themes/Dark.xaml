@@ -21,6 +21,15 @@
   <SolidColorBrush x:Key="ConnectedBrush" Color="#3BB273"/>
   <SolidColorBrush x:Key="DisconnectedBrush" Color="#FF6B6E"/>
 
+  <!-- Design-system additions -->
+  <SolidColorBrush x:Key="AccentSoftBrush" Color="#22344F"/>
+  <SolidColorBrush x:Key="SidebarActiveBgBrush" Color="#1E2E48"/>
+  <SolidColorBrush x:Key="SidebarActiveFgBrush" Color="#8DB6FF"/>
+  <SolidColorBrush x:Key="FloatingTileBrush" Color="#CC1A222C"/>
+  <SolidColorBrush x:Key="SidebarMutedBrush" Color="#7C8CA2"/>
+  <SolidColorBrush x:Key="SidebarBorderBrush" Color="#1F2A38"/>
+  <SolidColorBrush x:Key="RowLineBrush" Color="#212C3A"/>
+
   <!-- Scrollbars -->
   <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="#00000000"/>
   <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#3A4656"/>
