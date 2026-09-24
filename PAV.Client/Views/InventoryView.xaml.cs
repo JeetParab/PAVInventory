@@ -34,6 +34,7 @@ public partial class InventoryView : UserControl
             ApplySavedOrder();
             ApplyFreeze();
             HookVm();
+            DetailsToggle.IsChecked = ActualWidth >= 1400;
         }
         catch (Exception ex)
         {

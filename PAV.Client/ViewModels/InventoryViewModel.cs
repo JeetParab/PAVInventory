@@ -67,6 +67,14 @@ public partial class InventoryViewModel : ObservableObject
         (IsComputers && PurposeFilter is "Temporary" or "Pending confirm" or "All") ||
         !string.IsNullOrWhiteSpace(SearchText);
 
+    public int ActiveFilterCount =>
+        (IsAll(StatusFilter) ? 0 : 1) +
+        (CategoryFilter != 0 ? 1 : 0) +
+        (LocationFilter != 0 ? 1 : 0) +
+        (IsAll(ManufacturerFilter) ? 0 : 1) +
+        (AssignedFilter is "Assigned" or "Unassigned" ? 1 : 0) +
+        (IsComputers && PurposeFilter is "Temporary" or "Pending confirm" or "All" ? 1 : 0);
+
     public List<AssetListDto> SelectedAssets { get; private set; } = [];
     private SaveAssetRequest? _undoRequest;
     private DispatcherTimer? _undoTimer;
@@ -131,6 +139,7 @@ public partial class InventoryViewModel : ObservableObject
                 : "No peripherals yet. Add a monitor, printer or other kit.")
             : "No assets match the current search or filters.";
         OnPropertyChanged(nameof(HasFilters));
+        OnPropertyChanged(nameof(ActiveFilterCount));
         OnPropertyChanged(nameof(ShowEmpty));
     }
 

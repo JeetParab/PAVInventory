@@ -22,37 +22,90 @@
       </Grid.ColumnDefinitions>
       <StackPanel VerticalAlignment="Center">
         <TextBlock Text="{Binding PageTitle}" Style="{StaticResource PageTitle}"/>
-        <TextBlock Text="{Binding PageHint}" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
+        <TextBlock Style="{StaticResource MutedText}" Margin="0,3,0,0">
+          <Run Text="{Binding Assets.Count, Mode=OneWay}"/><Run Text=" assets  ·  "/><Run Text="{Binding PageHint, Mode=OneWay}"/>
+        </TextBlock>
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-        <TextBlock Style="{StaticResource MutedText}" VerticalAlignment="Center">
-          <Run Text="{Binding VisibleCount, Mode=OneWay}"/>
-          <Run Text=" of "/>
-          <Run Text="{Binding Assets.Count, Mode=OneWay}"/>
-          <Run Text=" assets"/>
-          <Run Text="  ·  "/>
-          <Run Text="{Binding SelectedCount, Mode=OneWay}"/>
-          <Run Text=" selected"/>
+        <TextBlock Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,12,0"
+                   Visibility="{Binding HasFilters, Converter={StaticResource BoolToVis}}">
+          <Run Text="Showing "/><Run Text="{Binding VisibleCount, Mode=OneWay}"/><Run Text=" of "/><Run Text="{Binding Assets.Count, Mode=OneWay}"/>
         </TextBlock>
-        <Button Content="Clear filters" Style="{StaticResource GhostButton}" Margin="12,0,0,0"
+        <Border CornerRadius="9" Padding="9,2" Background="{DynamicResource AccentSoftBrush}" VerticalAlignment="Center">
+          <Border.Style>
+            <Style TargetType="Border">
+              <Setter Property="Visibility" Value="Visible"/>
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedCount}" Value="0">
+                  <Setter Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <TextBlock FontSize="11.5" FontWeight="SemiBold" Foreground="{DynamicResource AccentBrush}">
+            <Run Text="{Binding SelectedCount, Mode=OneWay}"/><Run Text=" selected"/>
+          </TextBlock>
+        </Border>
+        <Button Content="Clear filters" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
                 Command="{Binding ClearFiltersCommand}" Padding="10,4" FontSize="12"
                 Visibility="{Binding HasFilters, Converter={StaticResource BoolToVis}}"/>
+        <ToggleButton x:Name="DetailsToggle" Style="{StaticResource PanelToggle}" Margin="8,0,0,0"
+                      ToolTip="Show or hide the asset details panel">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="&#xE8A1;" Style="{StaticResource BtnIcon}"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+            <TextBlock Text="Details" Style="{StaticResource BtnLabel}"
+                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+          </StackPanel>
+        </ToggleButton>
       </StackPanel>
     </Grid>
 
-    <DockPanel Grid.Row="1" Margin="0,0,0,14" LastChildFill="False">
-      <TextBox x:Name="SearchBox" DockPanel.Dock="Left" Width="280" Margin="0,0,12,0"
-               Padding="10,8" VerticalContentAlignment="Center"
-               Tag="Search…"
-               Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-               ToolTip="Search tag, serial, hostname, IP, user, location, category, status, model…"/>
-
-      <Grid DockPanel.Dock="Left" Margin="0,0,8,0">
-        <Button Style="{StaticResource SecondaryButton}" Command="{Binding ToggleFiltersCommand}" Padding="12,8">
+    <Grid Grid.Row="1" Margin="0,0,0,14">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" MinWidth="200" MaxWidth="460"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Grid Margin="0,0,12,0">
+        <TextBox x:Name="SearchBox" Style="{StaticResource SearchTextBox}"
+                 Tag="Search serial number, hostname, user, IP address…"
+                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Search tag, serial, hostname, IP, user, location, category, status, model…"/>
+        <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" FontSize="14"
+                   Foreground="{DynamicResource MutedBrush}" IsHitTestVisible="False"
+                   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </Grid>
+      <StackPanel Grid.Column="1" Orientation="Horizontal">
+      <Grid Margin="0,0,8,0">
+        <Button Padding="12,8" Command="{Binding ToggleFiltersCommand}">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ActiveFilterCount, Converter={StaticResource Eq}, ConverterParameter=0}" Value="False">
+                  <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}"/>
+                  <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                  <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="&#xE71C;" Style="{StaticResource BtnIcon}"
                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
             <TextBlock Text="Filters" Style="{StaticResource BtnLabel}"/>
+            <TextBlock Margin="6,0,0,0" FontWeight="SemiBold">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource BtnLabel}">
+                  <Setter Property="Visibility" Value="Visible"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ActiveFilterCount}" Value="0">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+              <Run Text="{Binding ActiveFilterCount, Mode=OneWay}"/><Run Text=" active"/>
+            </TextBlock>
           </StackPanel>
         </Button>
         <Popup IsOpen="{Binding FiltersOpen}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True">
@@ -100,8 +153,9 @@
         </Popup>
       </Grid>
 
-      <Button DockPanel.Dock="Left" Style="{StaticResource PrimaryButton}"
-              MinWidth="112" Padding="14,8" FontSize="13" Margin="0,0,8,0"
+      <Border Style="{StaticResource ToolbarDivider}" Margin="0,6,10,6"/>
+      <Button Style="{StaticResource PrimaryButton}"
+              MinWidth="108" Padding="14,8" FontSize="13" Margin="0,0,10,0"
               Command="{Binding AddCommand}"
               IsEnabled="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=Window}}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -109,36 +163,54 @@
           <TextBlock Text="Add asset" Style="{StaticResource BtnLabel}" Foreground="White"/>
         </StackPanel>
       </Button>
-      <Button DockPanel.Dock="Left" Style="{StaticResource SecondaryButton}" Padding="12,8" Margin="0,0,8,0"
+      <Button Style="{StaticResource SecondaryButton}" Padding="10,8" Margin="0,0,6,0"
               Command="{Binding EditCommand}"
-              IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=Window}}">
+              ToolTip="Edit the selected asset (F2)">
+        <Button.IsEnabled>
+          <MultiBinding Converter="{StaticResource EnabledWhenSelected}">
+            <Binding Path="DataContext.CanEdit" RelativeSource="{RelativeSource AncestorType=Window}"/>
+            <Binding Path="SelectedCount"/>
+          </MultiBinding>
+        </Button.IsEnabled>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="&#xE70F;" Style="{StaticResource BtnIcon}"
                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
           <TextBlock Text="Edit" Style="{StaticResource BtnLabel}"/>
         </StackPanel>
       </Button>
-      <Button DockPanel.Dock="Left" Style="{StaticResource SecondaryButton}" Padding="12,8" Margin="0,0,8,0"
+      <Button Style="{StaticResource SecondaryButton}" Padding="10,8" Margin="0,0,6,0"
               Command="{Binding AssignCommand}"
-              IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=Window}}"
               ToolTip="Assign or unassign the selected assets">
+        <Button.IsEnabled>
+          <MultiBinding Converter="{StaticResource EnabledWhenSelected}">
+            <Binding Path="DataContext.CanEdit" RelativeSource="{RelativeSource AncestorType=Window}"/>
+            <Binding Path="SelectedCount"/>
+          </MultiBinding>
+        </Button.IsEnabled>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="&#xE716;" Style="{StaticResource BtnIcon}"
                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
           <TextBlock Text="Assign" Style="{StaticResource BtnLabel}"/>
         </StackPanel>
       </Button>
-      <Button DockPanel.Dock="Left" Style="{StaticResource DangerButton}" Padding="12,8" Margin="0,0,8,0"
+      <Button Style="{StaticResource DangerButton}" Padding="10,8" Margin="0,0,0,0"
               Command="{Binding DeleteCommand}"
-              IsEnabled="{Binding DataContext.CanDelete, RelativeSource={RelativeSource AncestorType=Window}}">
+              ToolTip="Delete the selected asset (Del)">
+        <Button.IsEnabled>
+          <MultiBinding Converter="{StaticResource EnabledWhenSelected}">
+            <Binding Path="DataContext.CanDelete" RelativeSource="{RelativeSource AncestorType=Window}"/>
+            <Binding Path="SelectedCount"/>
+          </MultiBinding>
+        </Button.IsEnabled>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
           <TextBlock Text="&#xE74D;" Style="{StaticResource BtnIcon}"
                      Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
           <TextBlock Text="Delete" Style="{StaticResource BtnLabel}"/>
         </StackPanel>
       </Button>
-      <Grid DockPanel.Dock="Left" Margin="0,0,8,0">
-        <Button Style="{StaticResource SecondaryButton}" Padding="12,8" Command="{Binding ToggleToolsCommand}">
+      <Border Style="{StaticResource ToolbarDivider}" Margin="10,6,10,6"/>
+      <Grid Margin="0,0,6,0">
+        <Button Style="{StaticResource SecondaryButton}" Padding="10,8" Command="{Binding ToggleToolsCommand}">
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="&#xE90F;" Style="{StaticResource BtnIcon}"
                        Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
@@ -254,18 +326,21 @@
           </Border>
         </Popup>
       </Grid>
-      <Button DockPanel.Dock="Left" Style="{StaticResource SecondaryButton}" Padding="12,8"
-              Command="{Binding LoadCommand}">
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <TextBlock Text="&#xE72C;" Style="{StaticResource BtnIcon}"
-                     Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-          <TextBlock Text="Refresh" Style="{StaticResource BtnLabel}"/>
-        </StackPanel>
+      <Button Style="{StaticResource SecondaryButton}" Padding="10,8"
+              Command="{Binding LoadCommand}" ToolTip="Refresh (F5)">
+        <TextBlock Text="&#xE72C;" Style="{StaticResource BtnIcon}" Margin="0"
+                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
       </Button>
-    </DockPanel>
+      </StackPanel>
+    </Grid>
 
     <Grid Grid.Row="2">
-      <Border Style="{StaticResource Card}" Padding="0">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Grid Grid.Column="0">
+      <Border Style="{StaticResource Card}" Padding="0" ClipToBounds="True">
         <DataGrid x:Name="AssetGrid"
                   ItemsSource="{Binding AssetsView}"
                   SelectedItem="{Binding Selected}"
@@ -346,44 +421,63 @@
                                     SortMemberPath="HasNotes">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <Ellipse Width="9" Height="9" HorizontalAlignment="Center" VerticalAlignment="Center"
-                           Fill="{DynamicResource AccentBrush}"
-                           ToolTip="{Binding Remarks}">
-                    <Ellipse.Style>
-                      <Style TargetType="Ellipse">
-                        <Setter Property="Visibility" Value="Collapsed"/>
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding HasNotes}" Value="True">
-                            <Setter Property="Visibility" Value="Visible"/>
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </Ellipse.Style>
-                  </Ellipse>
+                  <Grid>
+                    <Border Width="3" Height="34" Margin="-10,0,0,0" HorizontalAlignment="Left"
+                            Background="{DynamicResource AccentBrush}">
+                      <Border.Style>
+                        <Style TargetType="Border">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                              <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+                    </Border>
+                    <Ellipse Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Fill="{DynamicResource AccentBrush}"
+                             ToolTip="{Binding Remarks}">
+                      <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                          <Setter Property="Visibility" Value="Collapsed"/>
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasNotes}" Value="True">
+                              <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Ellipse.Style>
+                    </Ellipse>
+                  </Grid>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="60"/>
-            <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="130"/>
-            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="90"/>
-            <DataGridTextColumn Header="Make / Model" Binding="{Binding MakeModel}" Width="200"/>
-            <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="150"/>
-            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="140"/>
-            <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
+            <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="56"/>
+            <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="120"/>
+            <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="84"/>
+            <DataGridTextColumn Header="Make / Model" Binding="{Binding MakeModel}" Width="190"/>
+            <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="140"/>
+            <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="130"/>
             <DataGridTextColumn Header="User Name" Binding="{Binding AssignedUser}" Width="150"/>
-            <DataGridTextColumn Header="Designation" Binding="{Binding Designation}" Width="140"/>
-            <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="90"/>
-            <DataGridTemplateColumn Header="Status" Width="110">
+            <DataGridTemplateColumn Header="Status" Width="112">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
-                  <Border Style="{StaticResource StatusPill}"
+                  <Border Style="{StaticResource StatusPill}" Padding="7,2,9,2"
                           Background="{Binding Status, Converter={StaticResource StatusBrush}}">
-                    <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"
-                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=fg}"/>
+                    <StackPanel Orientation="Horizontal">
+                      <Ellipse Width="6" Height="6" Margin="0,0,6,0" VerticalAlignment="Center"
+                               Fill="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=fg}"/>
+                      <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"
+                                 Foreground="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=fg}"/>
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
+            <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
+            <DataGridTextColumn Header="Designation" Binding="{Binding Designation}" Width="140"/>
+            <DataGridTextColumn Header="Purpose" Binding="{Binding Purpose}" Width="90"/>
             <DataGridTextColumn Header="Domain" Binding="{Binding Domain}" Width="100"/>
             <DataGridTextColumn Header="MAC Address" Binding="{Binding MacAddress}" Width="130"/>
             <DataGridTextColumn Header="Processor" Binding="{Binding Processor}" Width="200"/>
@@ -414,6 +508,148 @@
       <Border Background="{DynamicResource OverlayBrush}" Visibility="{Binding Loading, Converter={StaticResource BoolToVis}}">
         <TextBlock Text="Loading…" HorizontalAlignment="Center" VerticalAlignment="Center"
                    FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}"/>
+      </Border>
+      </Grid>
+
+      <!-- Selected asset details (read-only; bound to the existing Selected row) -->
+      <Border Grid.Column="1" Style="{StaticResource Card}" Width="276" Margin="12,0,0,0" Padding="0"
+              Visibility="{Binding IsChecked, ElementName=DetailsToggle, Converter={StaticResource BoolToVis}}">
+        <Grid>
+          <!-- No selection -->
+          <TextBlock Text="Select an asset to see its details." TextAlignment="Center" TextWrapping="Wrap"
+                     VerticalAlignment="Center" Margin="24,0" FontSize="12"
+                     Foreground="{DynamicResource MutedBrush}">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SelectedCount}" Value="0">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <!-- Several rows selected -->
+          <TextBlock TextAlignment="Center" TextWrapping="Wrap" VerticalAlignment="Center" Margin="24,0"
+                     FontSize="12" Foreground="{DynamicResource MutedBrush}">
+            <Run Text="{Binding SelectedCount, Mode=OneWay}"/><Run Text=" assets selected."/>
+            <LineBreak/>
+            <Run Text="Use Assign, Edit or the Tools menu to act on all of them, or select a single row to see its details."/>
+            <TextBlock.Style>
+              <Style TargetType="TextBlock">
+                <Setter Property="Visibility" Value="Visible"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SelectedCount}" Value="0">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding SelectedCount}" Value="1">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+
+          <!-- Exactly one row selected -->
+          <DockPanel>
+            <DockPanel.Style>
+              <Style TargetType="DockPanel">
+                <Setter Property="Visibility" Value="Collapsed"/>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding SelectedCount}" Value="1">
+                    <Setter Property="Visibility" Value="Visible"/>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DockPanel.Style>
+
+            <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="12,10">
+              <Button Content="Open full details" Style="{StaticResource SecondaryButton}"
+                      Command="{Binding OpenCommand}" Padding="10,7" HorizontalAlignment="Stretch"/>
+            </Border>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" CanContentScroll="False">
+              <StackPanel DataContext="{Binding Selected}" Margin="16,14,16,6">
+                <TextBlock Text="ASSET DETAILS" Style="{StaticResource DetailSection}" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding MakeModel}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding AssetTag}" Style="{StaticResource MutedText}" Margin="0,2,0,8"/>
+                <Border Style="{StaticResource StatusPill}" Padding="7,2,9,2" Margin="0,0,0,14"
+                        Background="{Binding Status, Converter={StaticResource StatusBrush}}">
+                  <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="6" Height="6" Margin="0,0,6,0" VerticalAlignment="Center"
+                             Fill="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=fg}"/>
+                    <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="SemiBold"
+                               Foreground="{Binding Status, Converter={StaticResource StatusBrush}, ConverterParameter=fg}"/>
+                  </StackPanel>
+                </Border>
+
+                <TextBlock Text="IDENTITY" Style="{StaticResource DetailSection}"/>
+                <TextBlock Text="Category" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Category}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Serial Number" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding SerialNumber}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Hostname" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Hostname}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Location" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Location}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Purpose" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Purpose}" Style="{StaticResource DetailValue}"/>
+
+                <TextBlock Text="ASSIGNMENT" Style="{StaticResource DetailSection}" Margin="0,6,0,8"/>
+                <TextBlock Text="Assigned User" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding AssignedUser}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Designation" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Designation}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Alternate User" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding AlternateUser}" Style="{StaticResource DetailValue}"/>
+
+                <TextBlock Text="NETWORK" Style="{StaticResource DetailSection}" Margin="0,6,0,8"/>
+                <TextBlock Text="IP Address" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding IpAddress}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="MAC Address" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding MacAddress}" Style="{StaticResource DetailValue}"/>
+                <TextBlock Text="Domain" Style="{StaticResource DetailLabel}"/>
+                <TextBlock Text="{Binding Domain}" Style="{StaticResource DetailValue}"/>
+
+                <StackPanel Visibility="{Binding DataContext.ShowComputerTools, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}">
+                  <TextBlock Text="HARDWARE" Style="{StaticResource DetailSection}" Margin="0,6,0,8"/>
+                  <TextBlock Text="Processor" Style="{StaticResource DetailLabel}"/>
+                  <TextBlock Text="{Binding Processor}" Style="{StaticResource DetailValue}"/>
+                  <TextBlock Text="RAM  ·  Storage" Style="{StaticResource DetailLabel}"/>
+                  <TextBlock Style="{StaticResource DetailValue}">
+                    <Run Text="{Binding Ram, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Storage, Mode=OneWay}"/>
+                  </TextBlock>
+                  <TextBlock Text="Operating System" Style="{StaticResource DetailLabel}"/>
+                  <TextBlock Text="{Binding OperatingSystem}" Style="{StaticResource DetailValue}"/>
+
+                  <TextBlock Text="COMPLIANCE" Style="{StaticResource DetailSection}" Margin="0,6,0,8"/>
+                  <UniformGrid Columns="3" Margin="0,0,0,4">
+                    <StackPanel><TextBlock Text="DC" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding DcInstalled}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="AV" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding AvInstalled}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="Office" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding MsOfficeVersion}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="MFA" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding MfaEnabled}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="Ivanti" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding IvantiInstalled}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="Admin" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding AdminRights}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="USB" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding UsbAccess}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="Chrome" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding ChromeUpdated}" Style="{StaticResource DetailValue}"/></StackPanel>
+                    <StackPanel><TextBlock Text="PM" Style="{StaticResource DetailLabel}"/><TextBlock Text="{Binding PmCompleted}" Style="{StaticResource DetailValue}"/></StackPanel>
+                  </UniformGrid>
+                  <TextBlock Text="Last Connected" Style="{StaticResource DetailLabel}"/>
+                  <TextBlock Text="{Binding LastConnected, StringFormat=yyyy-MM-dd}" Style="{StaticResource DetailValue}"/>
+                  <TextBlock Text="Collect By" Style="{StaticResource DetailLabel}"/>
+                  <TextBlock Text="{Binding CollectBy}" Style="{StaticResource DetailValue}"/>
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}">
+                  <TextBlock Text="NOTES" Style="{StaticResource DetailSection}" Margin="0,6,0,8"/>
+                  <TextBlock Text="{Binding Remarks}" Style="{StaticResource DetailValue}"/>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </DockPanel>
+        </Grid>
       </Border>
     </Grid>
 
