@@ -236,9 +236,6 @@ public class ApiClient
     public Task<AssetDetailDto> AssetAsync(int id, bool history = true) =>
         Read(Permissions.View, (db, _) => new AssetService(db, _lock).GetAsync(id, history));
 
-    public Task<List<HistoryDto>> HistoryAsync(int id) =>
-        Read(Permissions.View, (db, _) => new AssetService(db, _lock).GetHistoryAsync(id));
-
     public Task<AssetDetailDto> CreateAssetAsync(SaveAssetRequest req) =>
         Read(Permissions.Add, (db, actor) => new AssetService(db, _lock).CreateAsync(req, actor));
 
@@ -396,10 +393,10 @@ public class ApiClient
         });
 
     public Task<AdImportResultDto> ImportAdAsync(string filePath) =>
-        Read(Permissions.Import, async (db, actor) =>
+        Read(Permissions.Import, async (db, _) =>
         {
             await using var fs = File.OpenRead(filePath);
-            return await new AdDirectoryService(db, _lock).ImportAsync(fs, actor);
+            return await new AdDirectoryService(db, _lock).ImportAsync(fs);
         });
 
     public Task<List<AdUserDto>> AdDirectoryAsync() =>
@@ -456,9 +453,6 @@ public class ApiClient
 
     public Task<StockOverviewDto> StockOverviewAsync(string? search = null, string? status = null, bool includeInactive = false, string? categoryScope = null) =>
         Read(Permissions.View, (db, _) => new StockService(db, _lock).OverviewAsync(search, status, includeInactive, categoryScope));
-
-    public Task<StockItemDto> StockGetAsync(int id) =>
-        Read(Permissions.View, (db, _) => new StockService(db, _lock).GetAsync(id));
 
     public Task<List<StockMovementDto>> StockMovementsAsync(int? itemId = null, int? userId = null, string? search = null, string? categoryScope = null) =>
         Read(Permissions.View, (db, _) => new StockService(db, _lock).MovementsAsync(itemId, userId, search, categoryScope));

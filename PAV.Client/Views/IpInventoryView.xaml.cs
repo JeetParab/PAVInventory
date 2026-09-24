@@ -1,5 +1,3 @@
-using System.Windows.Controls;
-using System.Windows.Input;
 using PAV.Client.ViewModels;
 
 namespace PAV.Client.Views;

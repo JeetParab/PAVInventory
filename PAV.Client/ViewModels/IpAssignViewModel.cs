@@ -1,5 +1,3 @@
-using System.Collections.ObjectModel;
-using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -12,7 +10,6 @@ namespace PAV.Client.ViewModels;
 public partial class IpAssignViewModel : ObservableObject
 {
     private readonly ApiClient _api;
-    private readonly int? _id;
     private int _checkSeq;
     private readonly List<string> _people = [];
     private bool _suppressFilter;
@@ -45,10 +42,9 @@ public partial class IpAssignViewModel : ObservableObject
     public string? InventorySync { get; private set; }
     public event Action<bool>? CloseRequested;
 
-    public IpAssignViewModel(ApiClient api, IpAddressDto? existing, int? rangeId, string? nextAddress)
+    public IpAssignViewModel(ApiClient api, IpAddressDto? existing, string? nextAddress)
     {
         _api = api;
-        _id = existing?.Id;
         Address = existing?.Address ?? nextAddress ?? "";
         AssignedDevice = existing?.AssignedDevice;
         AssignedUser = existing?.AssignedUser;

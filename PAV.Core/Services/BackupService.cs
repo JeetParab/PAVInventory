@@ -1,5 +1,4 @@
 using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 using PAV.Core.Data;
 using PAV.Shared.Dtos;
 
@@ -34,7 +33,7 @@ public class BackupService(PavDatabase pav, IWriteLock writeLock)
             .ToList();
     }
 
-    public Task<BackupInfo> BackupNowAsync(string reason = "manual") =>
+    public Task<BackupInfo> BackupNowAsync() =>
         writeLock.WriteAsync(() => Task.FromResult(FileCopySqlite()));
 
     public Task RestoreAsync(string fileName) =>

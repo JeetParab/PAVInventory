@@ -151,21 +151,6 @@ public sealed class PavDatabase
         Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
     }
 
-    public bool CanOpen()
-    {
-        try
-        {
-            if (!File.Exists(DatabasePath) && !Directory.Exists(Folder))
-                Directory.CreateDirectory(Folder);
-            using var db = Create();
-            return db.Database.CanConnect();
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
     private static async Task EnsureColumnsAsync(AppDbContext db)
     {
         await EnsureTableColumnsAsync(db, "Assets",

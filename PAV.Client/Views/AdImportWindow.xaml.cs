@@ -1,4 +1,3 @@
-using System.Windows;
 using PAV.Client.ViewModels;
 
 namespace PAV.Client.Views;

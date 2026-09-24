@@ -1,8 +1,3 @@
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
-using System.Windows.Data;
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -17,7 +12,6 @@ public partial class InventoryViewModel : ObservableObject
     private readonly ApiClient _api;
     private readonly ShellViewModel _shell;
     private readonly ClientConfig _config;
-    private readonly string _space;
 
     public bool IsComputers { get; }
     public bool ShowComputerTools => IsComputers;
@@ -94,7 +88,6 @@ public partial class InventoryViewModel : ObservableObject
         _api = api;
         _shell = shell;
         _config = config;
-        _space = space;
         IsComputers = !string.Equals(space, "peripherals", StringComparison.OrdinalIgnoreCase);
         FreezeIdentityColumns = config.FreezeIdentityColumns;
         Loading = true;
@@ -444,17 +437,7 @@ public partial class InventoryViewModel : ObservableObject
     private async Task AddAsync()
     {
         if (!_shell.CanAdd) return;
-        var vm = new AssetEditViewModel(_api, Categories.Where(c => c.Id != 0).ToList(),
-            Locations.Where(l => l.Id != 0).ToList(), Users.ToList(), AssigneeNames(), null,
-            computerFields: IsComputers);
-        var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
-        if (win.ShowDialog() == true)
-        {
-            if (vm.SavedAsset is not null)
-                ApplySaved(vm.SavedAsset);
-            else
-                await ReloadAssetsAsync();
-        }
+        await ShowAssetEditorAsync(null);
     }
 
     [RelayCommand]
@@ -489,22 +472,7 @@ public partial class InventoryViewModel : ObservableObject
     {
         try
         {
-            var detail = preloaded ?? await _api.AssetAsync(id, history: false);
-            var vm = new AssetEditViewModel(_api,
-                Categories.Where(c => c.Id != 0).ToList(),
-                Locations.Where(l => l.Id != 0).ToList(),
-                Users.ToList(),
-                AssigneeNames(),
-                detail,
-                computerFields: IsComputers);
-            var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
-            if (win.ShowDialog() == true)
-            {
-                if (vm.SavedAsset is not null)
-                    ApplySaved(vm.SavedAsset);
-                else
-                    await ReloadAssetsAsync();
-            }
+            await ShowAssetEditorAsync(preloaded ?? await _api.AssetAsync(id, history: false));
         }
         catch (Exception ex)
         {
@@ -516,22 +484,25 @@ public partial class InventoryViewModel : ObservableObject
     private async Task CopyAsNewAsync()
     {
         if (Selected is null || !_shell.CanAdd) return;
+        await ShowAssetEditorAsync(Selected, copy: true);
+    }
+
+    private async Task ShowAssetEditorAsync(AssetListDto? existing, bool copy = false)
+    {
         var vm = new AssetEditViewModel(_api,
             Categories.Where(c => c.Id != 0).ToList(),
             Locations.Where(l => l.Id != 0).ToList(),
             Users.ToList(),
             AssigneeNames(),
-            Selected,
-            copy: true,
+            existing,
+            copy: copy,
             computerFields: IsComputers);
         var win = new AssetEditWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
-        if (win.ShowDialog() == true)
-        {
-            if (vm.SavedAsset is not null)
-                ApplySaved(vm.SavedAsset);
-            else
-                await ReloadAssetsAsync();
-        }
+        if (win.ShowDialog() != true) return;
+        if (vm.SavedAsset is not null)
+            ApplySaved(vm.SavedAsset);
+        else
+            await ReloadAssetsAsync();
     }
 
     [RelayCommand]

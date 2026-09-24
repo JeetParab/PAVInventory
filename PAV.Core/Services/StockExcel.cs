@@ -118,7 +118,7 @@ public static class StockExcel
             groups = BuildGroups(rows, leftoverOnly: kind == "2025-cleaned-ledger");
         }
 
-        AssignActions(groups, existingStock, users, kind);
+        AssignActions(groups, existingStock, users);
         FillPreviewFromGroups(preview, groups, kind);
         return new StockImportPlan(preview, groups);
     }
@@ -135,8 +135,7 @@ public static class StockExcel
     private static void AssignActions(
         List<ParsedStockGroup> grouped,
         IReadOnlyList<ExistingStock> existingStock,
-        IReadOnlyList<(int Id, string Name, string Username, string? Sam)> users,
-        string kind)
+        IReadOnlyList<(int Id, string Name, string Username, string? Sam)> users)
     {
         foreach (var g in grouped)
         {
@@ -250,7 +249,7 @@ public static class StockExcel
             var sample = g.OrderByDescending(x => x.MakeModel.Length).First();
             var parsed = ParseProduct(sample.MakeModel);
             var toner = g.Any(x => IsToner(x.MakeModel, x.Type));
-            var classification = Classify(parsed.Name, parsed.Manufacturer, parsed.Model);
+            var classification = Classify(parsed.Name);
             if (leftoverOnly && classification == "Ambiguous" &&
                 (parsed.Name.Contains("monitor", StringComparison.OrdinalIgnoreCase) ||
                  g.Any(x => (x.Type ?? "").Contains("Monitor", StringComparison.OrdinalIgnoreCase))))
@@ -311,14 +310,6 @@ public static class StockExcel
     {
         var n = (make + " " + type).ToLowerInvariant();
         return n.Contains("toner") || n.Contains("cartridge");
-    }
-
-    public static ExistingStock? MatchExisting(
-        ParsedStockGroup g,
-        IReadOnlyList<ExistingStock> existing)
-    {
-        var hits = FindExisting(g, existing);
-        return hits.Count == 1 ? hits[0] : null;
     }
 
     private static List<ExistingStock> FindExisting(ParsedStockGroup g, IReadOnlyList<ExistingStock> existing)
@@ -443,7 +434,7 @@ public static class StockExcel
                 Manufacturer = manufacturer ?? parsed.Manufacturer,
                 Model = model ?? parsed.Model,
                 Category = category ?? parsed.Category,
-                Classification = Classify(name, manufacturer, model),
+                Classification = Classify(name),
                 OpeningQty = qty,
                 Notes = notes,
                 Rows = []
@@ -596,7 +587,7 @@ public static class StockExcel
         return "Other";
     }
 
-    public static string Classify(string name, string? manufacturer, string? model)
+    public static string Classify(string name)
     {
         var n = name.ToLowerInvariant();
         if (n.Contains("laptop") && !n.Contains("cooler") && !n.Contains("battery") &&

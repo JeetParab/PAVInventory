@@ -1,5 +1,3 @@
-using System.Windows;
-
 namespace PAV.Client.Views;
 
 public partial class AddLocationWindow : Window

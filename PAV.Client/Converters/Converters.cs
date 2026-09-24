@@ -1,8 +1,4 @@
 using System.Globalization;
-using System.Windows;
-using System.Windows.Data;
-using System.Windows.Media;
-using PAV.Shared.Enums;
 
 namespace PAV.Client.Converters;
 
@@ -113,10 +109,4 @@ public class StringNotEmptyToVis : IValueConverter
         string.IsNullOrWhiteSpace(value as string) ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object value, Type t, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
-}
-
-public static class StatusOptions
-{
-    public static IReadOnlyList<string> DisplayNames { get; } =
-        AssetStatusNames.All.Select(s => s.Display()).ToList();
 }

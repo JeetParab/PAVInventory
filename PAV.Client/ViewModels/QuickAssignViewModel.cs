@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -34,12 +33,7 @@ public partial class QuickAssignViewModel : ObservableObject
         _api = api;
         _ids = ids;
         _users = users;
-        foreach (var n in users.Select(u => u.AssignLabel)
-                     .Concat(assigneeNames)
-                     .Where(n => !string.IsNullOrWhiteSpace(n))
-                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                     .OrderBy(n => n))
-            _catalog.Add(n);
+        _catalog.AddRange(AssigneeSuggest.BuildCatalog(users, assigneeNames));
         ApplySuggest("");
         _ = LoadAdAsync();
     }
@@ -48,20 +42,8 @@ public partial class QuickAssignViewModel : ObservableObject
     {
         try
         {
-            var ad = await _api.AdDirectoryAsync();
-            var extra = false;
-            foreach (var n in ad.Select(a => a.AssignLabel))
-            {
-                if (_catalog.Contains(n, StringComparer.OrdinalIgnoreCase)) continue;
-                _catalog.Add(n);
-                extra = true;
-            }
-            if (extra)
-            {
-                _catalog.Sort(StringComparer.OrdinalIgnoreCase);
-                if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
-                    ApplySuggest(AssignedUserName);
-            }
+            if (await AssigneeSuggest.MergeAdAsync(_api, _catalog) && !AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+                ApplySuggest(AssignedUserName);
         }
         catch
         {

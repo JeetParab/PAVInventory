@@ -1,6 +1,3 @@
-using System.Windows;
-using System.Windows.Media;
-
 namespace PAV.Client.Views;
 
 public partial class MessageDialog : Window

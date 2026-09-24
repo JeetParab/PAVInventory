@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -94,14 +93,7 @@ public partial class AssetEditViewModel : ObservableObject
         Locations = [new LocationDto { Id = 0, Name = "(None)" }, .. locations];
         Title = copy ? "Copy asset" : existing is null ? (seed is null ? "Add asset" : "Complete asset details") : "Edit asset";
 
-        foreach (var n in users
-                     .Where(u => !string.IsNullOrWhiteSpace(u.Name))
-                     .Select(u => u.AssignLabel)
-                     .Concat(assigneeNames)
-                     .Where(n => !string.IsNullOrWhiteSpace(n))
-                     .Distinct(StringComparer.OrdinalIgnoreCase)
-                     .OrderBy(n => n))
-            _catalog.Add(n);
+        _catalog.AddRange(AssigneeSuggest.BuildCatalog(users.Where(u => !string.IsNullOrWhiteSpace(u.Name)), assigneeNames));
         ApplySuggest("");
         _ = LoadAdAsync();
 
@@ -330,17 +322,7 @@ public partial class AssetEditViewModel : ObservableObject
     {
         try
         {
-            var ad = await _api.AdDirectoryAsync();
-            var extra = false;
-            foreach (var n in ad.Select(a => a.AssignLabel))
-            {
-                if (_catalog.Contains(n, StringComparer.OrdinalIgnoreCase)) continue;
-                _catalog.Add(n);
-                extra = true;
-            }
-            if (!extra) return;
-            _catalog.Sort(StringComparer.OrdinalIgnoreCase);
-            if (!AssigneeSuggest.IsExact(_catalog, AssignedUserName))
+            if (await AssigneeSuggest.MergeAdAsync(_api, _catalog) && !AssigneeSuggest.IsExact(_catalog, AssignedUserName))
                 ApplySuggest(AssignedUserName);
         }
         catch

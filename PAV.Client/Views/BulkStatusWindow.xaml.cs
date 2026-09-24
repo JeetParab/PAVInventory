@@ -1,4 +1,3 @@
-using System.Windows;
 using PAV.Shared.Enums;
 
 namespace PAV.Client.Views;

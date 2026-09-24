@@ -191,14 +191,6 @@ public class AssetService(AppDbContext db, IWriteLock writeLock)
         return Mapping.ToDetailDto(asset, hist);
     }
 
-    public async Task<List<HistoryDto>> GetHistoryAsync(int id)
-    {
-        if (!await db.Assets.AsNoTracking().AnyAsync(a => a.Id == id) &&
-            !await db.AssetHistory.AsNoTracking().AnyAsync(h => h.AssetId == id))
-            throw new AppException(404, "not_found", "Asset not found.");
-        return await LoadHistoryAsync(id);
-    }
-
     public Task<AssetDetailDto> CreateAsync(SaveAssetRequest req, CurrentUser actor) =>
         writeLock.WriteAsync(async () =>
         {

@@ -233,21 +233,26 @@ public class IpAddressService(AppDbContext db, IWriteLock writeLock)
             return ToDto(rec);
         });
 
+    internal static void MarkFree(IpRecord rec, CurrentUser actor)
+    {
+        rec.Status = IpStatus.Free;
+        rec.IsTemporary = false;
+        rec.AssignedDevice = null;
+        rec.AssignedUser = null;
+        rec.Department = null;
+        rec.MacAddress = null;
+        rec.DeviceType = null;
+        rec.DateAssigned = null;
+        rec.LastUpdated = DateTime.UtcNow;
+        rec.AllocatedBy = actor.DisplayName;
+    }
+
     public Task<IpAddressDto> ReleaseAsync(int id, CurrentUser actor) =>
         writeLock.WriteAsync(async () =>
         {
             var rec = await db.IpRecords.Include(x => x.Range).FirstOrDefaultAsync(x => x.Id == id)
                       ?? throw new AppException(404, "not_found", "IP address was not found.");
-            rec.Status = IpStatus.Free;
-            rec.IsTemporary = false;
-            rec.AssignedDevice = null;
-            rec.AssignedUser = null;
-            rec.Department = null;
-            rec.MacAddress = null;
-            rec.DeviceType = null;
-            rec.DateAssigned = null;
-            rec.LastUpdated = DateTime.UtcNow;
-            rec.AllocatedBy = actor.DisplayName;
+            MarkFree(rec, actor);
             var address = rec.Address;
             await SqliteGuard.SaveChangesAsync(db);
             await IpAssetBridge.AfterIpReleasedAsync(db, address, actor);

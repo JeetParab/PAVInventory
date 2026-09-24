@@ -1,8 +1,6 @@
-using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
-using PAV.Client.Views;
 using PAV.Shared.Dtos;
 using PAV.Shared.Enums;
 

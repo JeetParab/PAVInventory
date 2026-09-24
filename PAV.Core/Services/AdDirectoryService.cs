@@ -12,7 +12,7 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
     public async Task<AdImportPreviewDto> PreviewAsync(Stream excel) =>
         await BuildPlanAsync(excel);
 
-    public Task<AdImportResultDto> ImportAsync(Stream excel, CurrentUser actor) =>
+    public Task<AdImportResultDto> ImportAsync(Stream excel) =>
         writeLock.WriteAsync(async () =>
         {
             var plan = await BuildPlanAsync(excel);
@@ -580,10 +580,8 @@ public sealed class AdPersonLinker(AppDbContext db)
         }
 
         var username = ad.Sam;
-        if (cache.TakenUsernames.Contains(username))
-            username = NextUsername(ad.Name ?? ad.Sam, cache.TakenUsernames);
-        else
-            cache.TakenUsernames.Add(username);
+        if (!cache.TakenUsernames.Add(username))
+            username = LookupService.NextPersonUsername(ad.Name ?? ad.Sam, cache.TakenUsernames);
 
         var person = new User
         {
@@ -613,21 +611,5 @@ public sealed class AdPersonLinker(AppDbContext db)
         if (ad.Department is not null) user.Department = ad.Department;
         if (ad.EmployeeId is not null) user.EmployeeId = ad.EmployeeId;
         user.IsActive = ad.IsActive;
-    }
-
-    private static string NextUsername(string name, HashSet<string> taken)
-    {
-        var slug = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).Take(32).ToArray());
-        if (string.IsNullOrWhiteSpace(slug)) slug = "person";
-        var baseName = "person:" + slug;
-        var candidate = baseName;
-        var n = 2;
-        while (taken.Contains(candidate))
-        {
-            candidate = baseName + "-" + n;
-            n++;
-        }
-        taken.Add(candidate);
-        return candidate;
     }
 }

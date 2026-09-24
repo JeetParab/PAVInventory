@@ -153,16 +153,7 @@ public static class IpAssetBridge
         if (rec is null) return;
         var still = await db.Assets.AnyAsync(a => a.Id != exceptAssetId && a.IpAddress != null && a.IpAddress == ip);
         if (still) return;
-        rec.Status = IpStatus.Free;
-        rec.IsTemporary = false;
-        rec.AssignedDevice = null;
-        rec.AssignedUser = null;
-        rec.Department = null;
-        rec.MacAddress = null;
-        rec.DeviceType = null;
-        rec.DateAssigned = null;
-        rec.LastUpdated = DateTime.UtcNow;
-        rec.AllocatedBy = actor.DisplayName;
+        IpAddressService.MarkFree(rec, actor);
         await SqliteGuard.SaveChangesAsync(db);
     }
 

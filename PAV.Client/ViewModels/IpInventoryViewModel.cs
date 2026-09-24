@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PAV.Client.Services;
@@ -225,7 +224,7 @@ public partial class IpInventoryViewModel : ObservableObject
                 Ui.Info("No free IP on the selected floor.");
                 return;
             }
-            await OpenAssignAsync(null, rangeId, next);
+            await OpenAssignAsync(null, next);
         }
         catch (Exception ex)
         {
@@ -238,19 +237,7 @@ public partial class IpInventoryViewModel : ObservableObject
     {
         if (!CanAssign) return;
         var typed = CheckInput?.Trim();
-        await OpenAssignAsync(null, null, string.IsNullOrWhiteSpace(typed) ? null : typed);
-    }
-
-    [RelayCommand]
-    private async Task AssignCheckedAsync()
-    {
-        if (!CanAssign) return;
-        if (CheckResult?.Record is not null)
-        {
-            await OpenAssignAsync(CheckResult.Record, null, CheckResult.Record.Address);
-            return;
-        }
-        await AssignCustomAsync();
+        await OpenAssignAsync(null, string.IsNullOrWhiteSpace(typed) ? null : typed);
     }
 
     [RelayCommand]
@@ -262,7 +249,7 @@ public partial class IpInventoryViewModel : ObservableObject
             Ui.Info($"{Selected.Address} is {Selected.Status}.");
             return;
         }
-        await OpenAssignAsync(Selected, null, Selected.Address);
+        await OpenAssignAsync(Selected, Selected.Address);
     }
 
     [RelayCommand]
@@ -275,9 +262,9 @@ public partial class IpInventoryViewModel : ObservableObject
             IpPage = "Assign";
     }
 
-    private async Task OpenAssignAsync(IpAddressDto? existing, int? rangeId, string? address)
+    private async Task OpenAssignAsync(IpAddressDto? existing, string? address)
     {
-        var vm = new IpAssignViewModel(_api, existing, rangeId, address);
+        var vm = new IpAssignViewModel(_api, existing, address);
         var win = new IpAssignWindow { DataContext = vm, Owner = System.Windows.Application.Current.MainWindow };
         if (win.ShowDialog() == true)
         {

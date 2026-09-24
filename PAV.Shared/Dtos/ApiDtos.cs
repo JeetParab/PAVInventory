@@ -2,36 +2,10 @@ using PAV.Shared.Enums;
 
 namespace PAV.Shared.Dtos;
 
-public class ApiError
-{
-    public string Code { get; set; } = "error";
-    public string Message { get; set; } = "";
-    public List<string>? Errors { get; set; }
-}
-
-public class LoginRequest
-{
-    public string Username { get; set; } = "";
-    public string Password { get; set; } = "";
-}
-
 public class LoginResponse
 {
     public string Token { get; set; } = "";
     public MeDto User { get; set; } = new();
-}
-
-public class SetupAdministratorRequest
-{
-    public string Username { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Password { get; set; } = "";
-}
-
-public class ChangePasswordRequest
-{
-    public string CurrentPassword { get; set; } = "";
-    public string NewPassword { get; set; } = "";
 }
 
 public class AssetListDto
@@ -326,13 +300,6 @@ public class MeDto
     public bool MustChangePassword { get; set; }
 }
 
-public class HealthDto
-{
-    public string Status { get; set; } = "ok";
-    public DateTime ServerTime { get; set; }
-    public int AssetCount { get; set; }
-}
-
 public class InventoryLoadDto
 {
     public List<AssetListDto> Assets { get; set; } = [];
@@ -531,24 +498,6 @@ public class BackupInfo
     public string FileName { get; set; } = "";
     public DateTime CreatedAt { get; set; }
     public long SizeBytes { get; set; }
-}
-
-public class RestoreRequest
-{
-    public string FileName { get; set; } = "";
-}
-
-public class IpRangeDto
-{
-    public int Id { get; set; }
-    public int FloorNumber { get; set; }
-    public string Name { get; set; } = "";
-    public int ThirdOctet { get; set; }
-    public string Cidr { get; set; } = "";
-    public string? GatewayIp { get; set; }
-    public string? Notes { get; set; }
-
-    public override string ToString() => Name;
 }
 
 public class IpFloorSummaryDto

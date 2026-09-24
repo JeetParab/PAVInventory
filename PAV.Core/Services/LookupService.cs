@@ -276,7 +276,7 @@ public class LookupService(AppDbContext db, IWriteLock writeLock)
         return n.Length < 2 || JunkNames.Contains(n);
     }
 
-    private static string NextPersonUsername(string name, HashSet<string> taken)
+    internal static string NextPersonUsername(string name, HashSet<string> taken)
     {
         var slug = new string(name.ToLowerInvariant().Where(char.IsLetterOrDigit).Take(32).ToArray());
         if (string.IsNullOrWhiteSpace(slug)) slug = "person";
