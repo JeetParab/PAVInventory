@@ -66,49 +66,44 @@ public class StatusBrushConverter : IValueConverter
 
     public static Brush Bg(string status) => status switch
     {
-        "In Use" or "InUse" => Brush("#E7F6EE"),
-        "In Stock" or "InStock" => Brush("#E8F0FE"),
-        "Low Stock" => Brush("#FFF4E0"),
-        "Out of Stock" => Brush("#FDECEC"),
-        "Under Repair" or "UnderRepair" => Brush("#FFF4E0"),
-        "Standby" => Brush("#F3EDFA"),
-        "Damaged" => Brush("#FDECEC"),
-        "Lost" => Brush("#FBEFE8"),
-        "Retired" or "Disposed" => Brush("#EEF1F4"),
-        _ => Brush("#EEF1F4")
+        "In Use" or "InUse" => BgGreen,
+        "In Stock" or "InStock" => BgBlue,
+        "Low Stock" => BgAmber,
+        "Out of Stock" => BgRed,
+        "Under Repair" or "UnderRepair" => BgAmber,
+        "Standby" => BgPurple,
+        "Damaged" => BgRed,
+        "Lost" => BgRust,
+        _ => BgGrey
     };
 
     public static Brush Fg(string status) => status switch
     {
-        "In Use" or "InUse" => Brush("#107C41"),
-        "In Stock" or "InStock" => Brush("#2F6FED"),
-        "Low Stock" => Brush("#C47B17"),
-        "Out of Stock" => Brush("#D13438"),
-        "Under Repair" or "UnderRepair" => Brush("#C47B17"),
-        "Standby" => Brush("#6B4C9A"),
-        "Damaged" => Brush("#D13438"),
-        "Lost" => Brush("#8A3B12"),
-        "Retired" or "Disposed" => Brush("#5C6B7A"),
-        _ => Brush("#5C6B7A")
+        "In Use" or "InUse" => FgGreen,
+        "In Stock" or "InStock" => FgBlue,
+        "Low Stock" => FgAmber,
+        "Out of Stock" => FgRed,
+        "Under Repair" or "UnderRepair" => FgAmber,
+        "Standby" => FgPurple,
+        "Damaged" => FgRed,
+        "Lost" => FgRust,
+        _ => FgGrey
     };
 
-    private static SolidColorBrush Brush(string hex)
+    // Called three times per grid row; share frozen brushes instead of parsing hex each time.
+    private static readonly Brush BgGreen = Brush(0xE7, 0xF6, 0xEE), FgGreen = Brush(0x10, 0x7C, 0x41);
+    private static readonly Brush BgBlue = Brush(0xE8, 0xF0, 0xFE), FgBlue = Brush(0x2F, 0x6F, 0xED);
+    private static readonly Brush BgAmber = Brush(0xFF, 0xF4, 0xE0), FgAmber = Brush(0xC4, 0x7B, 0x17);
+    private static readonly Brush BgRed = Brush(0xFD, 0xEC, 0xEC), FgRed = Brush(0xD1, 0x34, 0x38);
+    private static readonly Brush BgPurple = Brush(0xF3, 0xED, 0xFA), FgPurple = Brush(0x6B, 0x4C, 0x9A);
+    private static readonly Brush BgRust = Brush(0xFB, 0xEF, 0xE8), FgRust = Brush(0x8A, 0x3B, 0x12);
+    private static readonly Brush BgGrey = Brush(0xEE, 0xF1, 0xF4), FgGrey = Brush(0x5C, 0x6B, 0x7A);
+
+    private static SolidColorBrush Brush(byte r, byte g, byte b)
     {
-        try
-        {
-            var parsed = ColorConverter.ConvertFromString(hex);
-            if (parsed is Color c)
-            {
-                var b = new SolidColorBrush(c);
-                b.Freeze();
-                return b;
-            }
-        }
-        catch
-        {
-            // fall through
-        }
-        return Brushes.Gray;
+        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
     }
 }
 

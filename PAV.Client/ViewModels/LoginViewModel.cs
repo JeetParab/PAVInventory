@@ -43,14 +43,27 @@ public partial class LoginViewModel : ObservableObject
         await PrepareAsync();
     }
 
-    public async Task PrepareAsync()
+    private Task _prepare = Task.CompletedTask;
+    private Task _warmUp = Task.CompletedTask;
+
+    public Task PrepareAsync() => _prepare = PrepareCoreAsync();
+
+    // SQLite I/O is synchronous under its async API, so the first open (~1s of EF start-up)
+    // runs on a worker thread to keep the login window responsive while the user types.
+    private async Task PrepareCoreAsync()
     {
         Error = null;
         try
         {
             using var _ = PAV.Core.Services.Perf.Measure("Login.Prepare");
-            await _api.SetDatabasePath(DatabasePath);
-            NeedsSetup = await _api.NeedsSetupAsync();
+            var path = DatabasePath;
+            NeedsSetup = await Task.Run(async () =>
+            {
+                await _api.SetDatabasePath(path);
+                return await _api.NeedsSetupAsync();
+            });
+            if (!NeedsSetup)
+                _warmUp = Task.Run(_api.WarmUpAsync);
         }
         catch (Exception ex)
         {
@@ -71,9 +84,16 @@ public partial class LoginViewModel : ObservableObject
         Busy = true;
         try
         {
-            await _api.SetDatabasePath(DatabasePath);
-            NeedsSetup = await _api.NeedsSetupAsync();
+            await _prepare;
+            await _warmUp;
+            var path = DatabasePath;
+            NeedsSetup = await Task.Run(async () =>
+            {
+                await _api.SetDatabasePath(path);
+                return await _api.NeedsSetupAsync();
+            });
 
+            var username = Username.Trim();
             if (NeedsSetup)
             {
                 if (string.IsNullOrWhiteSpace(DisplayName))
@@ -86,11 +106,12 @@ public partial class LoginViewModel : ObservableObject
                     Error = "Passwords do not match.";
                     return false;
                 }
-                await _api.SetupAdministratorAsync(Username.Trim(), DisplayName.Trim(), password);
+                var displayName = DisplayName.Trim();
+                await Task.Run(() => _api.SetupAdministratorAsync(username, displayName, password));
                 return true;
             }
 
-            await _api.LoginAsync(Username.Trim(), password);
+            await Task.Run(() => _api.LoginAsync(username, password));
             return true;
         }
         catch (Exception ex)

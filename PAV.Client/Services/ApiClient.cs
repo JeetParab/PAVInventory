@@ -110,6 +110,22 @@ public class ApiClient
         return !await db.Users.AsNoTracking().AnyAsync();
     }
 
+    // Compiles the inventory queries during sign-in so the first page after login loads warm.
+    public async Task WarmUpAsync()
+    {
+        try
+        {
+            var pav = _pav;
+            if (!pav.IsReady) return;
+            await using var db = pav.Create();
+            await new AssetService(db, _lock).InventoryAsync(new AssetQuery());
+        }
+        catch
+        {
+            // best effort only
+        }
+    }
+
     public async Task<LoginResponse> SetupAdministratorAsync(string username, string name, string password)
     {
         var pwdError = AuthRules.ValidateNewPassword(password);
