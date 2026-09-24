@@ -14,10 +14,7 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     private List<LocationDto> _locations = [];
 
     [ObservableProperty] private string databasePath = config.DatabasePath;
-    [ObservableProperty] private string provider = string.IsNullOrWhiteSpace(config.Provider) ? "SQLite" : config.Provider;
-    [ObservableProperty] private string sqlServerConnectionString = config.SqlServerConnectionString;
     [ObservableProperty] private string? serverMessage;
-    public ObservableCollection<string> Providers { get; } = ["SQLite", "SqlServer"];
     public ObservableCollection<CategoryDto> Categories { get; } = [];
     public ObservableCollection<BackupInfo> Backups { get; } = [];
     public ObservableCollection<UserDto> SignInUsers { get; } = [];
@@ -31,28 +28,21 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     [ObservableProperty] private string? categoryError;
     [ObservableProperty] private string? backupMessage;
     [ObservableProperty] private bool darkMode = config.DarkMode;
-    [ObservableProperty] private string sqliteSourcePath = "";
 
     public bool CanManageCategories => shell.CanManageCategories;
     public bool CanBackup => shell.CanBackup;
     public bool CanManageDatabase => shell.CanBackup;
     public bool CanManageUsers => shell.CanManageUsers;
-    public bool ShowSqliteSettings => DatabaseSettings.ParseProvider(Provider) == DatabaseProvider.Sqlite;
-    public bool ShowSqlSettings => DatabaseSettings.ParseProvider(Provider) == DatabaseProvider.SqlServer;
     public string SignedInName => shell.UserLine;
     public string SignedInRole => shell.RoleLine;
 
     public async Task LoadAsync()
     {
         DatabasePath = config.DatabasePath;
-        Provider = string.IsNullOrWhiteSpace(config.Provider) ? "SQLite" : config.Provider;
-        SqlServerConnectionString = config.SqlServerConnectionString;
         OnPropertyChanged(nameof(CanManageCategories));
         OnPropertyChanged(nameof(CanBackup));
         OnPropertyChanged(nameof(CanManageDatabase));
         OnPropertyChanged(nameof(CanManageUsers));
-        OnPropertyChanged(nameof(ShowSqliteSettings));
-        OnPropertyChanged(nameof(ShowSqlSettings));
         OnPropertyChanged(nameof(SignedInName));
         OnPropertyChanged(nameof(SignedInRole));
         try
@@ -78,12 +68,6 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
         {
             Ui.Error(ex);
         }
-    }
-
-    partial void OnProviderChanged(string value)
-    {
-        OnPropertyChanged(nameof(ShowSqliteSettings));
-        OnPropertyChanged(nameof(ShowSqlSettings));
     }
 
     [RelayCommand]
@@ -136,50 +120,11 @@ public partial class SettingsViewModel(ApiClient api, ClientConfig config, Shell
     {
         try
         {
-            if (ShowSqlSettings && string.IsNullOrWhiteSpace(SqlServerConnectionString))
-            {
-                ServerMessage = "Enter the SQL Server name (HOST\\SQLEXPRESS) or a connection string.";
-                return;
-            }
-            await api.ApplyDatabaseAsync(new DatabaseSettings
-            {
-                Provider = Provider,
-                SqlitePath = DatabasePath,
-                SqlServerConnectionString = SqlServerConnectionString
-            });
+            await api.ApplyDatabaseAsync(new DatabaseSettings { SqlitePath = DatabasePath });
             await shell.RefreshConnectionAsync();
-            ServerMessage = shell.IsConnected
-                ? (ShowSqlSettings ? "Connected to SQL Server." : "Shared SQLite database is open.")
-                : "Cannot open the database.";
+            ServerMessage = shell.IsConnected ? "Shared SQLite database is open." : "Cannot open the database.";
             if (shell.IsConnected)
                 await LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            ServerMessage = ex.Message;
-        }
-    }
-
-    [RelayCommand]
-    private async Task MigrateFromSqliteAsync()
-    {
-        if (!CanManageDatabase || !ShowSqlSettings) return;
-        var path = SqliteSourcePath;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            var folder = Ui.PickFolder();
-            if (string.IsNullOrWhiteSpace(folder)) return;
-            path = folder;
-            SqliteSourcePath = folder;
-        }
-        if (!Ui.Confirm("Copy inventory.db into SQL Server?\n\nExisting SQL Server PAV data will be replaced. The SQLite file is not deleted."))
-            return;
-        try
-        {
-            var report = await api.MigrateSqliteToSqlServerAsync(path, replaceDestination: true);
-            ServerMessage = report.Summary;
-            if (report.Errors.Count > 0)
-                ServerMessage += Environment.NewLine + string.Join(Environment.NewLine, report.Errors);
         }
         catch (Exception ex)
         {

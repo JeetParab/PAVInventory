@@ -200,18 +200,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         });
     }
 
-    private string SerialFilter()
-    {
-        if (Database.IsSqlServer())
-            return "SerialNumber IS NOT NULL AND SerialNumber <> N''";
-        return "SerialNumber IS NOT NULL AND SerialNumber != ''";
-    }
+    private string SerialFilter() => "SerialNumber IS NOT NULL AND SerialNumber != ''";
 
-    private string SamFilter()
-    {
-        if (Database.IsSqlServer())
-            return "SamAccount IS NOT NULL AND SamAccount <> N''";
-        return "SamAccount IS NOT NULL AND SamAccount != ''";
-    }
+    private string SamFilter() => "SamAccount IS NOT NULL AND SamAccount != ''";
 }
 

@@ -30,39 +30,19 @@
             </TextBlock>
             <Button Content="Sign out" Style="{StaticResource SecondaryButton}" Command="{Binding SignOutCommand}"
                     HorizontalAlignment="Left" Margin="0,0,0,12"/>
-            <TextBlock Text="Database" Style="{StaticResource FieldLabel}"/>
-            <ComboBox ItemsSource="{Binding Providers}" SelectedItem="{Binding Provider}"
-                      IsEnabled="{Binding CanManageDatabase}" Margin="0,0,0,10"/>
-            <StackPanel Visibility="{Binding ShowSqliteSettings, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
-              <DockPanel Margin="0,0,0,8">
-                <Button DockPanel.Dock="Right" Content="Save" Style="{StaticResource PrimaryButton}"
-                        Command="{Binding SaveServerCommand}" Margin="8,0,0,0"
-                        IsEnabled="{Binding CanManageDatabase}"/>
-                <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
-                        Command="{Binding BrowseDatabaseCommand}" Margin="8,0,0,0"
-                        IsEnabled="{Binding CanManageDatabase}"/>
-                <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"
-                         IsEnabled="{Binding CanManageDatabase}"/>
-              </DockPanel>
-              <TextBlock TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,0,0,8"
-                         Text="Everyone must point at the same shared folder. The database file is inventory.db inside that folder."/>
-            </StackPanel>
-            <StackPanel Visibility="{Binding ShowSqlSettings, Converter={StaticResource BoolToVis}}">
-              <TextBlock Text="SQL Server" Style="{StaticResource FieldLabel}"/>
-              <TextBox Text="{Binding SqlServerConnectionString, UpdateSourceTrigger=PropertyChanged}"
-                       Margin="0,0,0,8" IsEnabled="{Binding CanManageDatabase}"/>
-              <TextBlock TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,0,0,8"
-                         Text="Server name (HOST\SQLEXPRESS) or a full connection string. Windows Authentication. Engineer PCs do not install SQL Server."/>
-              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <Button Content="Save / connect" Style="{StaticResource PrimaryButton}"
-                        Command="{Binding SaveServerCommand}" Margin="0,0,8,0"
-                        IsEnabled="{Binding CanManageDatabase}"/>
-                <Button Content="Copy SQLite into SQL Server" Style="{StaticResource SecondaryButton}"
-                        Command="{Binding MigrateFromSqliteCommand}"
-                        IsEnabled="{Binding CanManageDatabase}"/>
-              </StackPanel>
-            </StackPanel>
+            <TextBlock Text="Shared folder" Style="{StaticResource FieldLabel}"/>
+            <DockPanel Margin="0,0,0,8">
+              <Button DockPanel.Dock="Right" Content="Save" Style="{StaticResource PrimaryButton}"
+                      Command="{Binding SaveServerCommand}" Margin="8,0,0,0"
+                      IsEnabled="{Binding CanManageDatabase}"/>
+              <Button DockPanel.Dock="Right" Content="Browse" Style="{StaticResource SecondaryButton}"
+                      Command="{Binding BrowseDatabaseCommand}" Margin="8,0,0,0"
+                      IsEnabled="{Binding CanManageDatabase}"/>
+              <TextBox Text="{Binding DatabasePath, UpdateSourceTrigger=PropertyChanged}"
+                       IsEnabled="{Binding CanManageDatabase}"/>
+            </DockPanel>
+            <TextBlock TextWrapping="Wrap" Style="{StaticResource MutedText}" Margin="0,0,0,8"
+                       Text="Everyone must point at the same shared folder. The database file is inventory.db inside that folder."/>
             <TextBlock Text="{Binding ServerMessage}" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
           </StackPanel>
         </Border>

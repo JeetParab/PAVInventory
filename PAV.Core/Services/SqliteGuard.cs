@@ -1,4 +1,3 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using PAV.Core.Data;
@@ -73,10 +72,7 @@ public static class SqliteGuard
                     && sqlite.Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase))
                     return true;
             }
-            if (e is SqlException sql && sql.Number is 2601 or 2627)
-                return true;
-            if (e.Message.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase)
-                || e.Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase))
+            if (e.Message.Contains("UNIQUE constraint", StringComparison.OrdinalIgnoreCase))
                 return true;
         }
         return false;
@@ -88,20 +84,6 @@ public static class SqliteGuard
         {
             if (e is SqliteException s && s.SqliteErrorCode is 5 or 6)
                 return true;
-        }
-        return false;
-    }
-
-    public static bool IsConnectFailure(Exception ex)
-    {
-        for (Exception? e = ex; e is not null; e = e.InnerException)
-        {
-            if (e is SqlException sql && sql.Number is 2 or 53 or -1 or 64 or 233 or 4060 or 18456 or 10054 or 10060 or 11001)
-                return true;
-            if (e is TimeoutException) return true;
-            if (e is IOException) return true;
-            var name = e.GetType().Name;
-            if (name is "SqlException" or "Win32Exception") return true;
         }
         return false;
     }

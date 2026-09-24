@@ -7,8 +7,6 @@ namespace PAV.Client.Services;
 public class ClientConfig
 {
     public string DatabasePath { get; set; } = "";
-    public string Provider { get; set; } = "SQLite";
-    public string SqlServerConnectionString { get; set; } = "";
     public bool SidebarCollapsed { get; set; }
     public bool DarkMode { get; set; }
     public bool FreezeIdentityColumns { get; set; }
@@ -19,12 +17,7 @@ public class ClientConfig
     public static string TeamDatabaseFilePath => Path.Combine(AppContext.BaseDirectory, "database.json");
     public static string LegacyFilePath => Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
-    public DatabaseSettings DatabaseSettings => new()
-    {
-        Provider = Provider,
-        SqlitePath = DatabasePath,
-        SqlServerConnectionString = SqlServerConnectionString
-    };
+    public DatabaseSettings DatabaseSettings => new() { SqlitePath = DatabasePath };
 
     /// <summary>
     /// Precedence (last wins for database):
@@ -64,12 +57,7 @@ public class ClientConfig
     public void SaveDatabase()
     {
         Directory.CreateDirectory(PavDatabase.LocalDataFolder);
-        var db = new
-        {
-            Provider,
-            SqlitePath = DatabasePath,
-            SqlServerConnectionString
-        };
+        var db = new { SqlitePath = DatabasePath };
         File.WriteAllText(DatabaseFilePath, JsonSerializer.Serialize(db, Json));
     }
 
@@ -84,8 +72,6 @@ public class ClientConfig
         var raw = Read(path);
         if (raw is null) return;
         if (!string.IsNullOrWhiteSpace(raw.DatabasePath)) cfg.DatabasePath = raw.DatabasePath;
-        if (!string.IsNullOrWhiteSpace(raw.Provider)) cfg.Provider = raw.Provider;
-        if (!string.IsNullOrWhiteSpace(raw.SqlServerConnectionString)) cfg.SqlServerConnectionString = raw.SqlServerConnectionString;
         cfg.SidebarCollapsed = raw.SidebarCollapsed;
         cfg.DarkMode = raw.DarkMode;
         cfg.FreezeIdentityColumns = raw.FreezeIdentityColumns;
@@ -99,14 +85,10 @@ public class ClientConfig
             if (!File.Exists(path)) return;
             using var doc = JsonDocument.Parse(File.ReadAllText(path));
             var r = doc.RootElement;
-            if (r.TryGetProperty("Provider", out var p) && p.ValueKind == JsonValueKind.String)
-                cfg.Provider = p.GetString() ?? cfg.Provider;
             if (r.TryGetProperty("SqlitePath", out var s) && s.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(s.GetString()))
                 cfg.DatabasePath = s.GetString()!;
             if (r.TryGetProperty("DatabasePath", out var d) && d.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(d.GetString()))
                 cfg.DatabasePath = d.GetString()!;
-            if (r.TryGetProperty("SqlServerConnectionString", out var c) && c.ValueKind == JsonValueKind.String)
-                cfg.SqlServerConnectionString = c.GetString() ?? "";
         }
         catch { /* keep current */ }
     }

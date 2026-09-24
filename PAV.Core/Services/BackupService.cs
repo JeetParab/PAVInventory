@@ -17,7 +17,6 @@ public class BackupService(PavDatabase pav, IWriteLock writeLock)
     }
 
     public string DatabasePath => pav.DatabasePath;
-    public bool IsSqlite => pav.IsSqlite;
 
     public List<BackupInfo> List()
     {
@@ -36,20 +35,11 @@ public class BackupService(PavDatabase pav, IWriteLock writeLock)
     }
 
     public Task<BackupInfo> BackupNowAsync(string reason = "manual") =>
-        writeLock.WriteAsync(async () =>
-        {
-            if (pav.IsSqlServer)
-                return await SnapshotSqlServerAsync();
-            return FileCopySqlite();
-        });
+        writeLock.WriteAsync(() => Task.FromResult(FileCopySqlite()));
 
     public Task RestoreAsync(string fileName) =>
         writeLock.WriteAsync(() =>
         {
-            if (pav.IsSqlServer)
-                throw new AppException(400, "validation",
-                    "SQL Server restore is done on the database host from a .bak file. Do not copy a live database file.");
-
             if (string.IsNullOrWhiteSpace(fileName) ||
                 fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
                 fileName.Contains("..") ||
@@ -95,26 +85,6 @@ public class BackupService(PavDatabase pav, IWriteLock writeLock)
         if (!File.Exists(DatabasePath))
             throw new AppException(500, "error", "Database file was not found.");
         File.Copy(DatabasePath, dest, overwrite: false);
-        PruneUnlocked();
-        var info = new FileInfo(dest);
-        return new BackupInfo
-        {
-            FileName = info.Name,
-            CreatedAt = info.CreationTimeUtc,
-            SizeBytes = info.Length
-        };
-    }
-
-    private async Task<BackupInfo> SnapshotSqlServerAsync()
-    {
-        var name = $"PAVInventory_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.snapshot.db";
-        var dest = Path.Combine(BackupDirectory, name);
-        if (File.Exists(dest)) File.Delete(dest);
-        var sqlite = new PavDatabase(new DatabaseSettings { Provider = "SQLite", SqlitePath = dest });
-        await sqlite.OpenAsync();
-        var result = await new SqliteToSqlServerMigrator().CopyAsync(pav, sqlite, replaceDestination: true);
-        if (!result.Ok)
-            throw new AppException(500, "error", "Could not write a SQL Server data snapshot.", result.Errors);
         PruneUnlocked();
         var info = new FileInfo(dest);
         return new BackupInfo

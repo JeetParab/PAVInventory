@@ -40,34 +40,27 @@ public class ApiClient
     {
         _config = config;
         _pav = new PavDatabase(config.DatabaseSettings);
-        _lock = PavDatabase.CreateWriteLock(_pav.Provider);
+        _lock = PavDatabase.CreateWriteLock();
     }
 
     public string DatabasePath => _pav.DatabasePath;
     public string DatabasePathSetting => _config.DatabasePath;
-    public bool IsSqlite => _pav.IsSqlite;
-    public bool IsSqlServer => _pav.IsSqlServer;
-    public string ProviderDisplay => DatabaseSettings.Display(_pav.Provider);
 
     public async Task SetDatabasePath(string path)
     {
         _config.DatabasePath = path?.Trim() ?? "";
-        if (string.IsNullOrWhiteSpace(_config.Provider))
-            _config.Provider = "SQLite";
         _config.SaveDatabase();
         await ApplyDatabaseAsync(_config.DatabaseSettings);
     }
 
     public async Task ApplyDatabaseAsync(DatabaseSettings settings)
     {
-        _config.Provider = DatabaseSettings.Display(settings.Kind) == "SQL Server" ? "SqlServer" : "SQLite";
         _config.DatabasePath = settings.SqlitePath ?? "";
-        _config.SqlServerConnectionString = settings.SqlServerConnectionString ?? "";
         _config.SaveDatabase();
 
         var next = new PavDatabase(_config.DatabaseSettings);
         _pav = next;
-        _lock = PavDatabase.CreateWriteLock(_pav.Provider);
+        _lock = PavDatabase.CreateWriteLock();
         await OpenAsync();
     }
 
@@ -90,13 +83,6 @@ public class ApiClient
     {
         try
         {
-            if (_pav.IsSqlServer)
-            {
-                await using var db = _pav.Create();
-                var ok = await db.Database.CanConnectAsync();
-                SetConnected(ok);
-                return ok;
-            }
             if (_pav.IsReady && File.Exists(_pav.DatabasePath))
             {
                 SetConnected(true);
@@ -496,15 +482,6 @@ public class ApiClient
     public Task<StockIntegrityDto> StockIntegrityAsync() =>
         Read(Permissions.View, (db, actor) => new StockService(db, _lock).IntegrityCheckAsync(actor));
 
-    public async Task<PAV.Core.Services.MigrationReport> MigrateSqliteToSqlServerAsync(string sqlitePath, bool replaceDestination)
-    {
-        Require(Permissions.Backup);
-        var src = new PavDatabase(new DatabaseSettings { Provider = "SQLite", SqlitePath = sqlitePath });
-        if (!_pav.IsSqlServer)
-            throw new ApiException(400, "validation", "Switch the provider to SQL Server first, then copy the SQLite file into it.");
-        return await new SqliteToSqlServerMigrator().CopyAsync(src, _pav, replaceDestination);
-    }
-
     private async Task<T> Read<T>(string permission, Func<AppDbContext, CurrentUser, Task<T>> work)
     {
         var actor = Actor();
@@ -541,27 +518,13 @@ public class ApiClient
         for (var e = ex; e is not null; e = e.InnerException)
         {
             if (e is IOException) return true;
-            if (e.GetType().Name == "SqlException")
-            {
-                var num = e.GetType().GetProperty("Number")?.GetValue(e);
-                if (num is int n && n is 2601 or 2627 or 547 or 515)
-                    return false;
-                return true;
-            }
         }
         return false;
     }
 
-    private string FriendlyDisconnect(Exception ex)
-    {
-        if (_pav.IsSqlServer)
-        {
-            return "Unable to connect to the PAV database server." + Environment.NewLine + Environment.NewLine +
-                   "Please contact the PAV administrator.";
-        }
-        return "Cannot open the shared database." + Environment.NewLine + Environment.NewLine +
-               DatabasePath + Environment.NewLine + Environment.NewLine + ex.Message;
-    }
+    private string FriendlyDisconnect(Exception ex) =>
+        "Cannot open the shared database." + Environment.NewLine + Environment.NewLine +
+        DatabasePath + Environment.NewLine + Environment.NewLine + ex.Message;
 
     private CurrentUser Actor()
     {

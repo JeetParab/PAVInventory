@@ -12,22 +12,16 @@ public sealed class PavDatabase
     private bool _backfillDone;
 
     public DatabaseSettings Settings { get; }
-    public DatabaseProvider Provider => Settings.Kind;
-    public bool IsSqlite => Settings.IsSqlite;
-    public bool IsSqlServer => Settings.IsSqlServer;
 
     public string DatabasePath { get; }
-    public string SqlConnectionString { get; }
-    public string Folder => IsSqlite
-        ? (Path.GetDirectoryName(DatabasePath) ?? ".")
-        : LocalDataFolder;
+    public string Folder => Path.GetDirectoryName(DatabasePath) ?? ".";
     public string BackupDirectory => Path.Combine(Folder, "Backups");
     public bool IsReady => _ready;
 
     public static string LocalDataFolder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PAV Inventory");
 
-    public PavDatabase(string databasePath) : this(new DatabaseSettings { Provider = "SQLite", SqlitePath = databasePath })
+    public PavDatabase(string databasePath) : this(new DatabaseSettings { SqlitePath = databasePath })
     {
     }
 
@@ -35,7 +29,6 @@ public sealed class PavDatabase
     {
         Settings = settings.Clone();
         DatabasePath = ResolvePath(Settings.SqlitePath);
-        SqlConnectionString = DatabaseSettings.NormalizeSqlServer(Settings.SqlServerConnectionString);
     }
 
     public static string ResolvePath(string? configured)
@@ -51,29 +44,19 @@ public sealed class PavDatabase
         return path;
     }
 
-    public static IWriteLock CreateWriteLock(DatabaseProvider provider) =>
-        provider == DatabaseProvider.SqlServer ? new SqlServerWriteLock() : new SqliteWriteLock();
+    public static IWriteLock CreateWriteLock() => new SqliteWriteLock();
 
     public AppDbContext Create()
     {
         var builder = new DbContextOptionsBuilder<AppDbContext>();
-        if (IsSqlServer)
+        var cs = new SqliteConnectionStringBuilder
         {
-            if (string.IsNullOrWhiteSpace(SqlConnectionString))
-                throw new InvalidOperationException("SQL Server connection string is not set.");
-            builder.UseSqlServer(SqlConnectionString, o => o.CommandTimeout(30));
-        }
-        else
-        {
-            var cs = new SqliteConnectionStringBuilder
-            {
-                DataSource = DatabasePath,
-                Mode = SqliteOpenMode.ReadWriteCreate,
-                Cache = SqliteCacheMode.Private,
-                DefaultTimeout = 15
-            }.ToString();
-            builder.UseSqlite(cs, o => o.CommandTimeout(30));
-        }
+            DataSource = DatabasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Private,
+            DefaultTimeout = 15
+        }.ToString();
+        builder.UseSqlite(cs, o => o.CommandTimeout(30));
         return new AppDbContext(builder.Options);
     }
 
@@ -91,10 +74,7 @@ public sealed class PavDatabase
         {
             if (_ready) return;
             using var _ = Perf.Measure("Database.Open");
-            if (IsSqlServer)
-                await OpenSqlServerAsync();
-            else
-                await OpenSqliteAsync();
+            await OpenSqliteAsync();
             _ready = true;
         }
         finally
@@ -171,51 +151,11 @@ public sealed class PavDatabase
         Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
     }
 
-    private async Task OpenSqlServerAsync()
-    {
-        Directory.CreateDirectory(LocalDataFolder);
-        Directory.CreateDirectory(BackupDirectory);
-
-        await using var db = Create();
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        try
-        {
-            await db.Database.EnsureCreatedAsync();
-        }
-        catch (Exception ex) when (SqliteGuard.IsConnectFailure(ex))
-        {
-            throw new InvalidOperationException(
-                "Unable to connect to the PAV database server." + Environment.NewLine + Environment.NewLine +
-                "Please contact the PAV administrator.", ex);
-        }
-        Perf.Log("Database.EnsureCreated", sw.ElapsedMilliseconds);
-
-        // EnsureCreated is first-install only. Later schema changes need a
-        // controlled upgrade. Concurrent first-start is not guaranteed —
-        // an administrator should open PAV once on the host before clients.
-        sw.Restart();
-        await EnsureCanSignInColumnAsync(db);
-        await EnsureTemporaryColumnsSqlServerAsync(db);
-        await EnsureMeReviewColumnsSqlServerAsync(db);
-        await EnsureCategoryFamilySqlServerAsync(db);
-        await EnsureAdDirectorySqlServerAsync(db);
-        Perf.Log("Database.CanSignIn", sw.ElapsedMilliseconds);
-
-        sw.Restart();
-        await SeedData.EnsureSeededAsync(db);
-        Perf.Log("Database.Seed", sw.ElapsedMilliseconds);
-
-
-        sw.Restart();
-        await BackfillAssignedUserIdsAsync(db);
-        Perf.Log("Database.Backfill", sw.ElapsedMilliseconds);
-    }
-
     public bool CanOpen()
     {
         try
         {
-            if (IsSqlite && !File.Exists(DatabasePath) && !Directory.Exists(Folder))
+            if (!File.Exists(DatabasePath) && !Directory.Exists(Folder))
                 Directory.CreateDirectory(Folder);
             using var db = Create();
             return db.Database.CanConnect();
@@ -295,65 +235,6 @@ public sealed class PavDatabase
             if (names.Contains(name)) continue;
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE " + table + " ADD COLUMN " + name + " " + sql);
         }
-    }
-
-    private static async Task EnsureCanSignInColumnAsync(AppDbContext db)
-    {
-        if (db.Database.IsSqlite())
-            return;
-        if (!db.Database.IsSqlServer())
-            return;
-        await db.Database.ExecuteSqlRawAsync("""
-            IF COL_LENGTH('dbo.Users', 'CanSignIn') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Users ADD CanSignIn BIT NOT NULL CONSTRAINT DF_Users_CanSignIn DEFAULT 1;
-            END
-            """);
-    }
-
-    private static async Task EnsureTemporaryColumnsSqlServerAsync(AppDbContext db)
-    {
-        if (!db.Database.IsSqlServer())
-            return;
-        await db.Database.ExecuteSqlRawAsync("""
-            IF COL_LENGTH('dbo.Assets', 'IsTemporary') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Assets ADD IsTemporary BIT NOT NULL CONSTRAINT DF_Assets_IsTemporary DEFAULT 0;
-            END
-            IF COL_LENGTH('dbo.IpRecords', 'IsTemporary') IS NULL
-            BEGIN
-                ALTER TABLE dbo.IpRecords ADD IsTemporary BIT NOT NULL CONSTRAINT DF_IpRecords_IsTemporary DEFAULT 0;
-            END
-            """);
-    }
-
-    private static async Task EnsureMeReviewColumnsSqlServerAsync(AppDbContext db)
-    {
-        if (!db.Database.IsSqlServer())
-            return;
-        await db.Database.ExecuteSqlRawAsync("""
-            IF COL_LENGTH('dbo.Assets', 'NeedsReview') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Assets ADD NeedsReview BIT NOT NULL CONSTRAINT DF_Assets_NeedsReview DEFAULT 0;
-            END
-            IF COL_LENGTH('dbo.Assets', 'MeLogon') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Assets ADD MeLogon NVARCHAR(128) NULL;
-            END
-            """);
-    }
-
-    private static async Task EnsureCategoryFamilySqlServerAsync(AppDbContext db)
-    {
-        if (!db.Database.IsSqlServer())
-            return;
-        await db.Database.ExecuteSqlRawAsync("""
-            IF COL_LENGTH('dbo.Categories', 'Family') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Categories ADD Family INT NOT NULL CONSTRAINT DF_Categories_Family DEFAULT 0;
-            END
-            """);
-        await BackfillCategoryFamilyAsync(db);
     }
 
     private static async Task BackfillCategoryFamilyAsync(AppDbContext db)
@@ -577,35 +458,5 @@ public sealed class PavDatabase
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_SamAccount ON Users(SamAccount) " +
             "WHERE SamAccount IS NOT NULL AND SamAccount != ''");
-    }
-
-    private static async Task EnsureAdDirectorySqlServerAsync(AppDbContext db)
-    {
-        if (!db.Database.IsSqlServer())
-            return;
-        await db.Database.ExecuteSqlRawAsync("""
-            IF COL_LENGTH('dbo.Users', 'SamAccount') IS NULL
-            BEGIN
-                ALTER TABLE dbo.Users ADD SamAccount NVARCHAR(64) NULL;
-            END
-            IF OBJECT_ID('dbo.AdDirectory', 'U') IS NULL
-            BEGIN
-                CREATE TABLE dbo.AdDirectory (
-                    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                    Sam NVARCHAR(64) NOT NULL,
-                    Name NVARCHAR(128) NULL,
-                    Email NVARCHAR(256) NULL,
-                    Department NVARCHAR(128) NULL,
-                    EmployeeId NVARCHAR(64) NULL,
-                    IsActive BIT NOT NULL CONSTRAINT DF_AdDirectory_IsActive DEFAULT 1
-                );
-                CREATE UNIQUE INDEX IX_AdDirectory_Sam ON dbo.AdDirectory(Sam);
-            END
-            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Users_SamAccount' AND object_id = OBJECT_ID('dbo.Users'))
-            BEGIN
-                CREATE UNIQUE INDEX IX_Users_SamAccount ON dbo.Users(SamAccount)
-                WHERE SamAccount IS NOT NULL AND SamAccount <> N'';
-            END
-            """);
     }
 }
