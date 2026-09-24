@@ -89,7 +89,7 @@
             <TextBlock Text="Serial Number" Style="{StaticResource FieldLabel}"/>
             <TextBox Text="{Binding SerialNumber, UpdateSourceTrigger=PropertyChanged}"/>
           </StackPanel>
-          <Grid Grid.Row="3" Margin="0,0,0,14"
+          <Grid Grid.Row="3" Grid.ColumnSpan="3" Margin="0,0,0,14"
                 Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
@@ -103,7 +103,7 @@
               <TextBox Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
           </Grid>
-          <Grid Grid.Row="3" Margin="0,0,0,14"
+          <Grid Grid.Row="3" Grid.ColumnSpan="3" Margin="0,0,0,14"
                 Visibility="{Binding ShowPeripheralFields, Converter={StaticResource BoolToVis}}">
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/>
@@ -251,10 +251,20 @@
         </StackPanel>
 
         <StackPanel Visibility="{Binding ShowComputerFields, Converter={StaticResource BoolToVis}}">
-        <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-          <TextBlock Text="&#xE73E;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
-          <TextBlock Text="Compliance" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-        </StackPanel>
+        <DockPanel Margin="0,10,0,10" LastChildFill="False">
+          <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+            <TextBlock Text="&#xE73E;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}" Margin="0,0,8,0"/>
+            <TextBlock Text="Compliance" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+          </StackPanel>
+          <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}"
+                  Command="{Binding MarkAllCompliantCommand}" Padding="12,6"
+                  ToolTip="DC / AV / MFA / Ivanti / Chrome / PM → Yes, Admin Rights / USB Access → No">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <TextBlock Text="&#xE73E;" Style="{StaticResource BtnIcon}" Foreground="{DynamicResource AccentBrush}"/>
+              <TextBlock Text="Mark all compliant" Style="{StaticResource BtnLabel}"/>
+            </StackPanel>
+          </Button>
+        </DockPanel>
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/>

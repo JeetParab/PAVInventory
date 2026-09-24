@@ -393,6 +393,19 @@ public partial class AssetEditViewModel : ObservableObject
     private void ToggleCalendar() => CalendarOpen = !CalendarOpen;
 
     [RelayCommand]
+    private void MarkAllCompliant()
+    {
+        DcInstalled = "Yes";
+        AvInstalled = "Yes";
+        MfaEnabled = "Yes";
+        IvantiInstalled = "Yes";
+        ChromeUpdated = "Yes";
+        PmCompleted = "Yes";
+        AdminRights = "No";
+        UsbAccess = "No";
+    }
+
+    [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(false);
 
     public event Action<bool>? CloseRequested;
