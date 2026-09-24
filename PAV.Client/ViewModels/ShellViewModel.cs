@@ -158,7 +158,7 @@ public partial class ShellViewModel : ObservableObject
     private void ApplyConnection(bool ok)
     {
         IsConnected = ok;
-        ConnectionLabel = ok ? "Shared database" : "Cannot open the shared database";
+        ConnectionLabel = ok ? "Database connected" : "Cannot open the shared database";
     }
 
     [RelayCommand]
