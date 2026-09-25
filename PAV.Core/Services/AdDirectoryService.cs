@@ -122,12 +122,12 @@ public class AdDirectoryService(AppDbContext db, IWriteLock writeLock)
                 throw new AppException(400, "validation", "That user ID is already in AD users.");
 
             var people = await db.Users.Where(u => !u.CanSignIn).ToListAsync();
+            // On a rename only people on the old id move with it; someone already on the new id is a conflict.
+            var linkKey = oldSam ?? sam;
             var linked = people.Where(u =>
-                    (!string.IsNullOrWhiteSpace(u.SamAccount)
-                     && (u.SamAccount.Equals(sam, StringComparison.OrdinalIgnoreCase)
-                         || (oldSam is not null && u.SamAccount.Equals(oldSam, StringComparison.OrdinalIgnoreCase))))
-                    || (string.IsNullOrWhiteSpace(u.SamAccount)
-                        && u.Username.Equals(oldSam ?? sam, StringComparison.OrdinalIgnoreCase)))
+                    string.IsNullOrWhiteSpace(u.SamAccount)
+                        ? u.Username.Equals(linkKey, StringComparison.OrdinalIgnoreCase)
+                        : u.SamAccount.Equals(linkKey, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             var linkedIds = linked.Select(u => u.Id).ToHashSet();
