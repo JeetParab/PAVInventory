@@ -12,7 +12,7 @@
   <c:StatusBrushConverter x:Key="StatusBrush"/>
   <c:PermissionAndSelectionConverter x:Key="EnabledWhenSelected"/>
 
-  <FontFamily x:Key="AppFont">Segoe UI</FontFamily>
+  <FontFamily x:Key="AppFont">/PAV.Client;component/Fonts/#Inter 18pt 18pt, Segoe UI</FontFamily>
   <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
   <Style TargetType="Window">

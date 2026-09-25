@@ -32,6 +32,10 @@
   <ItemGroup>
     <Resource Include="Assets\pav.ico" />
     <Resource Include="Assets\pav.png" />
+    <Resource Include="Fonts\*.ttf" />
+    <None Update="Fonts\OFL.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

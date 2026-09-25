@@ -7,7 +7,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Background="{DynamicResource BgBrush}"
-        FontFamily="Segoe UI">
+        FontFamily="{StaticResource AppFont}">
   <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0">
     <DockPanel Margin="24,22">
       <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">

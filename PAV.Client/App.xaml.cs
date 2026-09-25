@@ -1,4 +1,6 @@
 using System.Text;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using PAV.Client.Services;
 using PAV.Client.ViewModels;
 using PAV.Client.Views;
@@ -9,6 +11,14 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Inter ships inside the exe (Fonts/). WPF does not pass a window's default font down to its
+        // children, so make Inter the default of the elements that actually draw text instead.
+        var font = (FontFamily)FindResource("AppFont");
+        TextElement.FontFamilyProperty.OverrideMetadata(typeof(TextElement), new FrameworkPropertyMetadata(font));
+        TextBlock.FontFamilyProperty.OverrideMetadata(typeof(TextBlock), new FrameworkPropertyMetadata(font));
+        Control.FontFamilyProperty.OverrideMetadata(typeof(TextBoxBase), new FrameworkPropertyMetadata(font));
+        Control.FontFamilyProperty.OverrideMetadata(typeof(PasswordBox), new FrameworkPropertyMetadata(font));
+
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

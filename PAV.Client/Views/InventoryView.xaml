@@ -456,10 +456,10 @@
             <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="56"/>
             <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="120"/>
             <DataGridTextColumn Header="Category" Binding="{Binding Category}" Width="84"/>
-            <DataGridTextColumn Header="Make / Model" Binding="{Binding MakeModel}" Width="190"/>
-            <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="140"/>
+            <DataGridTextColumn Header="Make / Model" Binding="{Binding MakeModel}" Width="220"/>
+            <DataGridTextColumn Header="Serial Number" Binding="{Binding SerialNumber}" Width="150"/>
             <DataGridTextColumn Header="Hostname" Binding="{Binding Hostname}" Width="130"/>
-            <DataGridTextColumn Header="User Name" Binding="{Binding AssignedUser}" Width="150"/>
+            <DataGridTextColumn Header="User Name" Binding="{Binding AssignedUser}" Width="170"/>
             <DataGridTemplateColumn Header="Status" Width="112">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate>
@@ -495,7 +495,7 @@
             <DataGridTextColumn Header="PM" Binding="{Binding PmCompleted}" Width="50"/>
             <DataGridTextColumn Header="Last Connected" Binding="{Binding LastConnected, StringFormat=yyyy-MM-dd}" Width="110"/>
             <DataGridTextColumn Header="Collect By" Binding="{Binding CollectBy}" Width="120"/>
-            <DataGridTextColumn Header="Alternate User" Binding="{Binding AlternateUser}" Width="140"/>
+            <DataGridTextColumn Header="Alternate User" Binding="{Binding AlternateUser}" Width="160"/>
           </DataGrid.Columns>
         </DataGrid>
       </Border>
