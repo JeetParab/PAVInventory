@@ -1,4 +1,5 @@
 using System.Globalization;
+using PAV.Client.Services;
 
 namespace PAV.Client.Converters;
 
@@ -53,53 +54,59 @@ public class StatusBrushConverter : IValueConverter
 {
     public object Convert(object value, Type t, object parameter, CultureInfo culture)
     {
-        var key = value?.ToString() ?? "";
-        return parameter?.ToString() == "fg" ? Fg(key) : Bg(key);
+        var pill = For(value?.ToString() ?? "");
+        return parameter?.ToString() == "fg" ? pill.Fg : pill.Bg;
     }
 
     public object ConvertBack(object value, Type t, object parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 
-    public static Brush Bg(string status) => status switch
+    private static Pill For(string status) => status switch
     {
-        "In Use" or "InUse" => BgGreen,
-        "In Stock" or "InStock" => BgBlue,
-        "Low Stock" => BgAmber,
-        "Out of Stock" => BgRed,
-        "Under Repair" or "UnderRepair" => BgAmber,
-        "Standby" => BgPurple,
-        "Damaged" => BgRed,
-        "Lost" => BgRust,
-        _ => BgGrey
+        "In Use" or "InUse" => Green,
+        "In Stock" or "InStock" => Blue,
+        "Low Stock" or "Under Repair" or "UnderRepair" => Amber,
+        "Out of Stock" or "Damaged" => Red,
+        "Standby" => Purple,
+        "Lost" => Rust,
+        _ => Grey
     };
 
-    public static Brush Fg(string status) => status switch
-    {
-        "In Use" or "InUse" => FgGreen,
-        "In Stock" or "InStock" => FgBlue,
-        "Low Stock" => FgAmber,
-        "Out of Stock" => FgRed,
-        "Under Repair" or "UnderRepair" => FgAmber,
-        "Standby" => FgPurple,
-        "Damaged" => FgRed,
-        "Lost" => FgRust,
-        _ => FgGrey
-    };
+    // One shared brush pair per colour, recoloured in place on theme change so every
+    // pill already on screen updates without re-rendering the grid.
+    private static readonly Pill Green = new(0xE7F6EE, 0x107C41, 0x1C3829, 0x6FD39A);
+    private static readonly Pill Blue = new(0xE8F0FE, 0x2F6FED, 0x1E2F4D, 0x8DB6FF);
+    private static readonly Pill Amber = new(0xFFF4E0, 0xC47B17, 0x3A2E17, 0xF2B350);
+    private static readonly Pill Red = new(0xFDECEC, 0xD13438, 0x3F2124, 0xFF8A8D);
+    private static readonly Pill Purple = new(0xF3EDFA, 0x6B4C9A, 0x2E2542, 0xC4A8F2);
+    private static readonly Pill Rust = new(0xFBEFE8, 0x8A3B12, 0x3B261A, 0xEFA27A);
+    private static readonly Pill Grey = new(0xEEF1F4, 0x5C6B7A, 0x2A3441, 0xAEBBCB);
+    private static readonly Pill[] All = [Green, Blue, Amber, Red, Purple, Rust, Grey];
 
-    // Called three times per grid row; share frozen brushes instead of parsing hex each time.
-    private static readonly Brush BgGreen = Brush(0xE7, 0xF6, 0xEE), FgGreen = Brush(0x10, 0x7C, 0x41);
-    private static readonly Brush BgBlue = Brush(0xE8, 0xF0, 0xFE), FgBlue = Brush(0x2F, 0x6F, 0xED);
-    private static readonly Brush BgAmber = Brush(0xFF, 0xF4, 0xE0), FgAmber = Brush(0xC4, 0x7B, 0x17);
-    private static readonly Brush BgRed = Brush(0xFD, 0xEC, 0xEC), FgRed = Brush(0xD1, 0x34, 0x38);
-    private static readonly Brush BgPurple = Brush(0xF3, 0xED, 0xFA), FgPurple = Brush(0x6B, 0x4C, 0x9A);
-    private static readonly Brush BgRust = Brush(0xFB, 0xEF, 0xE8), FgRust = Brush(0x8A, 0x3B, 0x12);
-    private static readonly Brush BgGrey = Brush(0xEE, 0xF1, 0xF4), FgGrey = Brush(0x5C, 0x6B, 0x7A);
-
-    private static SolidColorBrush Brush(byte r, byte g, byte b)
+    static StatusBrushConverter()
     {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
+        Recolor();
+        Theme.Changed += Recolor;
+    }
+
+    private static void Recolor()
+    {
+        foreach (var p in All)
+            p.Apply(Theme.IsDark);
+    }
+
+    private sealed class Pill(uint lightBg, uint lightFg, uint darkBg, uint darkFg)
+    {
+        public SolidColorBrush Bg { get; } = new();
+        public SolidColorBrush Fg { get; } = new();
+
+        public void Apply(bool dark)
+        {
+            Bg.Color = Rgb(dark ? darkBg : lightBg);
+            Fg.Color = Rgb(dark ? darkFg : lightFg);
+        }
+
+        private static Color Rgb(uint v) => Color.FromRgb((byte)(v >> 16), (byte)(v >> 8), (byte)v);
     }
 }
 

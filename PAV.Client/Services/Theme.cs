@@ -5,6 +5,7 @@ namespace PAV.Client.Services;
 public static class Theme
 {
     public static bool IsDark { get; private set; }
+    public static event Action? Changed;
 
     public static void Apply(bool dark)
     {
@@ -38,5 +39,6 @@ public static class Theme
             else
                 app.Resources[entry.Key] = entry.Value;
         }
+        Changed?.Invoke();
     }
 }
