@@ -17,7 +17,7 @@ public partial class MessageDialog : Window
         Owner = Application.Current?.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive)
                 ?? Application.Current?.MainWindow;
 
-        TitleText.Text = string.IsNullOrWhiteSpace(title) ? "PAV IT Inventory for SIDBI" : title;
+        TitleText.Text = string.IsNullOrWhiteSpace(title) ? "PAV | Physical Asset Management" : title;
         MessageText.Text = message;
 
         switch (kind)
@@ -88,7 +88,7 @@ public partial class MessageDialog : Window
     public static void Info(string message, string? title = null)
     {
         new MessageDialog(
-            title ?? "PAV IT Inventory for SIDBI",
+            title ?? "PAV | Physical Asset Management",
             message,
             Kind.Info,
             yesNo: false).ShowDialog();
@@ -97,7 +97,7 @@ public partial class MessageDialog : Window
     public static void Warning(string message, string? title = null)
     {
         new MessageDialog(
-            title ?? "PAV IT Inventory for SIDBI",
+            title ?? "PAV | Physical Asset Management",
             message,
             Kind.Warning,
             yesNo: false).ShowDialog();

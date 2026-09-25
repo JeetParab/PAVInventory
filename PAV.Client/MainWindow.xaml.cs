@@ -57,7 +57,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.ToString(), "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(ex.ToString(), "PAV | Physical Asset Management", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 }

@@ -9,12 +9,12 @@
     <AssemblyName>PAV.Client</AssemblyName>
     <ApplicationIcon>Assets\pav.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationTitle>PAV IT Inventory for SIDBI</ApplicationTitle>
-    <Product>PAV IT Inventory for SIDBI</Product>
-    <AssemblyTitle>PAV IT Inventory for SIDBI</AssemblyTitle>
+    <ApplicationTitle>PAV | Physical Asset Management</ApplicationTitle>
+    <Product>PAV | Physical Asset Management</Product>
+    <AssemblyTitle>PAV | Physical Asset Management</AssemblyTitle>
     <Company>Jeet Parab</Company>
     <Authors>Jeet Parab</Authors>
-    <Description>IT asset inventory for SIDBI — crafted by Jeet Parab</Description>
+    <Description>Physical asset management for SIDBI — crafted by Jeet Parab</Description>
     <Copyright>Crafted by Jeet Parab</Copyright>
   </PropertyGroup>
   <!-- Precompile to native code on publish: roughly halves the EF Core / SQLite cold start. -->

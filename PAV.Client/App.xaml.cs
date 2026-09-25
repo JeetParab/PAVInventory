@@ -110,6 +110,6 @@ public partial class App : Application
         var shown = text.Length > 1800 ? text[..1800] + "\n…" : text;
         if (!string.IsNullOrEmpty(log))
             shown += "\n\nSaved to:\n" + log;
-        MessageBox.Show(shown, "PAV Inventory", MessageBoxButton.OK, MessageBoxImage.Warning);
+        MessageBox.Show(shown, "PAV | Physical Asset Management", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 }

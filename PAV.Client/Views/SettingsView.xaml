@@ -176,7 +176,7 @@
         <Border Style="{StaticResource Card}" Margin="0,0,0,8">
           <StackPanel>
             <TextBlock Text="About" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <TextBlock Text="PAV IT Inventory for SIDBI" FontSize="15" FontWeight="SemiBold"/>
+            <TextBlock Text="PAV | Physical Asset Management" FontSize="15" FontWeight="SemiBold"/>
             <TextBlock Text="Crafted by Jeet Parab" Style="{StaticResource MutedText}" Margin="0,4,0,14"/>
 
             <TextBlock Text="What it is" FontWeight="SemiBold" Margin="0,0,0,4"/>
