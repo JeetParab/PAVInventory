@@ -39,7 +39,7 @@
           </StackPanel>
           <Border Height="1" Margin="16,0,16,6" Background="{DynamicResource SidebarBorderBrush}"
                   Visibility="{Binding SidebarCollapsed, Converter={StaticResource BoolToVisInv}}"/>
-          <Border Height="14" Visibility="{Binding SidebarCollapsed, Converter={StaticResource BoolToVis}}"/>
+          <Border Height="44" Visibility="{Binding SidebarCollapsed, Converter={StaticResource BoolToVis}}"/>
         </StackPanel>
 
         <Border DockPanel.Dock="Bottom" Padding="16,12,16,14" BorderBrush="{DynamicResource SidebarBorderBrush}" BorderThickness="0,1,0,0">
